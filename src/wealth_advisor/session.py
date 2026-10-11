@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 import time
 from typing import Any
 
@@ -104,8 +105,23 @@ class AdvisorSession:
 
     def _messages_for_turn(self, user_message: str) -> list[dict[str, Any]]:
         system = self.agent.system_message(self.state.summary())
+        if self._contains_complete_fact_summary(user_message):
+            system["content"] += "\nThis first message contains a complete fact pattern; do not greet or ask for the goal. Save facts, score the profile, and proceed with the requested advice now."
         history = trim_complete_turns(self.messages, max_turns=4)
         return [system, *history, {"role": "user", "content": user_message}]
+
+    @staticmethod
+    def _contains_complete_fact_summary(message: str) -> bool:
+        """Detect a complete first-message fact pattern without interpreting its values."""
+
+        patterns = (
+            r"\d[\d,]*(?:\.\d+)?", r"\b(?:year|years|month|months|short|long)\b",
+            r"(?:loss|lose|fall|drop|down).{0,20}\d+\s*%", r"(?:within|need|liquid|week|day|month)",
+            r"(?:income|salary|stable|unstable)", r"(?:emergency|expenses|cash reserve)",
+            r"(?:savings|net worth|invested|two thirds|half|quarter)", r"(?:sell|reduce|hold|buy more)",
+            r"(?:experience|know|familiar|deposit|fund)", r"(?:goal|income|growth|preserve|house|flat|retire)",
+        )
+        return all(re.search(pattern, message, re.I) for pattern in patterns)
 
     def _tools_for_state(self) -> list[dict[str, Any]]:
         """Expose only tools valid for the current advisory stage."""

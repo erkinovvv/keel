@@ -139,3 +139,14 @@ def test_session_passes_exact_settings_to_llm_and_prompt_guard(tmp_path):
     assert session.agent.llm.settings.groq_api_key == "session-only-key"
     assert session.agent.llm.settings.primary_model == "session-model"
     assert session.prompt_guard.settings is settings
+
+
+def test_complete_first_message_gets_no_greeting_directive(tmp_path):
+    session = make_session(tmp_path)
+    message = (
+        "I am 42 with 100000 for 8 years, can lose 20%, need it within a week, "
+        "stable income, six months emergency cash, half my savings invested, "
+        "would hold after a fall, know funds, and want growth. Build a portfolio."
+    )
+    system = session._messages_for_turn(message)[0]["content"]
+    assert "do not greet or ask for the goal" in system
