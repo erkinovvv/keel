@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Cookie, FastAPI, HTTPException, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -31,6 +31,7 @@ from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_inv
 from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
+from wealth_advisor.ui.report import render_report
 from wealth_advisor.ui.labels import CLASS_NAMES, FLAG_LABELS, explain_reason, humanize, question_label
 
 STATIC = Path(__file__).parent / "static"
@@ -50,6 +51,8 @@ class ClientFile:
     session: AdvisorSession
     client: dict[str, Any] = field(default_factory=dict)
     allocation_count: int = 0
+    goal: dict[str, Any] | None = None
+    signed: bool = False
 
 
 _FILES: dict[str, ClientFile] = {}
@@ -239,6 +242,7 @@ def goal(body: GoalIn, response: Response, wa_sid: str | None = Cookie(default=N
     except ValueError as exc:
         raise HTTPException(409 if "allocation" in str(exc) else 422, str(exc)) from exc
     view = result.as_dict()
+    file.goal = {"input": body.model_dump(), "result": view}
     stamp = _record(file, "ui_goal_projected", "goals.project_goal", {"goal": body.model_dump(), "probability": result.probability, "required_monthly": result.required_monthly})
     return {"goal": body.model_dump(), "result": view, "initial": allocation.amount, "provenance": stamp}
 
@@ -327,6 +331,7 @@ def consent(body: ConsentIn, response: Response, wa_sid: str | None = Cookie(def
         _record(file, "consent_refused", "ui.server.consent", {"reason": "kill_switch"})
         raise HTTPException(403, "Trading is switched off for all sessions right now.")
     file.session.tier = PermissionTier.EXECUTE
+    file.signed = True
     # The signature name is personal data: only its hash enters the audit log.
     signer = hashlib.sha256(body.full_name.strip().lower().encode()).hexdigest()
     stamp = _record(file, "risk_disclosure_signed", "ui.server.consent", {"signer_sha256": signer, "tier": "EXECUTE"})
@@ -393,6 +398,31 @@ def confirm_orders(body: ConfirmIn, response: Response, wa_sid: str | None = Coo
         "investor_class": file.session.state.profile.investor_class if file.session.state.profile else None,
         "provenance": stamp,
     }
+
+
+@app.get("/report", response_class=HTMLResponse)
+def advice_report(response: Response, wa_sid: str | None = Cookie(default=None)) -> HTMLResponse:
+    """Printable suitability record; its fingerprint is written to the audit chain."""
+
+    file = _file(wa_sid, response)
+    profile = file.session.state.profile
+    if profile is None:
+        return HTMLResponse("<p style='font-family:sans-serif;padding:40px'>Complete the risk questionnaire first, then open the report again.</p>", status_code=409)
+    try:
+        allocation = file.session.stored_allocation("latest")
+    except ValueError:
+        allocation = None
+    stress_results = [stress_test(allocation, key, max_tolerable_loss=file.client.get("max_loss", 0.2)) for key in SCENARIOS] if allocation else []
+    path = Path(file.session.settings.audit_log)
+    valid, _ = verify_audit_log(path)
+    count = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip()) if path.exists() else 0
+    html, digest = render_report(
+        profile=profile, client=file.client, allocation=allocation, stress=stress_results, goal=file.goal,
+        products={p.id: p for p in load_catalog()}, audit_valid=valid, audit_records=count,
+        signed=file.signed, model_mode=file.session.settings.llm_mode,
+    )
+    _record(file, "advice_report_issued", "ui.report.render_report", {"report_sha256": digest})
+    return HTMLResponse(html)
 
 
 @app.get("/")

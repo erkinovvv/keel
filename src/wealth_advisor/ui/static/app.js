@@ -220,6 +220,7 @@ async function submitProfile(e) {
     });
     Object.assign(state, { answers, profile: data.profile, client: data.client, profileProv: data.provenance, allocationLevel: data.profile.investor_class, allocation: null });
     state.done.add("profile");
+    $("#reportLink").setAttribute("aria-disabled", "false");
     showProfile(true);
     go("profile");
     $("#profileResult").scrollIntoView({ behavior: "smooth", block: "start" });

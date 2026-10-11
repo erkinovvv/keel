@@ -81,6 +81,9 @@ svg { display: block; }
 .brand rect { fill: var(--jade); }
 .brand path { stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .topbar-meta { display: flex; align-items: center; gap: 10px; }
+.report-link { font-size: 13px; font-weight: 500; color: var(--jade-ink); text-decoration: none; padding: 5px 10px; border-radius: 999px; }
+.report-link:hover { background: var(--jade-soft); }
+.report-link[aria-disabled="true"] { color: var(--ink-3); pointer-events: none; }
 .tier { font-size: 13px; color: var(--ink-2); padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; }
 .audit-pill {
   display: inline-flex; align-items: center; gap: 8px;

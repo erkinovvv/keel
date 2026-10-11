@@ -75,3 +75,15 @@ def test_human_confirmation_flow(tmp_path, monkeypatch):
     assert len(result["executed"]) == len(ids) and not result["failed"]
     replay = client.post("/api/orders/confirm", json={"tokens": tokens}).json()
     assert replay["executed"] == []  # one-time tokens cannot be reused
+
+
+def test_advice_report_is_fingerprinted(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    assert client.get("/report").status_code == 409
+    _profile(client)
+    client.post("/api/allocation", json={})
+    client.post("/api/goal", json={"target": 300_000, "years": 8, "monthly": 1_000})
+    page = client.get("/report")
+    assert page.status_code == 200 and "Advice Report" in page.text and "Recommended portfolio" in page.text
+    events = [r["event"] for r in client.get("/api/audit").json()["records"]]
+    assert "advice_report_issued" in events
