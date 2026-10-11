@@ -50,7 +50,7 @@ class LLMClient:
         }
         self._replay_index += 1
         calls = tuple(
-            ToolCall(call.get("id", f"replay-{index}"), call["name"], call.get("arguments", {}))
+            ToolCall(call.get("id", f"replay-{index}"), call["name"], call.get("arguments", {}) if isinstance(call.get("arguments", {}), dict) else {"_malformed_arguments": call.get("arguments")})
             for index, call in enumerate(record.get("tool_calls", []))
         )
         return LLMResponse(record.get("content", ""), calls, "replay", record.get("usage", {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}))
@@ -65,9 +65,11 @@ class LLMClient:
                 raise RuntimeError("GROQ_API_KEY is required when LLM_MODE is live")
             from openai import OpenAI
 
-            client = OpenAI(api_key=self.settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
+            if not hasattr(self, "_client"):
+                self._client = OpenAI(api_key=self.settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
             response = None
             last_error: Exception | None = None
+            retry_after_seconds = 0.0
             for model in (self.settings.primary_model, *self.settings.fallback_models):
                 try:
                     kwargs: dict[str, Any] = {"model": model, "messages": messages, "temperature": 0}
@@ -77,10 +79,16 @@ class LLMClient:
                         kwargs["reasoning_effort"] = "low"
                     raw = client.chat.completions.create(**kwargs)
                     message = raw.choices[0].message
-                    calls = tuple(
-                        ToolCall(call.id, call.function.name, json.loads(call.function.arguments or "{}"))
-                        for call in (message.tool_calls or [])
-                    )
+                    parsed_calls = []
+                    for call in (message.tool_calls or []):
+                        try:
+                            arguments = json.loads(call.function.arguments or "{}")
+                            if not isinstance(arguments, dict):
+                                raise ValueError("tool arguments must be a JSON object")
+                        except (TypeError, ValueError, json.JSONDecodeError):
+                            arguments = {"_malformed_arguments": call.function.arguments}
+                        parsed_calls.append(ToolCall(call.id, call.function.name, arguments))
+                    calls = tuple(parsed_calls)
                     usage = {
                         "prompt_tokens": getattr(raw.usage, "prompt_tokens", 0) or 0,
                         "completion_tokens": getattr(raw.usage, "completion_tokens", 0) or 0,
@@ -90,12 +98,15 @@ class LLMClient:
                     break
                 except Exception as exc:
                     last_error = exc
-                    if getattr(exc, "status_code", None) != 429:
-                        raise
-                    headers = getattr(getattr(exc, "response", None), "headers", {}) or getattr(exc, "headers", {})
-                    retry_after = headers.get("retry-after") or headers.get("Retry-After")
-                    if retry_after is not None:
-                        time.sleep(float(retry_after))
+                    if getattr(exc, "status_code", None) == 429:
+                        headers = getattr(getattr(exc, "response", None), "headers", {}) or getattr(exc, "headers", {})
+                        retry_after = headers.get("retry-after") or headers.get("Retry-After")
+                        if retry_after is not None:
+                            retry_after_seconds = max(retry_after_seconds, min(float(retry_after), 20.0))
+                    if self.audit:
+                        self.audit.append("llm_error", {"model": model, "error": type(exc).__name__, "status_code": getattr(exc, "status_code", None)})
+            if response is None and retry_after_seconds:
+                time.sleep(retry_after_seconds)
             if response is None:
                 raise RuntimeError("all Groq models failed") from last_error
         if self.audit:

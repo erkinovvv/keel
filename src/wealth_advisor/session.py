@@ -1,0 +1,88 @@
+"""Server-owned advisory session state and the UI-facing session contract."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field
+from typing import Any
+
+from .agent import AdvisorAgent, AgentTurn, trim_complete_turns
+from .allocation import Allocation
+from .audit import AuditLogger
+from .config import Settings
+from .permissions import PermissionTier
+from .profiling import InvestorProfile
+from .stress import StressResult
+from .tools import ToolDispatcher
+
+
+@dataclass
+class SessionState:
+    """Mutable server-side state; the model only sees the compact summary."""
+
+    profile: InvestorProfile | None = None
+    allocations: dict[str, Allocation] = field(default_factory=dict)
+    stress_results: dict[str, StressResult] = field(default_factory=dict)
+    draft_orders: dict[str, Any] = field(default_factory=dict)
+    account: Any = None
+
+    @property
+    def latest_allocation_id(self) -> str | None:
+        return next(reversed(self.allocations), None)
+
+    def summary(self) -> dict[str, Any]:
+        """Return only non-sensitive identifiers and profile facts for the model."""
+
+        return {
+            "profile_class": self.profile.class_code if self.profile else None,
+            "profile_expires_on": self.profile.expires_on.isoformat() if self.profile else None,
+            "latest_allocation_id": self.latest_allocation_id,
+            "allocation_ids": list(self.allocations),
+            "stress_result_ids": list(self.stress_results),
+        }
+
+
+class AdvisorSession:
+    """Own conversation history and deterministic advisory artifacts on the server."""
+
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        tier: PermissionTier = PermissionTier.ADVISE,
+    ):
+        self.settings = settings or Settings.from_env()
+        self.tier = tier
+        self.state = SessionState()
+        self.audit = AuditLogger(self.settings.audit_log)
+        self.dispatcher = ToolDispatcher(audit=self.audit, session=self)
+        self.agent = AdvisorAgent(
+            llm=None,
+            dispatcher=self.dispatcher,
+            audit=self.audit,
+            max_steps=self.settings.max_tool_steps,
+        )
+        self.messages: list[dict[str, Any]] = []
+
+    def _messages_for_turn(self, user_message: str) -> list[dict[str, Any]]:
+        system = self.agent.system_message(self.state.summary())
+        history = trim_complete_turns(self.messages, max_turns=6)
+        return [system, *history, {"role": "user", "content": user_message}]
+
+    def send(self, user_message: str) -> str:
+        """Run one complete turn while retaining only valid, complete dialogue turns."""
+
+        if not user_message.strip():
+            raise ValueError("user_message must not be empty")
+        turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(user_message))
+        self.messages = trim_complete_turns(turn.messages, max_turns=6)
+        self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary()})
+        return turn.content
+
+    def stored_allocation(self, allocation_id: str = "latest") -> Allocation:
+        """Resolve a server-side allocation identifier for non-LLM callers."""
+
+        resolved = self.state.latest_allocation_id if allocation_id == "latest" else allocation_id
+        if not resolved or resolved not in self.state.allocations:
+            raise ValueError("allocation not found; build an allocation first")
+        return self.state.allocations[resolved]
+

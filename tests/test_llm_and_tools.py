@@ -29,8 +29,16 @@ def test_tool_dispatcher_validates_and_returns_json_ready_values(tmp_path):
 
 
 def test_tool_dispatcher_exposes_stress_test(tmp_path):
-    dispatcher = ToolDispatcher(AuditLogger(tmp_path / "audit.jsonl"))
-    allocation = build_allocation(100_000, 3).as_dict()
-    result = dispatcher.dispatch("stress_test", {"allocation": allocation, "scenario": "2022_rate_shock"})
+    from wealth_advisor.permissions import PermissionTier
+    from wealth_advisor.session import AdvisorSession
+
+    session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.ADVISE)
+    session.dispatcher.dispatch("profile_investor", {"answers": {
+        "horizon": "7_10y", "income_stability": "stable", "emergency_fund": "over_6_months",
+        "invested_share": "under_25", "drawdown_reaction": "hold", "experience": "good", "goal": "growth",
+    }})
+    allocation = build_allocation(100_000, 3)
+    session.state.allocations["allocation-1"] = allocation
+    result = session.dispatcher.dispatch("stress_test", {"allocation_id": "allocation-1", "scenario": "2022_rate_shock"})
     assert result["scenario"] == "2022_rate_shock"
     assert result["loss_amount"] >= 0
