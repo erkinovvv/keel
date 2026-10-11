@@ -15,7 +15,7 @@ import secrets
 from datetime import date
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import Cookie, FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, HTMLResponse
@@ -30,6 +30,7 @@ from wealth_advisor.config import Settings
 from wealth_advisor.goals import GoalInput, project_goal
 from wealth_advisor.permissions import PermissionDenied, PermissionTier
 from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_investor
+from wealth_advisor.rehearsal import apply_outcome, evaluate, load_scenario, portfolio_path
 from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
@@ -56,6 +57,7 @@ class ClientFile:
     goal: dict[str, Any] | None = None
     signed: bool = False
     anchors: list[dict[str, Any]] = field(default_factory=list)
+    rehearsals: list[dict[str, Any]] = field(default_factory=list)
 
 
 _FILES: dict[str, ClientFile] = {}
@@ -307,6 +309,55 @@ def goal(body: GoalIn, response: Response, wa_sid: str | None = Cookie(default=N
     file.goal = {"input": body.model_dump(), "result": view}
     stamp = _record(file, "ui_goal_projected", "goals.project_goal", {"goal": body.model_dump(), "probability": result.probability, "required_monthly": result.required_monthly})
     return {"goal": body.model_dump(), "result": view, "initial": allocation.amount, "provenance": stamp}
+
+
+@app.get("/api/rehearsal")
+def rehearsal(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """The client's own portfolio replayed through 2007-2013, month by month."""
+
+    file = _file(wa_sid, response)
+    profile = _require_profile(file)
+    try:
+        allocation = file.session.stored_allocation("latest")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    scenario = load_scenario()
+    path = portfolio_path(allocation, scenario)
+    stamp = _record(file, "rehearsal_started", "rehearsal.portfolio_path", {"allocation_id": file.session.state.latest_allocation_id, "months": len(path)})
+    answers = _answers_from_profile(profile)
+    return {
+        "amount": allocation.amount,
+        "points": [{"month": p.month, "value": p.value, "drawdown": p.drawdown, "headline": p.headline} for p in path],
+        "stated_reaction": answers.get("drawdown_reaction"),
+        "stated_max_loss": _client(file).get("max_loss"),
+        "investor_class": profile.investor_class,
+        "sources": scenario["sources"],
+        "method": scenario["method"],
+        "provenance": stamp,
+    }
+
+
+class DecisionIn(BaseModel):
+    action: Literal["sell", "hold", "buy_more"]
+    month_index: int = Field(ge=0, le=200)
+
+
+@app.post("/api/rehearsal/decision")
+def rehearsal_decision(body: DecisionIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Score the client's behaviour; revealed tolerance can only lower the risk class."""
+
+    file = _file(wa_sid, response)
+    profile = _require_profile(file)
+    try:
+        allocation = file.session.stored_allocation("latest")
+        outcome = evaluate(allocation, profile, body.action, body.month_index, stated_max_loss=_client(file).get("max_loss"))
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    file.session.state.profile = apply_outcome(profile, outcome)
+    view = outcome.as_dict()
+    file.rehearsals.append(view)
+    stamp = _record(file, "rehearsal_decision", "rehearsal.evaluate", {"outcome": view})
+    return {"outcome": view, "profile": _profile_view(file.session.state.profile), "provenance": stamp}
 
 
 class ChatIn(BaseModel):

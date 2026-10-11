@@ -107,3 +107,20 @@ def test_profile_built_in_chat_appears_in_ui_state(tmp_path, monkeypatch):
     assert state["client"]["amount"] == 80_000
     assert state["allocation"]["amount"] == 80_000
     assert state["allocation_provenance"]["source"] == "agent tool build_allocation"
+
+
+def test_crash_rehearsal_reveals_tolerance(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    _profile(client)
+    client.post("/api/allocation", json={})
+    data = client.get("/api/rehearsal").json()
+    points = data["points"]
+    assert points[0]["value"] == data["amount"] and len(points) == 67
+    before = client.get("/api/state").json()["profile"]["investor_class"]
+    first_dip = next(i for i, p in enumerate(points) if 0 < p["drawdown"] < 0.05)
+    result = client.post("/api/rehearsal/decision", json={"action": "sell", "month_index": first_dip}).json()
+    assert result["outcome"]["revealed_class"] == 1
+    assert result["profile"]["investor_class"] == 1 <= before
+    assert any("crash rehearsal" in r["text"] for r in result["profile"]["reasons"])
+    events = [r["event"] for r in client.get("/api/audit").json()["records"]]
+    assert {"rehearsal_started", "rehearsal_decision"} <= set(events)

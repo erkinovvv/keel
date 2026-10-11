@@ -184,7 +184,7 @@ function go(step) {
     b.disabled = b.dataset.step !== "profile" && !state.profile;
   }
   popover.hidden = true;
-  ({ profile: renderProfile, portfolio: renderPortfolio, goal: renderGoal, compare: renderCompare, stress: renderStress, execute: renderExecute })[step]();
+  ({ profile: renderProfile, portfolio: renderPortfolio, rehearse: renderRehearse, goal: renderGoal, compare: renderCompare, stress: renderStress, execute: renderExecute })[step]();
   panel.scrollTop = 0;
 }
 
@@ -375,7 +375,7 @@ async function renderPortfolio() {
         </tbody>
       </table>
     </div>
-    <div class="actions"><button class="btn" type="button" id="toGoal">Check my goal</button><button class="btn secondary" type="button" id="toStress">Stress-test this portfolio</button><button class="btn secondary" type="button" id="toCompare">Compare products</button></div>
+    <div class="actions"><button class="btn" type="button" id="toRehearse">Live through 2008 with this portfolio</button><button class="btn secondary" type="button" id="toGoal">Check my goal</button><button class="btn secondary" type="button" id="toStress">Stress-test this portfolio</button><button class="btn secondary" type="button" id="toCompare">Compare products</button></div>
     <div id="allocErr"></div>`;
 
   panel.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
@@ -386,6 +386,7 @@ async function renderPortfolio() {
   panel.querySelectorAll("[data-level]").forEach((b) => (b.onclick = () => rebuild(+$("#wiAmount").value, +b.dataset.level)));
   let t;
   $("#wiAmount").oninput = (e) => { clearTimeout(t); t = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
+  $("#toRehearse").onclick = () => go("rehearse");
   $("#toGoal").onclick = () => go("goal");
   $("#toStress").onclick = () => go("stress");
   $("#toCompare").onclick = () => go("compare");
@@ -403,7 +404,174 @@ async function rebuild(amount, level) {
   }
 }
 
-// ---------------------------------------------------------------- 3. goal
+// ---------------------------------------------------------------- 3. crash rehearsal
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const monthName = (ym) => `${MONTHS[+ym.slice(5) - 1]} ${ym.slice(0, 4)}`;
+const REACTION_TEXT = { sell_all: "sell everything", reduce: "sell some to limit losses", hold: "hold and wait", buy_more: "buy more at lower prices" };
+
+async function renderRehearse() {
+  if (!state.allocation) {
+    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    try { await loadAllocation(state.client.amount, state.allocationLevel, false); }
+    catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  }
+  const last = state.rehearsal;
+  const reaction = state.answers?.drawdown_reaction;
+  panel.innerHTML = `
+    <h1>Before we invest, live through 2008</h1>
+    <p class="lede">Every robo-advisor stress-tests the portfolio. We stress-test the investor. You will replay October 2007 to March 2013 month by month, with real market returns, holding exactly the portfolio we just built for you. You can sell at any moment.</p>
+    <div class="sheet rehearse-intro">
+      <div class="ri-facts">
+        <div><span>Your portfolio</span><b>${money(state.allocation.amount)}</b></div>
+        <div><span>You told us that after a 20% fall you would</span><b>${esc(REACTION_TEXT[reaction] || "—")}</b></div>
+        <div><span>The largest yearly loss you said you could accept</span><b>${state.client?.max_loss ? pct(state.client.max_loss, 0) : "—"}</b></div>
+      </div>
+      <p class="hint">Takes about 90 seconds. What you do can only lower your risk class, never raise it. Data: Kenneth R. French Data Library, FRED, World Bank.</p>
+      <div class="actions"><button class="btn" id="startRehearsal" type="button">${last ? "Rehearse again" : "Start the rehearsal"}</button></div>
+    </div>
+    <div id="rehearsalResult">${last ? resultCard(last) : ""}</div>`;
+  $("#startRehearsal").onclick = startRehearsal;
+  wireResult();
+}
+
+async function startRehearsal() {
+  let data;
+  try { data = await api("/api/rehearsal"); }
+  catch (err) { note(err.message, "msg-error"); return; }
+  refreshAudit();
+  say([
+    "Let's live through it together. This is your portfolio, in real markets, starting October 2007.",
+    "If at any point you want out, press <strong>Sell everything</strong>. Doing nothing means you hold.",
+  ]);
+  const pts = data.points;
+  const troughIndex = pts.reduce((best, p, i) => (p.drawdown > pts[best].drawdown ? i : best), 0);
+  const stage = document.createElement("div");
+  stage.className = "theater";
+  stage.setAttribute("role", "dialog");
+  stage.setAttribute("aria-label", "Crash rehearsal");
+  stage.tabIndex = -1;
+  const W = 1000, H = 300;
+  const vals = pts.map((p) => p.value);
+  const lo = Math.min(...vals) * 0.96, hi = Math.max(...vals) * 1.04;
+  const X = (i) => (i / (pts.length - 1)) * W;
+  const Y = (v) => H - ((v - lo) / (hi - lo)) * H;
+  stage.innerHTML = `
+    <div class="th-top">
+      <div><div class="th-label">Crash rehearsal · your portfolio</div><div class="th-month" id="thMonth">${monthName(pts[0].month)}</div></div>
+      <button class="th-quit" id="thQuit" type="button">Stop rehearsal</button>
+    </div>
+    <div class="th-value"><span id="thValue">${money(pts[0].value)}</span><span class="th-change" id="thChange">0.0%</span></div>
+    <div class="th-dd" id="thDd">From your peak: 0.0%</div>
+    <svg class="th-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <line class="th-base" x1="0" x2="${W}" y1="${Y(data.amount)}" y2="${Y(data.amount)}"/>
+      <path class="th-area" id="thArea" d=""/>
+      <path class="th-line" id="thLine" d=""/>
+      <circle class="th-dot" id="thDot" r="6" cx="0" cy="${Y(pts[0].value)}"/>
+    </svg>
+    <div class="th-news" aria-live="polite"><span class="th-news-tag">News</span><span id="thNews">Markets are calm. Stocks are near record highs.</span></div>
+    <div class="th-actions">
+      <button class="th-sell" id="thSell" type="button">Sell everything</button>
+      <button class="th-buy" id="thBuy" type="button">Buy more</button>
+      <span class="th-hint" id="thHint">Doing nothing means you hold.</span>
+    </div>`;
+  document.body.append(stage);
+  stage.focus();
+
+  let i = 0, done = false, boughtAt = null, timer = null;
+  const tick = () => {
+    if (done) return;
+    i += 1;
+    const p = pts[i];
+    const line = pts.slice(0, i + 1).map((q, k) => `${k ? "L" : "M"}${X(k).toFixed(1)},${Y(q.value).toFixed(1)}`).join("");
+    $("#thLine").setAttribute("d", line);
+    $("#thArea").setAttribute("d", `${line}L${X(i).toFixed(1)},${H}L0,${H}Z`);
+    $("#thDot").setAttribute("cx", X(i)); $("#thDot").setAttribute("cy", Y(p.value));
+    const change = p.value / data.amount - 1;
+    $("#thMonth").textContent = monthName(p.month);
+    $("#thValue").textContent = money(p.value);
+    $("#thChange").textContent = `${change >= 0 ? "+" : "−"}${pct(Math.abs(change))}`;
+    $("#thDd").textContent = `From your peak: −${pct(p.drawdown)}`;
+    stage.classList.toggle("red", change < 0);
+    stage.classList.toggle("deep", p.drawdown > 0.1);
+    $("#thSell").classList.toggle("tempt", p.drawdown > 0.05 && i <= troughIndex + 2);
+    if (p.headline) { const n = $("#thNews"); n.textContent = p.headline; n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); }
+    if (i === troughIndex) $("#thHint").textContent = "This is the moment most investors sell.";
+    if (i === troughIndex + 3) $("#thHint").textContent = "Doing nothing means you hold.";
+    if (i >= pts.length - 1) return finish(boughtAt === null ? "hold" : "buy_more", boughtAt ?? i);
+    timer = setTimeout(tick, i < troughIndex + 2 ? 1500 : 330);
+  };
+  const finish = async (action, index) => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    stage.classList.add("ended");
+    let res;
+    try { res = await api("/api/rehearsal/decision", { method: "POST", body: { action, month_index: index } }); }
+    catch (err) { stage.remove(); note(err.message, "msg-error"); return; }
+    state.rehearsal = res.outcome;
+    const lowered = res.outcome.new_class < res.outcome.previous_class;
+    if (lowered) Object.assign(state, { profile: res.profile, allocationLevel: res.profile.investor_class });
+    else state.profile = res.profile;
+    state.done.add("rehearse");
+    refreshAudit();
+    narrateOutcome(res.outcome);
+    setTimeout(() => { stage.remove(); go("rehearse"); $("#rehearsalResult")?.scrollIntoView({ behavior: "smooth" }); }, action === "sell" ? 900 : 300);
+  };
+  $("#thSell").onclick = () => finish("sell", i);
+  $("#thBuy").onclick = (e) => { if (boughtAt === null) { boughtAt = i; e.target.textContent = "Bought more"; e.target.disabled = true; } };
+  $("#thQuit").onclick = () => { done = true; clearTimeout(timer); stage.remove(); note("Rehearsal stopped. Nothing was recorded about your risk class."); };
+  stage.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#thQuit").click(); });
+  timer = setTimeout(tick, 1200);
+}
+
+function resultCard(o) {
+  const sold = o.action === "sell";
+  const lowered = o.new_class < o.previous_class;
+  const gap = o.final_value_if_held - o.final_value_of_choice;
+  return `
+    <h3>Your rehearsal</h3>
+    <div class="sheet rehearse-result ${sold ? "sold" : "held"}">
+      <p class="rr-head">${sold
+        ? `You sold in ${monthName(o.month)}, ${pct(o.drawdown_at_decision)} below your peak.`
+        : `You held through the worst of it: ${pct(o.max_drawdown)} below your peak in ${monthName(o.trough_month)}.`}</p>
+      <div class="rr-compare">
+        <div><span>If you had held to March 2013</span><b>${money(o.final_value_if_held)}</b></div>
+        <div><span>${sold ? "After selling and keeping cash" : o.action === "buy_more" ? "You held, and even bought more" : "What you ended with"}</span><b>${money(o.final_value_of_choice)}</b></div>
+        ${sold ? `<div class="rr-gap"><span>Cost of selling</span><b>−${money(gap)}</b></div>` : ""}
+      </div>
+      <p>${lowered
+        ? `Your answers put you at <strong>C${o.previous_class}</strong>, but your behaviour supports <strong>C${o.new_class}</strong>. We have lowered your risk class: a portfolio you can stay with beats one you abandon at the bottom.`
+        : sold
+          ? `You sold at a loss your class already allows for, so your risk class stays at <strong>C${o.new_class}</strong>.`
+          : `Your behaviour supports your risk class <strong>C${o.new_class}</strong>.`}</p>
+      ${lowered ? `<div class="actions"><button class="btn" type="button" id="rebuildAtNew">Rebuild my portfolio at C${o.new_class}</button></div>` : ""}
+    </div>`;
+}
+
+function wireResult() {
+  const b = $("#rebuildAtNew");
+  if (b) b.onclick = async () => { await loadAllocation(state.allocation.amount, state.profile.investor_class, true); go("portfolio"); };
+}
+
+function narrateOutcome(o) {
+  const lowered = o.new_class < o.previous_class;
+  if (o.action === "sell") {
+    say([
+      `You sold in ${monthName(o.month)}, down ${pct(o.drawdown_at_decision)} from your peak. Holding would have left you with <strong>${money(o.final_value_if_held)}</strong> by March 2013; selling left ${money(o.final_value_of_choice)}.`,
+      lowered
+        ? `That tells me more than the questionnaire did. I have lowered your risk class to <strong>C${o.new_class}</strong> so the portfolio matches how you actually react.`
+        : "Your class already allows for a loss of that size, so it stays the same.",
+    ]);
+  } else {
+    say([
+      `You held through a ${pct(o.max_drawdown)} fall. By March 2013 the portfolio was worth <strong>${money(o.final_value_if_held)}</strong>.`,
+      "Your behaviour supports the risk class from your answers.",
+    ]);
+  }
+}
+
+// ---------------------------------------------------------------- 4. goal
 
 const short = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : `${Math.round(v)}`);
 const GOAL_KINDS = ["Buy a home", "Children's education", "Retirement", "Something else"];
@@ -560,7 +728,7 @@ function wireFan(fan, target) {
   hit.addEventListener("pointerleave", hide);
 }
 
-// ---------------------------------------------------------------- 4. compare
+// ---------------------------------------------------------------- 5. compare
 
 async function renderCompare(asset = "") {
   panel.innerHTML = `<p class="empty">Comparing products…</p>`;
@@ -600,7 +768,7 @@ async function renderCompare(asset = "") {
   panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare(i.value)));
 }
 
-// ---------------------------------------------------------------- 5. stress
+// ---------------------------------------------------------------- 6. stress
 
 async function renderStress() {
   if (!state.allocation) { await renderPortfolio(); }
@@ -644,7 +812,7 @@ async function renderStress() {
   ]);
 }
 
-// ---------------------------------------------------------------- 6. execute
+// ---------------------------------------------------------------- 7. execute
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -760,6 +928,7 @@ async function renderTicket() {
         <div class="perf" aria-hidden="true"></div>
         <ul class="checks">
           <li>Every product is rated R${d.investor_class} or lower</li>
+          <li class="${state.rehearsal ? "" : "todo"}">${state.rehearsal ? `Crash rehearsal completed: ${state.rehearsal.action === "sell" ? "sold" : "held"} in 2008` : "Crash rehearsal not taken yet"}</li>
           <li>Per-order and daily limits respected</li>
           <li>Risk profile valid until ${new Date(state.profile.expires_on).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</li>
         </ul>

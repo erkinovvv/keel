@@ -82,6 +82,12 @@ def explain_reason(code: str) -> str:
         return f"Suitable: product risk R{product} does not exceed your risk class C{investor}."
     if code == "RISK_ADJUSTED_RETURN_NET_OF_FEES":
         return "Best expected return per unit of risk, after fees, within its asset class."
+    if match := re.fullmatch(r"REVEALED_TOLERANCE_C(\d)", code):
+        return f"In the crash rehearsal you sold during the fall, so your risk class was lowered to C{match.group(1)}."
+    if code == "REHEARSAL_HELD":
+        return "You held your portfolio through the 2008 crash rehearsal."
+    if code == "REHEARSAL_SOLD_WITHIN_CLASS":
+        return "You sold during the crash rehearsal, at a loss your risk class already allows for."
     if code == "VULNERABILITY_CAP_APPLIED":
         return "A client-protection cap lowered your risk class (see flags)."
     for question in sorted(QUESTION_LABELS, key=len, reverse=True):
