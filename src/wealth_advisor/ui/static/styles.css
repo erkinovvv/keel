@@ -81,6 +81,8 @@ svg { display: block; }
 .brand rect { fill: var(--jade); }
 .brand path { stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .topbar-meta { display: flex; align-items: center; gap: 10px; }
+.lang-toggle { font-size: 13px; font-weight: 500; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; cursor: pointer; color: var(--ink-2); }
+.lang-toggle:hover { border-color: var(--jade); color: var(--jade-ink); }
 .report-link { font-size: 13px; font-weight: 500; color: var(--jade-ink); text-decoration: none; padding: 5px 10px; border-radius: 999px; }
 .report-link:hover { background: var(--jade-soft); }
 .report-link[aria-disabled="true"] { color: var(--ink-3); pointer-events: none; }
@@ -369,7 +371,7 @@ td.r, th.r { text-align: right; }
 .th-change { font-size: clamp(18px, 2.4vw, 28px); font-weight: 600; color: var(--th-dim); }
 .theater.red .th-change { color: var(--th-red); }
 .th-dd { color: var(--th-dim); font-size: 15px; margin-top: 6px; }
-.th-chart { width: 100%; height: 100%; min-height: 160px; margin: 18px 0 10px; overflow: visible; }
+.th-chart { width: 100%; height: 100%; min-height: 160px; margin: 18px 0 22px; overflow: visible; }
 .th-base { stroke: #2a3a37; stroke-width: 1.5; stroke-dasharray: 6 6; vector-effect: non-scaling-stroke; }
 .th-line { fill: none; stroke: var(--th-line); stroke-width: 3; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: stroke .4s; }
 .th-area { fill: var(--th-line); opacity: .08; transition: fill .4s; }

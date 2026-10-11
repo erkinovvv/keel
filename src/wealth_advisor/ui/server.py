@@ -35,7 +35,7 @@ from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
 from wealth_advisor.ui.report import render_report
-from wealth_advisor.ui.labels import CLASS_NAMES, FLAG_LABELS, explain_reason, humanize, question_label
+from wealth_advisor.ui.labels import LANG, class_name, explain_reason, flag_label, humanize, question_label
 
 STATIC = Path(__file__).parent / "static"
 SCENARIO_NAMES = {
@@ -45,6 +45,14 @@ SCENARIO_NAMES = {
 }
 
 app = FastAPI(title="Wealth Advisor Agent", docs_url="/api/docs")
+
+
+@app.middleware("http")
+async def language(request, call_next):
+    """UI language for labels and reason texts, chosen by the client (cookie wa_lang)."""
+
+    LANG.set("zh" if request.cookies.get("wa_lang") == "zh" else "en")
+    return await call_next(request)
 
 
 @dataclass
@@ -135,14 +143,14 @@ def _record(file: ClientFile, event: str, source: str, details: dict[str, Any]) 
 def _profile_view(profile: InvestorProfile) -> dict[str, Any]:
     return {
         "investor_class": profile.investor_class,
-        "class_name": CLASS_NAMES[profile.investor_class],
+        "class_name": class_name(profile.investor_class),
         "capacity_class": profile.capacity_class,
         "tolerance_class": profile.tolerance_class,
         "capacity_score": profile.capacity_score,
         "tolerance_score": profile.tolerance_score,
         "expires_on": profile.expires_on.isoformat(),
         "reasons": [{"code": code, "text": explain_reason(code)} for code in profile.reason_codes],
-        "flags": [{"code": flag, "text": FLAG_LABELS.get(flag, flag)} for flag in profile.vulnerability_flags],
+        "flags": [{"code": flag, "text": flag_label(flag)} for flag in profile.vulnerability_flags],
     }
 
 
@@ -557,6 +565,7 @@ def anchors(response: Response, wa_sid: str | None = Cookie(default=None)) -> li
 def advice_report(response: Response, wa_sid: str | None = Cookie(default=None)) -> HTMLResponse:
     """Printable suitability record; its fingerprint is written to the audit chain."""
 
+    LANG.set("en")  # the Advice Report is a formal English record, like the submission
     file = _file(wa_sid, response)
     profile = file.session.state.profile
     if profile is None:

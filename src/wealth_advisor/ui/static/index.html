@@ -14,13 +14,14 @@
   <header class="topbar">
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24" rx="7"/><path d="M10 20l5-5 3 3 5-6"/></svg>
-      <span>Wealth Advisor</span>
+      <span data-i18n>Wealth Advisor</span>
     </div>
     <div class="topbar-meta">
-      <a class="report-link" id="reportLink" href="/report" target="_blank" rel="noopener" aria-disabled="true">Advice report</a>
-      <span class="tier" title="Permission tier: the advisor can explain and recommend, but cannot place orders.">Advice only</span>
+      <a class="report-link" id="reportLink" href="/report" target="_blank" rel="noopener" aria-disabled="true" data-i18n>Advice report</a>
+      <button class="lang-toggle" id="langToggle" type="button" aria-label="Language">中文</button>
+      <span class="tier" title="Permission tier: the advisor can explain and recommend, but cannot place orders." data-i18n>Advice only</span>
       <button class="audit-pill" id="auditPill" type="button" aria-haspopup="dialog">
-        <span class="dot" aria-hidden="true"></span><span id="auditText">Audit log</span>
+        <span class="dot" aria-hidden="true"></span><span id="auditText" data-i18n>Audit log</span>
       </button>
     </div>
   </header>
@@ -28,13 +29,13 @@
   <main class="workspace">
     <section class="advisor" aria-label="Conversation with your advisor">
       <div class="advisor-head">
-        <h2>Your advisor</h2>
-        <p>Explains every recommendation. Never invents a number.</p>
+        <h2 data-i18n>Your advisor</h2>
+        <p data-i18n>Explains every recommendation. Never invents a number.</p>
       </div>
       <ol class="thread" id="thread" aria-live="polite"></ol>
       <form class="composer" id="composer">
         <label class="sr-only" for="chatInput">Message your advisor</label>
-        <textarea id="chatInput" rows="1" placeholder="Ask your advisor…"></textarea>
+        <textarea id="chatInput" rows="1" placeholder="Ask your advisor…" data-i18n-placeholder></textarea>
         <button type="submit" class="send" aria-label="Send message">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6"/></svg>
         </button>
@@ -43,13 +44,13 @@
 
     <section class="file" aria-label="Client file">
       <nav class="steps" id="steps" aria-label="Advice steps">
-        <button data-step="profile" class="active"><span class="n">1</span>Risk profile</button>
-        <button data-step="portfolio" disabled><span class="n">2</span>Portfolio</button>
-        <button data-step="rehearse" disabled><span class="n">3</span>Rehearse</button>
-        <button data-step="goal" disabled><span class="n">4</span>Goal</button>
-        <button data-step="compare" disabled><span class="n">5</span>Compare</button>
-        <button data-step="stress" disabled><span class="n">6</span>Stress test</button>
-        <button data-step="execute" disabled><span class="n">7</span>Execute</button>
+        <button data-step="profile" class="active"><span class="n">1</span><span data-i18n>Risk profile</span></button>
+        <button data-step="portfolio" disabled><span class="n">2</span><span data-i18n>Portfolio</span></button>
+        <button data-step="rehearse" disabled><span class="n">3</span><span data-i18n>Rehearse</span></button>
+        <button data-step="goal" disabled><span class="n">4</span><span data-i18n>Goal</span></button>
+        <button data-step="compare" disabled><span class="n">5</span><span data-i18n>Compare</span></button>
+        <button data-step="stress" disabled><span class="n">6</span><span data-i18n>Stress test</span></button>
+        <button data-step="execute" disabled><span class="n">7</span><span data-i18n>Execute</span></button>
       </nav>
       <div class="panel" id="panel"></div>
     </section>
@@ -60,7 +61,7 @@
   <aside class="drawer" id="drawer" role="dialog" aria-label="Audit log" aria-modal="true" hidden>
     <div class="drawer-head">
       <div>
-        <h2>Audit log</h2>
+        <h2 data-i18n>Audit log</h2>
         <p id="drawerStatus"></p>
       </div>
       <button class="icon-btn" id="drawerClose" aria-label="Close audit log">
@@ -72,6 +73,7 @@
   </aside>
   <div class="scrim" id="scrim" hidden></div>
 
+  <script src="/static/i18n.js"></script>
   <script type="module" src="/static/app.js"></script>
 </body>
 </html>

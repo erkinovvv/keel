@@ -5,10 +5,10 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
 const pct = (v, d = 1) => `${(v * 100).toFixed(d)}%`;
+const longDate = (iso) => new Date(iso).toLocaleDateString(LOCALE, { day: "numeric", month: "short", year: "numeric" });
 const money = (v) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
-const CLASS_NAMES = { 1: "Conservative", 2: "Moderately conservative", 3: "Balanced", 4: "Growth", 5: "Aggressive" };
 const ASSET_ORDER = ["cash", "bonds", "equity", "gold", "reits"];
-const ASSET_NAMES = { cash: "Cash", bonds: "Bonds", equity: "Equity", gold: "Gold", reits: "Real estate" };
+const ASSET_NAMES = ASSET_NAMES_I18N[LANG];
 
 const state = {
   questionnaire: [],
@@ -53,9 +53,9 @@ document.addEventListener("click", (e) => {
   popover.innerHTML = `
     <div class="t">${esc(p.what)}</div>
     <dl>
-      <dt>Computed by</dt><dd>${esc(p.source)}()</dd>
-      <dt>Audit record</dt><dd>${esc(p.audit_hash.slice(0, 16))}…</dd>
-      <dt>Recorded</dt><dd>${esc(new Date(p.timestamp).toLocaleTimeString())}</dd>
+      <dt>${t("Computed by")}</dt><dd>${esc(p.source)}()</dd>
+      <dt>${t("Audit record")}</dt><dd>${esc(p.audit_hash.slice(0, 16))}…</dd>
+      <dt>${t("Recorded")}</dt><dd>${esc(new Date(p.timestamp).toLocaleTimeString(LOCALE))}</dd>
     </dl>`;
   popover.hidden = false;
   const r = btn.getBoundingClientRect();
@@ -72,7 +72,7 @@ const thread = $("#thread");
 function say(paragraphs) {
   const li = document.createElement("li");
   li.className = "msg-advisor";
-  li.innerHTML = `<div class="sig">Advisor</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
+  li.innerHTML = `<div class="sig">${t("Advisor")}</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
   thread.append(li);
   thread.scrollTop = thread.scrollHeight;
 }
@@ -104,22 +104,22 @@ function applyServerState(s, { fromChat = false } = {}) {
     state.profileProv = state.profileProv || { source: "profiling.profile_investor", audit_hash: "0".repeat(64), timestamp: new Date().toISOString() };
     state.done.add("profile");
     $("#reportLink").setAttribute("aria-disabled", "false");
-    changes.push(`risk profile C${s.profile.investor_class}`);
+    changes.push(t("risk profile C{n}", { n: s.profile.investor_class }));
   }
   if (s.client && JSON.stringify(s.client) !== JSON.stringify(state.client)) {
-    if (state.client && fromChat) changes.push("your details");
+    if (state.client && fromChat) changes.push(t("your details"));
     state.client = { amount: 100000, horizon_years: 10, max_loss: 0.2, age: 35, ...Object.fromEntries(Object.entries(s.client).filter(([, v]) => v !== null)) };
   }
   if (s.allocation_id && s.allocation_id !== state.allocationId) {
     Object.assign(state, { allocation: s.allocation, allocationId: s.allocation_id, allocationProv: s.allocation_provenance, allocationLevel: s.allocation.investor_class, drafts: null });
     state.done.add("portfolio");
-    changes.push("portfolio");
+    changes.push(t("portfolio"));
   }
   if (s.tier) setTier(s.tier);
   if (fromChat && changes.length) {
-    note(`Client file updated from the conversation: ${changes.join(", ")}.`, "msg-sync");
+    note(t("Client file updated from the conversation: {changes}.", { changes: changes.join(LANG === "zh" ? "、" : ", ") }), "msg-sync");
     for (const b of steps.querySelectorAll("button")) b.disabled = b.dataset.step !== "profile" && !state.profile;
-    const affected = { profile: changes.some((c) => c.startsWith("risk")), portfolio: changes.includes("portfolio") };
+    const affected = { profile: Boolean(s.profile), portfolio: changes.includes(t("portfolio")) };
     if (affected[state.step] || (state.step === "profile" && state.profile)) go(state.step);
   }
 }
@@ -140,7 +140,7 @@ $("#composer").addEventListener("submit", async (e) => {
       scramble(bubble.firstChild, r.redacted);
       const tag = document.createElement("small");
       tag.className = "pii-tag";
-      tag.textContent = `Masked before reaching the AI: ${r.pii_types.map((t) => t.toLowerCase().replace(/_/g, " ")).join(", ")}`;
+      tag.textContent = t("Masked before reaching the AI: {types}", { types: r.pii_types.map((x) => x.toLowerCase().replace(/_/g, " ")).join(", ") });
       bubble.append(tag);
     }
   } catch { /* redaction display is best-effort; the server redacts regardless */ }
@@ -194,23 +194,23 @@ function renderProfile() {
   const c = state.client || { amount: 100000, horizon_years: 10, max_loss: 0.2, age: 35 };
   const prev = state.answers || {};
   panel.innerHTML = `
-    <h1>Let's understand your situation</h1>
-    <p class="lede">Your risk class is the lower of two things: how much loss you can <em>afford</em> (capacity) and how much you are <em>comfortable</em> with (tolerance). Nothing here is shared outside this session.</p>
+    <h1>${t("Let's understand your situation")}</h1>
+    <p class="lede">${t("Your risk class is the lower of two things: how much loss you can <em>afford</em> (capacity) and how much you are <em>comfortable</em> with (tolerance). Nothing here is shared outside this session.")}</p>
     <form id="kyc">
       <div class="sheet">
         <div class="facts">
-          <div class="field"><label for="age">Age</label><input id="age" type="number" min="18" max="100" value="${c.age}" required></div>
-          <div class="field"><label for="amount">Amount to invest</label><input id="amount" type="number" min="1000" step="1000" value="${c.amount}" required></div>
-          <div class="field"><label for="horizon">Horizon <span class="range-value" id="horizonV">${c.horizon_years} yrs</span></label><input id="horizon" type="range" min="1" max="30" value="${c.horizon_years}"></div>
-          <div class="field"><label for="maxloss">Loss you could accept in a bad year <span class="range-value" id="maxlossV">${Math.round(c.max_loss * 100)}%</span></label><input id="maxloss" type="range" min="5" max="50" value="${Math.round(c.max_loss * 100)}"></div>
-          <label class="check"><input id="borrowed" type="checkbox"> Part of this money is borrowed</label>
+          <div class="field"><label for="age">${t("Age")}</label><input id="age" type="number" min="18" max="100" value="${c.age}" required></div>
+          <div class="field"><label for="amount">${t("Amount to invest")}</label><input id="amount" type="number" min="1000" step="1000" value="${c.amount}" required></div>
+          <div class="field"><label for="horizon">${t("Horizon")} <span class="range-value" id="horizonV">${t("{n} yrs", { n: c.horizon_years })}</span></label><input id="horizon" type="range" min="1" max="30" value="${c.horizon_years}"></div>
+          <div class="field"><label for="maxloss">${t("Loss you could accept in a bad year")} <span class="range-value" id="maxlossV">${Math.round(c.max_loss * 100)}%</span></label><input id="maxloss" type="range" min="5" max="50" value="${Math.round(c.max_loss * 100)}"></div>
+          <label class="check"><input id="borrowed" type="checkbox"> ${t("Part of this money is borrowed")}</label>
         </div>
       </div>
       <div class="sheet">
         <div class="questions">
           ${state.questionnaire.map((q) => `
             <fieldset class="q">
-              <legend>${esc(q.question)}<span class="domain">${q.domain === "capacity" ? "capacity" : "tolerance"}</span></legend>
+              <legend>${esc(q.question)}<span class="domain">${t(q.domain === "capacity" ? "capacity" : "tolerance")}</span></legend>
               <div class="chips">
                 ${q.options.map((o, i) => `
                   <label class="chip"><input type="radio" name="${q.key}" value="${o.key}" ${(prev[q.key] ? prev[q.key] === o.key : i === Math.floor(q.options.length / 2)) ? "checked" : ""}><span>${esc(o.label)}</span></label>`).join("")}
@@ -219,13 +219,13 @@ function renderProfile() {
         </div>
       </div>
       <div class="actions">
-        <button class="btn" type="submit" id="assess">Assess my risk profile</button>
-        <span class="hint">Scored by fixed rules, not by AI.</span>
+        <button class="btn" type="submit" id="assess">${t("Assess my risk profile")}</button>
+        <span class="hint">${t("Scored by fixed rules, not by AI.")}</span>
       </div>
       <div id="kycErr"></div>
     </form>
     <div id="profileResult"></div>`;
-  $("#horizon").oninput = (e) => ($("#horizonV").textContent = `${e.target.value} yrs`);
+  $("#horizon").oninput = (e) => ($("#horizonV").textContent = t("{n} yrs", { n: e.target.value }));
   $("#maxloss").oninput = (e) => ($("#maxlossV").textContent = `${e.target.value}%`);
   $("#kyc").onsubmit = submitProfile;
   if (state.profile) showProfile(false);
@@ -268,36 +268,38 @@ function showProfile(narrate) {
   const prov = state.profileProv;
   const at = (cls) => `${(cls - 0.5) * 20}%`;
   $("#profileResult").innerHTML = `
-    <h3>Your result</h3>
+    <h3>${t("Your result")}</h3>
     <div class="sheet">
       <div class="verdict">
         <div>
-          <div class="class-code">Risk class ${num(`C${p.investor_class}`, prov, "Investor risk class")}</div>
+          <div class="class-code">${t("Risk class")} ${num(`C${p.investor_class}`, prov, t("Investor risk class"))}</div>
           <div class="class-name">${esc(p.class_name)}</div>
-          <p>You can be recommended products up to risk level <strong>R${p.investor_class}</strong>. Profile valid until ${new Date(p.expires_on).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.</p>
+          <p>${t("You can be recommended products up to risk level <strong>R{n}</strong>. Profile valid until {date}.", { n: p.investor_class, date: longDate(p.expires_on) })}</p>
         </div>
         <div class="scale" aria-label="Capacity C${p.capacity_class}, tolerance C${p.tolerance_class}, final class C${p.investor_class}">
-          <div class="marker top" style="left:${at(p.capacity_class)}">Capacity C${p.capacity_class}</div>
+          <div class="marker top" style="left:${at(p.capacity_class)}">${t("Capacity C{n}", { n: p.capacity_class })}</div>
           <div class="scale-track">${[1, 2, 3, 4, 5].map((i) => `<div class="${i <= p.investor_class ? "on" : ""}"></div>`).join("")}</div>
           <div class="scale-labels">${[1, 2, 3, 4, 5].map((i) => `<span>C${i}</span>`).join("")}</div>
-          <div class="marker bottom" style="left:${at(p.tolerance_class)}">Tolerance C${p.tolerance_class}</div>
+          <div class="marker bottom" style="left:${at(p.tolerance_class)}">${t("Tolerance C{n}", { n: p.tolerance_class })}</div>
         </div>
       </div>
       ${p.flags.map((f) => `<div class="flag"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>${esc(f.text)}</div>`).join("")}
     </div>
-    <h3>Why this class</h3>
+    <h3>${t("Why this class")}</h3>
     <div class="sheet"><ul class="reasons">${p.reasons.map((r) => `<li>${esc(r.text)}</li>`).join("")}</ul></div>
-    <div class="actions"><button class="btn" id="toPortfolio" type="button">See my recommended portfolio</button></div>`;
+    <div class="actions"><button class="btn" id="toPortfolio" type="button">${t("See my recommended portfolio")}</button></div>`;
   $("#toPortfolio").onclick = () => go("portfolio");
   if (narrate) {
-    const lower = p.capacity_class <= p.tolerance_class ? "capacity" : "tolerance";
+    const vars = { c: p.capacity_class, t: p.tolerance_class };
     say([
-      `Your risk class is <strong>C${p.investor_class}, ${esc(p.class_name.toLowerCase())}</strong>.`,
+      t("Your risk class is <strong>C{n}, {name}</strong>.", { n: p.investor_class, name: esc(LANG === "zh" ? p.class_name : p.class_name.toLowerCase()) }),
       p.capacity_class === p.tolerance_class
-        ? `Your ability to absorb losses and your comfort with risk point to the same level, C${p.capacity_class}.`
-        : `Your comfort with risk is C${p.tolerance_class}, but your ${lower === "capacity" ? "financial capacity to absorb losses" : "comfort with risk"} is C${Math.min(p.capacity_class, p.tolerance_class)}. Suitability rules require me to use the lower of the two.`,
-      ...(p.flags.length ? [`I have also applied a protection cap: ${esc(p.flags.map((f) => f.text.split(" — ")[0].toLowerCase()).join("; "))}.`] : []),
-      `From here on I will only consider products rated R${p.investor_class} or lower.`,
+        ? t("Your ability to absorb losses and your comfort with risk point to the same level, C{n}.", { n: p.capacity_class })
+        : p.capacity_class < p.tolerance_class
+          ? t("Your comfort with risk is C{t}, but your financial capacity to absorb losses is C{c}. Suitability rules require me to use the lower of the two.", vars)
+          : t("Your financial capacity to absorb losses is C{c}, but your comfort with risk is C{t}. Suitability rules require me to use the lower of the two.", vars),
+      ...(p.flags.length ? [t("I have also applied a protection cap: {flags}.", { flags: esc(p.flags.map((f) => f.text.split(/ — |：/)[0].toLowerCase()).join("; ")) })] : []),
+      t("From here on I will only consider products rated R{n} or lower.", { n: p.investor_class }),
     ]);
   }
 }
@@ -311,12 +313,12 @@ async function loadAllocation(amount, level, narrate) {
   refreshAudit();
   if (narrate) {
     const a = data.allocation;
-    const mix = ASSET_ORDER.filter((k) => a.by_asset_class[k]).map((k) => `${pct(a.by_asset_class[k], 0)} ${ASSET_NAMES[k].toLowerCase()}`).join(", ");
+    const mix = ASSET_ORDER.filter((k) => a.by_asset_class[k]).map((k) => LANG === "zh" ? `${ASSET_NAMES[k]}${pct(a.by_asset_class[k], 0)}` : `${pct(a.by_asset_class[k], 0)} ${ASSET_NAMES[k].toLowerCase()}`).join(LANG === "zh" ? "、" : ", ");
     say([
-      `For ${money(a.amount)} I suggest ${mix}.`,
-      `After fees, that mix has an expected return of about <strong>${pct(a.expected_return)}</strong> a year, with typical yearly swings of ${pct(a.volatility)}. These are estimates, not promises.`,
-      `Tap any underlined number to see exactly which calculation produced it.`,
-      `Before any money moves, I'd like you to live through 2008 with this exact portfolio. It takes 90 seconds and tells us both more than the questionnaire did. Open <strong>Rehearse</strong> when you're ready.`,
+      t("For {amount} I suggest {mix}.", { amount: money(a.amount), mix }),
+      t("After fees, that mix has an expected return of about <strong>{ret}</strong> a year, with typical yearly swings of {vol}. These are estimates, not promises.", { ret: pct(a.expected_return), vol: pct(a.volatility) }),
+      t("Tap any underlined number to see exactly which calculation produced it."),
+      t("Before any money moves, I'd like you to live through 2008 with this exact portfolio. It takes 90 seconds and tells us both more than the questionnaire did. Open <strong>Rehearse</strong> when you're ready."),
     ]);
   }
 }
@@ -324,7 +326,7 @@ async function loadAllocation(amount, level, narrate) {
 function staleBanner() {
   const a = state.allocation, p = state.profile;
   if (!a || !p || a.investor_class <= p.investor_class) return "";
-  return `<div class="verdict-bar bad stale"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><div><strong>This portfolio was built for C${a.investor_class}, but your risk class is now C${p.investor_class}.</strong> Rebuild it before placing any orders.</div><button class="btn" type="button" data-rebuild>Rebuild at C${p.investor_class}</button></div>`;
+  return `<div class="verdict-bar bad stale"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><div><strong>${t("This portfolio was built for C{a}, but your risk class is now C{p}.", { a: a.investor_class, p: p.investor_class })}</strong> ${t("Rebuild it before placing any orders.")}</div><button class="btn" type="button" data-rebuild>${t("Rebuild at C{n}", { n: p.investor_class })}</button></div>`;
 }
 
 function wireStale() {
@@ -338,7 +340,7 @@ function wireStale() {
 async function renderPortfolio() {
   const p = state.profile;
   if (!state.allocation) {
-    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    panel.innerHTML = `<p class="empty">${t("Building your portfolio…")}</p>`;
     try { await loadAllocation(state.client.amount, state.allocationLevel, true); }
     catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
   }
@@ -346,24 +348,24 @@ async function renderPortfolio() {
   const prov = state.allocationProv;
   const mix = ASSET_ORDER.filter((k) => a.by_asset_class[k]);
   panel.innerHTML = `
-    <h1>Your recommended portfolio</h1>
-    <p class="lede">Built from your risk class with fixed allocation rules and a 35% cap per product. Only products rated R${a.investor_class} or lower are eligible.</p>
+    <h1>${t("Your recommended portfolio")}</h1>
+    <p class="lede">${t("Built from your risk class with fixed allocation rules and a 35% cap per product. Only products rated R{n} or lower are eligible.", { n: a.investor_class })}</p>
     ${staleBanner()}
     <div class="kpis">
-      <div class="kpi"><div class="k">Expected return</div><span class="v">${num(pct(a.expected_return, 2), prov, "Expected annual return, net of fees")}</span><div class="h">per year, after fees</div></div>
-      <div class="kpi"><div class="k">Volatility</div><span class="v">${num(pct(a.volatility, 2), prov, "Annual portfolio volatility")}</span><div class="h">typical yearly swing</div></div>
-      <div class="kpi"><div class="k">Average fee</div><span class="v">${num(pct(a.fee, 2), prov, "Weighted annual product fee")}</span><div class="h">per year</div></div>
-      <div class="kpi"><div class="k">Value at risk</div><span class="v">${num(money(a.var_95_1y), prov, "1-year 95% parametric value at risk")}</span><div class="h">1 year, 95% confidence</div></div>
+      <div class="kpi"><div class="k">${t("Expected return")}</div><span class="v">${num(pct(a.expected_return, 2), prov, t("Expected annual return, net of fees"))}</span><div class="h">${t("per year, after fees")}</div></div>
+      <div class="kpi"><div class="k">${t("Volatility")}</div><span class="v">${num(pct(a.volatility, 2), prov, t("Annual portfolio volatility"))}</span><div class="h">${t("typical yearly swing")}</div></div>
+      <div class="kpi"><div class="k">${t("Average fee")}</div><span class="v">${num(pct(a.fee, 2), prov, t("Weighted annual product fee"))}</span><div class="h">${t("per year")}</div></div>
+      <div class="kpi"><div class="k">${t("Value at risk")}</div><span class="v">${num(money(a.var_95_1y), prov, t("1-year 95% parametric value at risk"))}</span><div class="h">${t("1 year, 95% confidence")}</div></div>
     </div>
 
     <div class="whatif">
-      <div class="field"><label for="wiAmount">What if I invest</label><input id="wiAmount" type="number" min="1000" step="1000" value="${a.amount}"></div>
+      <div class="field"><label for="wiAmount">${t("What if I invest")}</label><input id="wiAmount" type="number" min="1000" step="1000" value="${a.amount}"></div>
       <div class="field">
-        <span class="label">What if I take less risk</span>
-        <div class="seg" role="group" aria-label="Risk level">
-          ${[1, 2, 3, 4, 5].map((i) => `<button type="button" data-level="${i}" class="${i === a.investor_class ? "on" : ""}" ${i > p.investor_class ? `disabled title="Above your assessed class C${p.investor_class}"` : ""}>C${i}</button>`).join("")}
+        <span class="label">${t("What if I take less risk")}</span>
+        <div class="seg" role="group" aria-label="${t("Risk level")}">
+          ${[1, 2, 3, 4, 5].map((i) => `<button type="button" data-level="${i}" class="${i === a.investor_class ? "on" : ""}" ${i > p.investor_class ? `disabled title="${t("Above your assessed class C{n}", { n: p.investor_class })}"` : ""}>C${i}</button>`).join("")}
         </div>
-        <div class="hint">Levels above C${p.investor_class} are locked by the suitability rule.</div>
+        <div class="hint">${t("Levels above C{n} are locked by the suitability rule.", { n: p.investor_class })}</div>
       </div>
     </div>
 
@@ -374,24 +376,24 @@ async function renderPortfolio() {
       <div class="legend">${mix.map((k) => `<span><i style="background:var(--${k})"></i>${ASSET_NAMES[k]} <b>${pct(a.by_asset_class[k], 0)}</b></span>`).join("")}</div>
     </div>
 
-    <h3>Holdings</h3>
+    <h3>${t("Holdings")}</h3>
     <div class="sheet">
       <table>
-        <thead><tr><th>Product</th><th>Risk</th><th class="r">Weight</th><th class="r">Amount</th><th></th></tr></thead>
+        <thead><tr><th>${t("Product")}</th><th>${t("Risk")}</th><th class="r">${t("Weight")}</th><th class="r">${t("Amount")}</th><th></th></tr></thead>
         <tbody>
           ${a.holdings.map((h, i) => `
             <tr>
               <td class="prod"><span class="swatch" style="background:var(--${h.asset_class})"></span>${esc(h.name)}<small>${ASSET_NAMES[h.asset_class]}</small></td>
               <td><span class="risk">R${h.risk_class}</span></td>
-              <td class="r">${num(pct(h.weight, 1), prov, `Weight of ${h.name}`)}</td>
-              <td class="r">${num(money(h.amount), prov, `Amount in ${h.name}`)}</td>
-              <td class="r"><button class="why" type="button" data-why="${i}" aria-expanded="false">Why?</button></td>
+              <td class="r">${num(pct(h.weight, 1), prov, t("Weight of {name}", { name: h.name }))}</td>
+              <td class="r">${num(money(h.amount), prov, t("Amount in {name}", { name: h.name }))}</td>
+              <td class="r"><button class="why" type="button" data-why="${i}" aria-expanded="false">${t("Why?")}</button></td>
             </tr>
             <tr class="why-row" id="why${i}" hidden><td colspan="5"><ul>${h.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></td></tr>`).join("")}
         </tbody>
       </table>
     </div>
-    <div class="actions"><button class="btn" type="button" id="toRehearse">Live through 2008 with this portfolio</button><button class="btn secondary" type="button" id="toGoal">Check my goal</button><button class="btn secondary" type="button" id="toStress">Stress-test this portfolio</button><button class="btn secondary" type="button" id="toCompare">Compare products</button></div>
+    <div class="actions"><button class="btn" type="button" id="toRehearse">${t("Live through 2008 with this portfolio")}</button><button class="btn secondary" type="button" id="toGoal">${t("Check my goal")}</button><button class="btn secondary" type="button" id="toStress">${t("Stress-test this portfolio")}</button><button class="btn secondary" type="button" id="toCompare">${t("Compare products")}</button></div>
     <div id="allocErr"></div>`;
 
   panel.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
@@ -400,8 +402,8 @@ async function renderPortfolio() {
     b.setAttribute("aria-expanded", String(!row.hidden));
   }));
   panel.querySelectorAll("[data-level]").forEach((b) => (b.onclick = () => rebuild(+$("#wiAmount").value, +b.dataset.level)));
-  let t;
-  $("#wiAmount").oninput = (e) => { clearTimeout(t); t = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
+  let debounce;
+  $("#wiAmount").oninput = (e) => { clearTimeout(debounce); debounce = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
   $("#toRehearse").onclick = () => go("rehearse");
   wireStale();
   $("#toGoal").onclick = () => go("goal");
@@ -424,28 +426,28 @@ async function rebuild(amount, level) {
 // ---------------------------------------------------------------- 3. crash rehearsal
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const monthName = (ym) => `${MONTHS[+ym.slice(5) - 1]} ${ym.slice(0, 4)}`;
+const monthName = (ym) => (LANG === "zh" ? `${ym.slice(0, 4)}年${+ym.slice(5)}月` : `${MONTHS[+ym.slice(5) - 1]} ${ym.slice(0, 4)}`);
 const REACTION_TEXT = { sell_all: "sell everything", reduce: "sell some to limit losses", hold: "hold and wait", buy_more: "buy more at lower prices" };
 
 async function renderRehearse() {
   if (!state.allocation) {
-    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    panel.innerHTML = `<p class="empty">${t("Building your portfolio…")}</p>`;
     try { await loadAllocation(state.client.amount, state.allocationLevel, false); }
     catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
   }
   const last = state.rehearsal;
   const reaction = state.answers?.drawdown_reaction;
   panel.innerHTML = `
-    <h1>Before we invest, live through 2008</h1>
-    <p class="lede">Every robo-advisor stress-tests the portfolio. We stress-test the investor. You will replay October 2007 to March 2013 month by month, with real market returns, holding exactly the portfolio we just built for you. You can sell at any moment.</p>
+    <h1>${t("Before we invest, live through 2008")}</h1>
+    <p class="lede">${t("Every robo-advisor stress-tests the portfolio. We stress-test the investor. You will replay October 2007 to March 2013 month by month, with real market returns, holding exactly the portfolio we just built for you. You can sell at any moment.")}</p>
     <div class="sheet rehearse-intro">
       <div class="ri-facts">
-        <div><span>Your portfolio</span><b>${money(state.allocation.amount)}</b></div>
-        <div><span>You told us that after a 20% fall you would</span><b>${esc(REACTION_TEXT[reaction] || "—")}</b></div>
-        <div><span>The largest yearly loss you said you could accept</span><b>${state.client?.max_loss ? pct(state.client.max_loss, 0) : "—"}</b></div>
+        <div><span>${t("Your portfolio")}</span><b>${money(state.allocation.amount)}</b></div>
+        <div><span>${t("You told us that after a 20% fall you would")}</span><b>${esc(REACTION_TEXT[reaction] ? t(REACTION_TEXT[reaction]) : "—")}</b></div>
+        <div><span>${t("The largest yearly loss you said you could accept")}</span><b>${state.client?.max_loss ? pct(state.client.max_loss, 0) : "—"}</b></div>
       </div>
-      <p class="hint">Takes about 90 seconds. What you do can only lower your risk class, never raise it. Data: Kenneth R. French Data Library, FRED, World Bank.</p>
-      <div class="actions"><button class="btn" id="startRehearsal" type="button">${last ? "Rehearse again" : "Start the rehearsal"}</button></div>
+      <p class="hint">${t("Takes about 90 seconds. What you do can only lower your risk class, never raise it. Data: Kenneth R. French Data Library, FRED, World Bank.")}</p>
+      <div class="actions"><button class="btn" id="startRehearsal" type="button">${last ? t("Rehearse again") : t("Start the rehearsal")}</button></div>
     </div>
     <div id="rehearsalResult">${last ? resultCard(last) : ""}</div>`;
   $("#startRehearsal").onclick = startRehearsal;
@@ -458,15 +460,15 @@ async function startRehearsal() {
   catch (err) { note(err.message, "msg-error"); return; }
   refreshAudit();
   say([
-    "Let's live through it together. This is your portfolio, in real markets, starting October 2007.",
-    "If at any point you want out, press <strong>Sell everything</strong>. Doing nothing means you hold.",
+    t("Let's live through it together. This is your portfolio, in real markets, starting October 2007."),
+    t("If at any point you want out, press <strong>Sell everything</strong>. Doing nothing means you hold."),
   ]);
   const pts = data.points;
   const troughIndex = pts.reduce((best, p, i) => (p.drawdown > pts[best].drawdown ? i : best), 0);
   const stage = document.createElement("div");
   stage.className = "theater";
   stage.setAttribute("role", "dialog");
-  stage.setAttribute("aria-label", "Crash rehearsal");
+  stage.setAttribute("aria-label", t("Crash rehearsal"));
   stage.tabIndex = -1;
   const W = 1000, H = 300;
   const vals = pts.map((p) => p.value);
@@ -475,22 +477,22 @@ async function startRehearsal() {
   const Y = (v) => H - ((v - lo) / (hi - lo)) * H;
   stage.innerHTML = `
     <div class="th-top">
-      <div><div class="th-label">Crash rehearsal · your portfolio</div><div class="th-month" id="thMonth">${monthName(pts[0].month)}</div></div>
-      <button class="th-quit" id="thQuit" type="button">Stop rehearsal</button>
+      <div><div class="th-label">${t("Crash rehearsal · your portfolio")}</div><div class="th-month" id="thMonth">${monthName(pts[0].month)}</div></div>
+      <button class="th-quit" id="thQuit" type="button">${t("Stop rehearsal")}</button>
     </div>
     <div class="th-value"><span id="thValue">${money(pts[0].value)}</span><span class="th-change" id="thChange">0.0%</span></div>
-    <div class="th-dd" id="thDd">From your peak: 0.0%</div>
+    <div class="th-dd" id="thDd">${t("From your peak: {dd}", { dd: "0.0%" })}</div>
     <svg class="th-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
       <line class="th-base" x1="0" x2="${W}" y1="${Y(data.amount)}" y2="${Y(data.amount)}"/>
       <path class="th-area" id="thArea" d=""/>
       <path class="th-line" id="thLine" d=""/>
       <circle class="th-dot" id="thDot" r="6" cx="0" cy="${Y(pts[0].value)}"/>
     </svg>
-    <div class="th-news" aria-live="polite"><span class="th-news-tag">News</span><span id="thNews">Markets are calm. Stocks are near record highs.</span></div>
+    <div class="th-news" aria-live="polite"><span class="th-news-tag">${t("News")}</span><span id="thNews">${t("Markets are calm. Stocks are near record highs.")}</span></div>
     <div class="th-actions">
-      <button class="th-sell" id="thSell" type="button">Sell everything</button>
-      <button class="th-buy" id="thBuy" type="button">Buy more</button>
-      <span class="th-hint" id="thHint">Doing nothing means you hold.</span>
+      <button class="th-sell" id="thSell" type="button">${t("Sell everything")}</button>
+      <button class="th-buy" id="thBuy" type="button">${t("Buy more")}</button>
+      <span class="th-hint" id="thHint">${t("Doing nothing means you hold.")}</span>
     </div>`;
   document.body.append(stage);
   stage.focus();
@@ -511,13 +513,13 @@ async function startRehearsal() {
     $("#thMonth").textContent = monthName(p.month);
     $("#thValue").textContent = money(p.value);
     $("#thChange").textContent = `${change >= 0 ? "+" : "−"}${pct(Math.abs(change))}`;
-    $("#thDd").textContent = `From your peak: −${pct(p.drawdown)}`;
+    $("#thDd").textContent = t("From your peak: {dd}", { dd: `−${pct(p.drawdown)}` });
     stage.classList.toggle("red", change < 0);
     stage.classList.toggle("deep", p.drawdown > 0.1);
     $("#thSell").classList.toggle("tempt", p.drawdown > 0.05 && i <= troughIndex + 2);
-    if (p.headline) { const n = $("#thNews"); n.textContent = p.headline; n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); }
-    if (i === troughIndex) $("#thHint").textContent = "This is the moment most investors sell.";
-    if (i === troughIndex + 3) $("#thHint").textContent = "Doing nothing means you hold.";
+    if (p.headline) { const n = $("#thNews"); n.textContent = t(p.headline); n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); }
+    if (i === troughIndex) $("#thHint").textContent = t("This is the moment most investors sell.");
+    if (i === troughIndex + 3) $("#thHint").textContent = t("Doing nothing means you hold.");
     if (i >= pts.length - 1) return finish(boughtAt === null ? "hold" : "buy_more", boughtAt ?? i);
     timer = setTimeout(tick, i < troughIndex + 2 ? pace.crash : pace.recovery);
   };
@@ -539,8 +541,8 @@ async function startRehearsal() {
     setTimeout(() => { stage.remove(); go("rehearse"); $("#rehearsalResult")?.scrollIntoView({ behavior: "smooth" }); }, action === "sell" ? 900 : 300);
   };
   $("#thSell").onclick = () => finish("sell", i);
-  $("#thBuy").onclick = (e) => { if (boughtAt === null) { boughtAt = i; e.target.textContent = "Bought more"; e.target.disabled = true; } };
-  $("#thQuit").onclick = () => { done = true; clearTimeout(timer); stage.remove(); note("Rehearsal stopped. Nothing was recorded about your risk class."); };
+  $("#thBuy").onclick = (e) => { if (boughtAt === null) { boughtAt = i; e.target.textContent = t("Bought more"); e.target.disabled = true; } };
+  $("#thQuit").onclick = () => { done = true; clearTimeout(timer); stage.remove(); note(t("Rehearsal stopped. Nothing was recorded about your risk class.")); };
   stage.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#thQuit").click(); });
   timer = setTimeout(tick, pace.start);
 }
@@ -550,22 +552,22 @@ function resultCard(o) {
   const lowered = o.new_class < o.previous_class;
   const gap = o.final_value_if_held - o.final_value_of_choice;
   return `
-    <h3>Your rehearsal</h3>
+    <h3>${t("Your rehearsal")}</h3>
     <div class="sheet rehearse-result ${sold ? "sold" : "held"}">
       <p class="rr-head">${sold
-        ? `You sold in ${monthName(o.month)}, ${pct(o.drawdown_at_decision)} below your peak.`
-        : `You held through the worst of it: ${pct(o.max_drawdown)} below your peak in ${monthName(o.trough_month)}.`}</p>
+        ? t("You sold in {month}, {dd} below your peak.", { month: monthName(o.month), dd: pct(o.drawdown_at_decision) })
+        : t("You held through the worst of it: {dd} below your peak in {month}.", { dd: pct(o.max_drawdown), month: monthName(o.trough_month) })}</p>
       <div class="rr-compare">
-        <div><span>If you had held to March 2013</span><b>${money(o.final_value_if_held)}</b></div>
-        <div><span>${sold ? "After selling and keeping cash" : o.action === "buy_more" ? "You held, and even bought more" : "What you ended with"}</span><b>${money(o.final_value_of_choice)}</b></div>
-        ${sold ? `<div class="rr-gap"><span>Cost of selling</span><b>−${money(gap)}</b></div>` : ""}
+        <div><span>${t("If you had held to March 2013")}</span><b>${money(o.final_value_if_held)}</b></div>
+        <div><span>${t(sold ? "After selling and keeping cash" : o.action === "buy_more" ? "You held, and even bought more" : "What you ended with")}</span><b>${money(o.final_value_of_choice)}</b></div>
+        ${sold ? `<div class="rr-gap"><span>${t("Cost of selling")}</span><b>−${money(gap)}</b></div>` : ""}
       </div>
       <p>${lowered
-        ? `Your answers put you at <strong>C${o.previous_class}</strong>, but your behaviour supports <strong>C${o.new_class}</strong>. We have lowered your risk class: a portfolio you can stay with beats one you abandon at the bottom.`
+        ? t("Your answers put you at <strong>C{a}</strong>, but your behaviour supports <strong>C{b}</strong>. We have lowered your risk class: a portfolio you can stay with beats one you abandon at the bottom.", { a: o.previous_class, b: o.new_class })
         : sold
-          ? `You sold at a loss your class already allows for, so your risk class stays at <strong>C${o.new_class}</strong>.`
-          : `Your behaviour supports your risk class <strong>C${o.new_class}</strong>.`}</p>
-      ${lowered ? `<div class="actions"><button class="btn" type="button" id="rebuildAtNew">Rebuild my portfolio at C${o.new_class}</button></div>` : ""}
+          ? t("You sold at a loss your class already allows for, so your risk class stays at <strong>C{n}</strong>.", { n: o.new_class })
+          : t("Your behaviour supports your risk class <strong>C{n}</strong>.", { n: o.new_class })}</p>
+      ${lowered ? `<div class="actions"><button class="btn" type="button" id="rebuildAtNew">${t("Rebuild my portfolio at C{n}", { n: o.new_class })}</button></div>` : ""}
     </div>`;
 }
 
@@ -578,15 +580,15 @@ function narrateOutcome(o) {
   const lowered = o.new_class < o.previous_class;
   if (o.action === "sell") {
     say([
-      `You sold in ${monthName(o.month)}, down ${pct(o.drawdown_at_decision)} from your peak. Holding would have left you with <strong>${money(o.final_value_if_held)}</strong> by March 2013; selling left ${money(o.final_value_of_choice)}.`,
+      t("You sold in {month}, down {dd} from your peak. Holding would have left you with <strong>{held}</strong> by March 2013; selling left {sold}.", { month: monthName(o.month), dd: pct(o.drawdown_at_decision), held: money(o.final_value_if_held), sold: money(o.final_value_of_choice) }),
       lowered
-        ? `That tells me more than the questionnaire did. I have lowered your risk class to <strong>C${o.new_class}</strong> so the portfolio matches how you actually react.`
-        : "Your class already allows for a loss of that size, so it stays the same.",
+        ? t("That tells me more than the questionnaire did. I have lowered your risk class to <strong>C{n}</strong> so the portfolio matches how you actually react.", { n: o.new_class })
+        : t("Your class already allows for a loss of that size, so it stays the same."),
     ]);
   } else {
     say([
-      `You held through a ${pct(o.max_drawdown)} fall. By March 2013 the portfolio was worth <strong>${money(o.final_value_if_held)}</strong>.`,
-      "Your behaviour supports the risk class from your answers.",
+      t("You held through a {dd} fall. By March 2013 the portfolio was worth <strong>{v}</strong>.", { dd: pct(o.max_drawdown), v: money(o.final_value_if_held) }),
+      t("Your behaviour supports the risk class from your answers."),
     ]);
   }
 }
@@ -594,11 +596,11 @@ function narrateOutcome(o) {
 // ---------------------------------------------------------------- 4. goal
 
 const short = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : `${Math.round(v)}`);
-const GOAL_KINDS = ["Buy a home", "Children's education", "Retirement", "Something else"];
+const GOAL_KINDS = ["Buy a home", "Children's education", "Retirement", "Something else"];  // keys; labels via t()
 
 async function renderGoal() {
   if (!state.allocation) {
-    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    panel.innerHTML = `<p class="empty">${t("Building your portfolio…")}</p>`;
     try { await loadAllocation(state.client.amount, state.allocationLevel, false); }
     catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
   }
@@ -611,20 +613,20 @@ async function renderGoal() {
   };
   state.goalInput = g;
   panel.innerHTML = `
-    <h1>Will you reach your goal?</h1>
-    <p class="lede">We simulate 5,000 possible futures for your portfolio of ${money(state.allocation.amount)} and count how many reach your target. Same inputs always give the same answer.</p>
+    <h1>${t("Will you reach your goal?")}</h1>
+    <p class="lede">${t("We simulate 5,000 possible futures for your portfolio of {amount} and count how many reach your target. Same inputs always give the same answer.", { amount: money(state.allocation.amount) })}</p>
     <div class="sheet">
-      <div class="filters" role="radiogroup" aria-label="Goal">
-        ${GOAL_KINDS.map((k) => `<label class="chip"><input type="radio" name="gk" value="${esc(k)}" ${k === g.name ? "checked" : ""}><span>${esc(k)}</span></label>`).join("")}
+      <div class="filters" role="radiogroup" aria-label="${t("Goal")}">
+        ${GOAL_KINDS.map((k) => `<label class="chip"><input type="radio" name="gk" value="${esc(k)}" ${k === g.name ? "checked" : ""}><span>${esc(t(k))}</span></label>`).join("")}
       </div>
       <div class="facts">
-        <div class="field"><label for="gTarget">Target amount</label><input id="gTarget" type="number" min="1000" step="1000" value="${g.target}"></div>
-        <div class="field"><label for="gYears">In <span class="range-value" id="gYearsV">${g.years} yrs</span></label><input id="gYears" type="range" min="1" max="40" value="${g.years}"></div>
-        <div class="field"><label for="gMonthly">Monthly saving</label><input id="gMonthly" type="number" min="0" step="100" value="${g.monthly}"></div>
-        <label class="check"><input id="gInfl" type="checkbox" ${g.inflation ? "checked" : ""}> Target in today's money (2% inflation)</label>
+        <div class="field"><label for="gTarget">${t("Target amount")}</label><input id="gTarget" type="number" min="1000" step="1000" value="${g.target}"></div>
+        <div class="field"><label for="gYears">${t("In")} <span class="range-value" id="gYearsV">${t("{n} yrs", { n: g.years })}</span></label><input id="gYears" type="range" min="1" max="40" value="${g.years}"></div>
+        <div class="field"><label for="gMonthly">${t("Monthly saving")}</label><input id="gMonthly" type="number" min="0" step="100" value="${g.monthly}"></div>
+        <label class="check"><input id="gInfl" type="checkbox" ${g.inflation ? "checked" : ""}> ${t("Target in today's money (2% inflation)")}</label>
       </div>
     </div>
-    <div id="goalOut"><p class="empty" style="margin-top:20px">Simulating…</p></div>`;
+    <div id="goalOut"><p class="empty" style="margin-top:20px">${t("Simulating…")}</p></div>`;
   const read = () => ({
     name: $('input[name="gk"]:checked').value,
     target: +$("#gTarget").value,
@@ -632,10 +634,10 @@ async function renderGoal() {
     monthly: +$("#gMonthly").value,
     inflation: $("#gInfl").checked ? 0.02 : 0,
   });
-  let t;
-  const update = () => { clearTimeout(t); t = setTimeout(() => runGoal(read()), 250); };
+  let debounce;
+  const update = () => { clearTimeout(debounce); debounce = setTimeout(() => runGoal(read()), 250); };
   panel.querySelectorAll('input[name="gk"]').forEach((i) => (i.onchange = update));
-  $("#gYears").oninput = (e) => { $("#gYearsV").textContent = `${e.target.value} yrs`; update(); };
+  $("#gYears").oninput = (e) => { $("#gYearsV").textContent = t("{n} yrs", { n: e.target.value }); update(); };
   ["gTarget", "gMonthly"].forEach((id) => ($(`#${id}`).oninput = update));
   $("#gInfl").onchange = update;
   runGoal(g);
@@ -655,31 +657,31 @@ async function runGoal(input) {
   const tone = r.probability >= 0.8 ? "ok" : r.probability >= 0.5 ? "mid" : "low";
   $("#goalOut").innerHTML = `
     <div class="goal-head">
-      <div class="goal-chance">${num(`${chance}%`, prov, "Share of simulated futures that reach the target")}</div>
+      <div class="goal-chance">${num(`${chance}%`, prov, t("Share of simulated futures that reach the target"))}</div>
       <div>
-        <span class="tone ${tone}">${tone === "ok" ? "On track" : tone === "mid" ? "Possible" : "Unlikely"}</span>
-        <div class="goal-line">chance of reaching <b>${money(r.target_nominal)}</b> by ${year}</div>
-        <div class="hint">${input.inflation ? `${money(input.target)} in today's money, grown by 2% inflation a year.` : "Nominal target, no inflation adjustment."}</div>
+        <span class="tone ${tone}">${t(tone === "ok" ? "On track" : tone === "mid" ? "Possible" : "Unlikely")}</span>
+        <div class="goal-line">${t("chance of reaching <b>{amount}</b> by {year}", { amount: money(r.target_nominal), year })}</div>
+        <div class="hint">${input.inflation ? t("{amount} in today's money, grown by 2% inflation a year.", { amount: money(input.target) }) : t("Nominal target, no inflation adjustment.")}</div>
       </div>
     </div>
     ${r.required_monthly === null ? "" : r.required_monthly <= input.monthly
-      ? `<div class="verdict-bar ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div><strong>You are on track.</strong> Your saving already gives at least an 80% chance.</div></div>`
-      : `<div class="verdict-bar nudge"><div>Save <strong>${num(money(r.required_monthly), prov, "Monthly saving needed for an 80% chance")}</strong> a month to reach an 80% chance.</div><button class="btn secondary" type="button" id="useMonthly">Use ${money(r.required_monthly)} a month</button></div>`}
+      ? `<div class="verdict-bar ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div>${t("<strong>You are on track.</strong> Your saving already gives at least an 80% chance.")}</div></div>`
+      : `<div class="verdict-bar nudge"><div>${t("Save <strong>{amount}</strong> a month to reach an 80% chance.", { amount: num(money(r.required_monthly), prov, t("Monthly saving needed for an 80% chance")) })}</div><button class="btn secondary" type="button" id="useMonthly">${t("Use {amount} a month", { amount: money(r.required_monthly) })}</button></div>`}
     <div class="sheet" style="margin-top:16px">
       ${fanChart(r.fan, r.target_nominal)}
       <div class="legend fan-legend">
-        <span><i class="band-outer"></i>8 in 10 futures</span>
-        <span><i class="band-inner"></i>Half of futures</span>
-        <span><i class="line-median"></i>Median</span>
-        <span><i class="line-target"></i>Your target</span>
+        <span><i class="band-outer"></i>${t("8 in 10 futures")}</span>
+        <span><i class="band-inner"></i>${t("Half of futures")}</span>
+        <span><i class="line-median"></i>${t("Median")}</span>
+        <span><i class="line-target"></i>${t("Your target")}</span>
       </div>
     </div>
     <div class="kpis" style="margin-top:16px;grid-template-columns:repeat(3,1fr)">
-      <div class="kpi"><div class="k">Bad case (1 in 10)</div><span class="v">${num(money(r.terminal_p10), prov, "10th percentile outcome")}</span></div>
-      <div class="kpi"><div class="k">Median outcome</div><span class="v">${num(money(r.terminal_p50), prov, "Median outcome")}</span></div>
-      <div class="kpi"><div class="k">Good case (1 in 10)</div><span class="v">${num(money(r.terminal_p90), prov, "90th percentile outcome")}</span></div>
+      <div class="kpi"><div class="k">${t("Bad case (1 in 10)")}</div><span class="v">${num(money(r.terminal_p10), prov, t("10th percentile outcome"))}</span></div>
+      <div class="kpi"><div class="k">${t("Median outcome")}</div><span class="v">${num(money(r.terminal_p50), prov, t("Median outcome"))}</span></div>
+      <div class="kpi"><div class="k">${t("Good case (1 in 10)")}</div><span class="v">${num(money(r.terminal_p90), prov, t("90th percentile outcome"))}</span></div>
     </div>
-    <details class="assume"><summary>Assumptions</summary><ul>${r.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+    <details class="assume"><summary>${t("Assumptions")}</summary><ul>${r.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
   const use = $("#useMonthly");
   if (use) use.onclick = () => { $("#gMonthly").value = r.required_monthly; runGoal({ ...input, monthly: r.required_monthly }); };
   wireFan(r.fan, r.target_nominal);
@@ -687,10 +689,10 @@ async function runGoal(input) {
   if (!state.goalNarrated) {
     state.goalNarrated = true;
     say([
-      `With ${money(input.monthly)} a month, about <strong>${chance} in 100</strong> simulated futures reach ${money(r.target_nominal)} by ${year}.`,
+      t("With {amount} a month, about <strong>{n} in 100</strong> simulated futures reach {target} by {year}.", { amount: money(input.monthly), n: chance, target: money(r.target_nominal), year }),
       r.required_monthly && r.required_monthly > input.monthly
-        ? `Saving ${money(r.required_monthly)} a month would lift that to <strong>80 in 100</strong>. A longer horizon also helps. Taking more risk than your class allows is not an option I can offer.`
-        : "That is a comfortable margin. Keep the plan under review once a year.",
+        ? t("Saving {amount} a month would lift that to <strong>80 in 100</strong>. A longer horizon also helps. Taking more risk than your class allows is not an option I can offer.", { amount: money(r.required_monthly) })
+        : t("That is a comfortable margin. Keep the plan under review once a year."),
     ]);
   }
 }
@@ -707,12 +709,12 @@ function fanChart(fan, target) {
   return `
     <svg class="fan" id="fan" viewBox="0 0 ${W} ${H}" role="img" aria-label="Projected value over ${n} years: median ${money(fan[n].p50)}, target ${money(target)}">
       ${ticks.map((v) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${short(v)}</text>`).join("")}
-      ${fan.filter((_, i) => i % step === 0).map((f) => `<text class="axis" x="${x(f.year)}" y="${H - 8}" text-anchor="middle">${f.year === 0 ? "Now" : `${f.year}y`}</text>`).join("")}
+      ${fan.filter((_, i) => i % step === 0).map((f) => `<text class="axis" x="${x(f.year)}" y="${H - 8}" text-anchor="middle">${f.year === 0 ? t("Now") : t("{n}y", { n: f.year })}</text>`).join("")}
       <path class="band-outer" d="${area("p10", "p90")}"/>
       <path class="band-inner" d="${area("p25", "p75")}"/>
       <path class="median" d="M${fan.map((f, i) => `${x(i)},${y(f.p50)}`).join("L")}"/>
       <line class="target" x1="${L}" x2="${W - R}" y1="${y(target)}" y2="${y(target)}"/>
-      <text class="target-label" x="${L + 8}" y="${y(target) - 7}" text-anchor="start">Target ${short(target)}</text>
+      <text class="target-label" x="${L + 8}" y="${y(target) - 7}" text-anchor="start">${t("Target {v}", { v: short(target) })}</text>
       <line class="cross" id="fanCross" y1="${T}" y2="${H - B}" visibility="hidden"/>
       <circle class="cross-dot" id="fanDot" r="5" visibility="hidden"/>
       <rect id="fanHit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>
@@ -737,7 +739,7 @@ function wireFan(fan, target) {
     const py = T + (1 - f.p50 / maxY) * (H - T - B);
     $("#fanCross").setAttribute("x1", px); $("#fanCross").setAttribute("x2", px); $("#fanCross").setAttribute("visibility", "visible");
     $("#fanDot").setAttribute("cx", px); $("#fanDot").setAttribute("cy", py); $("#fanDot").setAttribute("visibility", "visible");
-    tip.innerHTML = `<b>${i === 0 ? "Today" : `Year ${i}`}</b><div>Median ${money(f.p50)}</div><div class="dim">8 in 10 between ${short(f.p10)} and ${short(f.p90)}</div>`;
+    tip.innerHTML = `<b>${i === 0 ? t("Today") : t("Year {n}", { n: i })}</b><div>${t("Median {v}", { v: money(f.p50) })}</div><div class="dim">${t("8 in 10 between {a} and {b}", { a: short(f.p10), b: short(f.p90) })}</div>`;
     tip.hidden = false;
     const left = (px / W) * box.width;
     tip.style.left = `${Math.min(box.width - 190, Math.max(0, left + 12))}px`;
@@ -751,7 +753,7 @@ function wireFan(fan, target) {
 // ---------------------------------------------------------------- 5. compare
 
 async function renderCompare(asset = "") {
-  panel.innerHTML = `<p class="empty">Comparing products…</p>`;
+  panel.innerHTML = `<p class="empty">${t("Comparing products…")}</p>`;
   let data;
   try { data = await api(`/api/compare${asset ? `?asset_class=${asset}` : ""}`); }
   catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
@@ -760,31 +762,31 @@ async function renderCompare(asset = "") {
   const prov = data.provenance;
   const c = state.client;
   panel.innerHTML = `
-    <h1>Compare products</h1>
-    <p class="lede">Every product you are eligible for, ranked by return per unit of risk after fees. Fee cost shows what fees would take from ${money(c.amount)} over ${c.horizon_years} years.</p>
+    <h1>${t("Compare products")}</h1>
+    <p class="lede">${t("Every product you are eligible for, ranked by return per unit of risk after fees. Fee cost shows what fees would take from {amount} over {years} years.", { amount: money(c.amount), years: c.horizon_years })}</p>
     <div class="filters">
-      ${["", ...ASSET_ORDER].map((k) => `<label class="chip"><input type="radio" name="af" value="${k}" ${k === asset ? "checked" : ""}><span>${k ? ASSET_NAMES[k] : "All"}</span></label>`).join("")}
+      ${["", ...ASSET_ORDER].map((k) => `<label class="chip"><input type="radio" name="af" value="${k}" ${k === asset ? "checked" : ""}><span>${k ? ASSET_NAMES[k] : t("All")}</span></label>`).join("")}
     </div>
     <div class="sheet">
       ${data.rows.length ? `
       <table>
-        <thead><tr><th>Product</th><th>Risk</th><th class="r">Return after fees</th><th class="r">Volatility</th><th class="r">Fee</th><th class="r">Fee cost</th><th class="r">Access</th></tr></thead>
+        <thead><tr><th>${t("Product")}</th><th>${t("Risk")}</th><th class="r">${t("Return after fees")}</th><th class="r">${t("Volatility")}</th><th class="r">${t("Fee")}</th><th class="r">${t("Fee cost")}</th><th class="r">${t("Access")}</th></tr></thead>
         <tbody>
           ${data.rows.map((r) => `
             <tr>
               <td class="prod"><span class="swatch" style="background:var(--${r.asset_class})"></span>${esc(r.name)}<small>${ASSET_NAMES[r.asset_class]}</small></td>
               <td><span class="risk">R${r.risk_class}</span></td>
-              <td class="r">${num(pct(r.net_return, 2), prov, `Expected return after fees: ${r.name}`)}</td>
+              <td class="r">${num(pct(r.net_return, 2), prov, t("Expected return after fees: {name}", { name: r.name }))}</td>
               <td class="r">${pct(r.volatility, 1)}</td>
               <td class="r">${pct(r.fee, 2)}</td>
-              <td class="r">${num(money(r.fee_drag), prov, `Fee cost over ${c.horizon_years} years: ${r.name}`)}</td>
-              <td class="r">${r.liquidity_days <= 3 ? `${r.liquidity_days} day${r.liquidity_days > 1 ? "s" : ""}` : `${Math.round(r.liquidity_days / 30)} months`}</td>
+              <td class="r">${num(money(r.fee_drag), prov, t("Fee cost over {years} years: {name}", { years: c.horizon_years, name: r.name }))}</td>
+              <td class="r">${r.liquidity_days <= 3 ? tn("1 day", "{n} days", r.liquidity_days) : t("{n} months", { n: Math.round(r.liquidity_days / 30) })}</td>
             </tr>`).join("")}
         </tbody>
-      </table>` : `<p class="empty">No products in this group match your risk class.</p>`}
+      </table>` : `<p class="empty">${t("No products in this group match your risk class.")}</p>`}
     </div>
-    ${data.locked?.length ? `<p class="hidden-note">Not shown because you may need the money sooner than they allow withdrawals: ${data.locked.map((h) => esc(h.name)).join(", ")}.</p>` : ""}
-    ${data.hidden.length ? `<p class="hidden-note">Not shown because they exceed R${state.profile.investor_class}: ${data.hidden.map((h) => `${esc(h.name)} (R${h.risk_class})`).join(", ")}.</p>` : ""}`;
+    ${data.locked?.length ? `<p class="hidden-note">${t("Not shown because you may need the money sooner than they allow withdrawals: {names}.", { names: data.locked.map((h) => esc(h.name)).join(", ") })}</p>` : ""}
+    ${data.hidden.length ? `<p class="hidden-note">${t("Not shown because they exceed R{n}: {names}.", { n: state.profile.investor_class, names: data.hidden.map((h) => `${esc(h.name)} (R${h.risk_class})`).join(", ") })}</p>` : ""}`;
   panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare(i.value)));
 }
 
@@ -792,7 +794,7 @@ async function renderCompare(asset = "") {
 
 async function renderStress() {
   if (!state.allocation) { await renderPortfolio(); }
-  panel.innerHTML = `<p class="empty">Running scenarios…</p>`;
+  panel.innerHTML = `<p class="empty">${t("Running scenarios…")}</p>`;
   let data;
   try { data = await api("/api/stress"); }
   catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
@@ -803,90 +805,90 @@ async function renderStress() {
   const x = (v) => `${(v / max) * 100}%`;
   const breaches = data.scenarios.filter((s) => s.breach);
   panel.innerHTML = `
-    <h1>How would this portfolio have fared?</h1>
-    <p class="lede">We replay three historical shocks on your current portfolio of ${money(state.allocation.amount)} and compare the loss with the ${pct(data.max_loss, 0)} you said you could accept.</p>
+    <h1>${t("How would this portfolio have fared?")}</h1>
+    <p class="lede">${t("We replay three historical shocks on your current portfolio of {amount} and compare the loss with the {limit} you said you could accept.", { amount: money(state.allocation.amount), limit: pct(data.max_loss, 0) })}</p>
     <div class="sheet" style="padding-top:40px">
       ${data.scenarios.map((s, i) => `
         <div class="stress-row">
-          <div class="name">${esc(s.name[0].toUpperCase() + s.name.slice(1))}</div>
+          <div class="name">${esc(LANG === "zh" ? t(s.name) : s.name[0].toUpperCase() + s.name.slice(1))}</div>
           <div class="stress-track">
             <div class="stress-bar ${s.breach ? "breach" : ""}" style="width:${x(s.loss)}"></div>
-            <div class="stress-val" style="left:${x(s.loss)}">−${pct(s.loss)} <span style="font-weight:400;color:var(--ink-3)">(${num(money(s.loss_amount), prov, `Loss in ${s.name}`)})</span></div>
+            <div class="stress-val" style="left:${x(s.loss)}">−${pct(s.loss)} <span style="font-weight:400;color:var(--ink-3)">(${num(money(s.loss_amount), prov, t("Loss in {name}", { name: t(s.name) }))})</span></div>
             <div class="limit" style="left:${x(data.max_loss)}"></div>
-            ${i === 0 ? `<div class="limit-label" style="left:${x(data.max_loss)}">Your limit ${pct(data.max_loss, 0)}</div>` : ""}
+            ${i === 0 ? `<div class="limit-label" style="left:${x(data.max_loss)}">${t("Your limit {v}", { v: pct(data.max_loss, 0) })}</div>` : ""}
           </div>
         </div>`).join("")}
       <div class="verdict-bar ${breaches.length ? "bad" : "ok"}">
         ${breaches.length
-          ? `<svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><div><strong>Exceeds your limit in ${breaches.length} of ${data.scenarios.length} scenarios.</strong> Consider a lower risk level on the Portfolio step.</div>`
-          : `<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div><strong>Within your limit in every scenario.</strong> The worst case is a ${pct(Math.max(...data.scenarios.map((s) => s.loss)))} fall.</div>`}
+          ? `<svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><div>${t("<strong>Exceeds your limit in {n} of {total} scenarios.</strong> Consider a lower risk level on the Portfolio step.", { n: breaches.length, total: data.scenarios.length })}</div>`
+          : `<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div>${t("<strong>Within your limit in every scenario.</strong> The worst case is a {v} fall.", { v: pct(Math.max(...data.scenarios.map((s) => s.loss))) })}</div>`}
       </div>
     </div>
-    <p class="hint">Shocks are applied per asset class from historical peak-to-trough moves. Real losses can be larger.</p>`;
+    <p class="hint">${t("Shocks are applied per asset class from historical peak-to-trough moves. Real losses can be larger.")}</p>`;
   const worst = data.scenarios.reduce((a, b) => (b.loss > a.loss ? b : a));
   say([
-    `In a repeat of the ${esc(worst.name)}, this portfolio would have fallen about <strong>${pct(worst.loss)}</strong>, or ${money(worst.loss_amount)}.`,
+    t("In a repeat of the {name}, this portfolio would have fallen about <strong>{v}</strong>, or {amount}.", { name: esc(t(worst.name)), v: pct(worst.loss), amount: money(worst.loss_amount) }),
     breaches.length
-      ? `That is more than the ${pct(data.max_loss, 0)} you told me you could accept, so I would not recommend proceeding at this risk level.`
-      : `That stays within the ${pct(data.max_loss, 0)} you told me you could accept.`,
+      ? t("That is more than the {limit} you told me you could accept, so I would not recommend proceeding at this risk level.", { limit: pct(data.max_loss, 0) })
+      : t("That stays within the {limit} you told me you could accept.", { limit: pct(data.max_loss, 0) }),
   ]);
 }
 
 // ---------------------------------------------------------------- 7. execute
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const shortDate = (iso) => new Date(iso).toLocaleDateString(LOCALE, { day: "numeric", month: "short" });
 
-function setTier(t) {
-  state.tier = t;
+function setTier(tier) {
+  state.tier = tier;
   const el = $(".tier");
-  el.textContent = t.level >= 3 ? "Simulated trading on" : "Advice only";
-  el.classList.toggle("live", t.level >= 3);
-  el.title = t.level >= 3
-    ? "You signed the risk disclosure. Orders still need your explicit hold-to-confirm."
-    : "Permission tier: the advisor can explain and recommend, but cannot place orders.";
+  el.textContent = tier.level >= 3 ? t("Simulated trading on") : t("Advice only");
+  el.classList.toggle("live", tier.level >= 3);
+  el.title = tier.level >= 3
+    ? t("You signed the risk disclosure. Orders still need your explicit hold-to-confirm.")
+    : t("Permission tier: the advisor can explain and recommend, but cannot place orders.");
 }
 
 async function renderExecute() {
   if (!state.allocation) {
-    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    panel.innerHTML = `<p class="empty">${t("Building your portfolio…")}</p>`;
     try { await loadAllocation(state.client.amount, state.allocationLevel, false); }
     catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
   }
-  let t;
-  try { t = await api("/api/tier"); } catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
-  setTier(t);
-  if (t.level < 3) renderDisclosure(t);
+  let tier;
+  try { tier = await api("/api/tier"); } catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  setTier(tier);
+  if (tier.level < 3) renderDisclosure(tier);
   else renderTicket();
 }
 
-function renderDisclosure(t) {
+function renderDisclosure(tier) {
   const p = state.profile;
   panel.innerHTML = `
-    <h1>Before you place orders</h1>
-    <p class="lede">Orders run on a simulated brokerage account. Read the risks below and sign to switch this session from advice only to simulated trading. You will still confirm every order yourself.</p>
+    <h1>${t("Before you place orders")}</h1>
+    <p class="lede">${t("Orders run on a simulated brokerage account. Read the risks below and sign to switch this session from advice only to simulated trading. You will still confirm every order yourself.")}</p>
     <div class="sheet disclosure">
-      <h3 style="margin-top:0">Risk disclosure</h3>
+      <h3 style="margin-top:0">${t("Risk disclosure")}</h3>
       <ul class="reasons">
-        <li>Investments can fall in value and you may get back less than you invest.</li>
-        <li>Expected returns and stress tests are model estimates. Past performance does not predict future results.</li>
-        <li>Your risk class is C${p.investor_class}. Products above R${p.investor_class} are blocked for you.</li>
-        <li>Products rated R4 or higher have a cooling-off period before they can be bought.</li>
-        <li>The AI advisor can never place or confirm an order on your behalf.</li>
+        <li>${t("Investments can fall in value and you may get back less than you invest.")}</li>
+        <li>${t("Expected returns and stress tests are model estimates. Past performance does not predict future results.")}</li>
+        <li>${t("Your risk class is C{n}. Products above R{n} are blocked for you.", { n: p.investor_class })}</li>
+        <li>${t("Products rated R4 or higher have a cooling-off period before they can be bought.")}</li>
+        <li>${t("The AI advisor can never place or confirm an order on your behalf.")}</li>
       </ul>
-      ${t.kill_switch ? `<div class="verdict-bar bad"><div><strong>Trading is switched off for all sessions right now.</strong> You can still use every advice step.</div></div>` : `
+      ${tier.kill_switch ? `<div class="verdict-bar bad"><div>${t("<strong>Trading is switched off for all sessions right now.</strong> You can still use every advice step.")}</div></div>` : `
       <form id="consent" class="sign">
-        <label class="check" style="padding-top:18px"><input type="checkbox" id="accept"> I have read and understood these risks</label>
+        <label class="check" style="padding-top:18px"><input type="checkbox" id="accept"> ${t("I have read and understood these risks")}</label>
         <div class="field sign-field">
-          <label for="signName">Sign with your full name</label>
-          <input id="signName" type="text" autocomplete="name" placeholder="Your full name" maxlength="80">
+          <label for="signName">${t("Sign with your full name")}</label>
+          <input id="signName" type="text" autocomplete="name" placeholder="${t("Your full name")}" maxlength="80">
           <div class="signature" aria-hidden="true"><span id="sigInk"></span></div>
         </div>
-        <div class="actions"><button class="btn" id="signBtn" type="submit" disabled>Sign and enable simulated trading</button></div>
+        <div class="actions"><button class="btn" id="signBtn" type="submit" disabled>${t("Sign and enable simulated trading")}</button></div>
         <div id="consentErr"></div>
       </form>`}
     </div>`;
-  if (t.kill_switch) return;
+  if (tier.kill_switch) return;
   const name = $("#signName");
   const accept = $("#accept");
   const sync = () => {
@@ -907,7 +909,7 @@ function renderDisclosure(t) {
       setTier(res);
       refreshAudit();
       await new Promise((r) => setTimeout(r, reduceMotion ? 0 : 1100));
-      say(["Thank you. Simulated trading is now enabled for this session.", "I have prepared an order ticket from your portfolio. Nothing is placed until you hold the confirm button yourself."]);
+      say([t("Thank you. Simulated trading is now enabled for this session."), t("I have prepared an order ticket from your portfolio. Nothing is placed until you hold the confirm button yourself.")]);
       renderTicket();
     } catch (err) {
       $("#consentErr").innerHTML = `<p class="err">${esc(err.message)}</p>`;
@@ -918,11 +920,11 @@ function renderDisclosure(t) {
 
 async function renderTicket() {
   if (staleBanner()) {
-    panel.innerHTML = `<h1>Review and confirm</h1><p class="lede">Your risk class changed after this portfolio was built.</p>${staleBanner()}`;
+    panel.innerHTML = `<h1>${t("Review and confirm")}</h1><p class="lede">${t("Your risk class changed after this portfolio was built.")}</p>${staleBanner()}`;
     wireStale();
     return;
   }
-  panel.innerHTML = `<p class="empty">Preparing your order ticket…</p>`;
+  panel.innerHTML = `<p class="empty">${t("Preparing your order ticket…")}</p>`;
   if (!state.drafts) {
     try { state.drafts = await api("/api/orders/draft", { method: "POST" }); }
     catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
@@ -933,41 +935,41 @@ async function renderTicket() {
   const later = d.orders.filter((o) => o.cooling_off);
   const total = now.reduce((s, o) => s + o.amount, 0);
   panel.innerHTML = `
-    <h1>Review and confirm</h1>
-    <p class="lede">These orders match your recommended portfolio exactly. Every line passed the suitability, liquidity and limit checks on the server.</p>
-    ${state.rehearsal ? "" : `<div class="verdict-bar nudge"><div><strong>You haven't rehearsed a crash with this portfolio yet.</strong> Most people who sell at the bottom never expected to.</div><button class="btn secondary" type="button" id="goRehearse">Rehearse first</button></div>`}
+    <h1>${t("Review and confirm")}</h1>
+    <p class="lede">${t("These orders match your recommended portfolio exactly. Every line passed the suitability, liquidity and limit checks on the server.")}</p>
+    ${state.rehearsal ? "" : `<div class="verdict-bar nudge"><div>${t("<strong>You haven't rehearsed a crash with this portfolio yet.</strong> Most people who sell at the bottom never expected to.")}</div><button class="btn secondary" type="button" id="goRehearse">${t("Rehearse first")}</button></div>`}
     <div class="exec">
       <div class="ticket">
         <div class="ticket-head">
-          <div><div class="ticket-sub">Order ticket</div><div class="ticket-title">Buy ${d.orders.length} product${d.orders.length > 1 ? "s" : ""}</div></div>
-          <div class="ticket-acct"><div class="ticket-sub">Simulated cash</div><b>${num(money(d.cash), d.provenance, "Simulated account cash")}</b></div>
+          <div><div class="ticket-sub">${t("Order ticket")}</div><div class="ticket-title">${tn("Buy 1 product", "Buy {n} products", d.orders.length)}</div></div>
+          <div class="ticket-acct"><div class="ticket-sub">${t("Simulated cash")}</div><b>${num(money(d.cash), d.provenance, t("Simulated account cash"))}</b></div>
         </div>
         <div class="perf" aria-hidden="true"></div>
         <ul class="ticket-lines">
           ${d.orders.map((o) => `
             <li class="${o.cooling_off ? "muted" : ""}">
               <span class="swatch" style="background:var(--${o.asset_class})"></span>
-              <span class="tl-name">${esc(o.name)}<small>R${o.risk_class} · ${o.units.toFixed(2)} units at ${o.nav.toFixed(2)}${o.cooling_off ? ` · cooling-off until ${shortDate(o.cooling_off_until)}` : ""}</small></span>
+              <span class="tl-name">${esc(o.name)}<small>R${o.risk_class} · ${t("{units} units at {nav}", { units: o.units.toFixed(2), nav: o.nav.toFixed(2) })}${o.cooling_off ? ` · ${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}` : ""}</small></span>
               <span class="tl-amt">${money(o.amount)}</span>
             </li>`).join("")}
         </ul>
         <div class="perf" aria-hidden="true"></div>
         <ul class="checks">
-          <li>Every product is rated R${d.investor_class} or lower</li>
-          <li class="${state.rehearsal ? "" : "todo"}">${state.rehearsal ? `Crash rehearsal completed: ${state.rehearsal.action === "sell" ? "sold" : "held"} in 2008` : "Crash rehearsal not taken yet"}</li>
-          <li>Per-order and daily limits respected</li>
-          <li>Risk profile valid until ${new Date(state.profile.expires_on).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</li>
+          <li>${t("Every product is rated R{n} or lower", { n: d.investor_class })}</li>
+          <li class="${state.rehearsal ? "" : "todo"}">${state.rehearsal ? t(state.rehearsal.action === "sell" ? "Crash rehearsal completed: sold in 2008" : "Crash rehearsal completed: held in 2008") : t("Crash rehearsal not taken yet")}</li>
+          <li>${t("Per-order and daily limits respected")}</li>
+          <li>${t("Risk profile valid until {date}", { date: longDate(state.profile.expires_on) })}</li>
         </ul>
-        <div class="ticket-total"><span>${later.length ? "Placed now" : "Total"}</span><b>${money(total)}</b></div>
+        <div class="ticket-total"><span>${t(later.length ? "Placed now" : "Total")}</span><b>${money(total)}</b></div>
       </div>
 
       <div class="confirm-zone">
         ${now.length ? `
         <button class="hold" id="hold" type="button" aria-describedby="holdHint">
-          <span class="hold-label">Hold to place ${now.length} order${now.length > 1 ? "s" : ""}</span>
-          <span class="hold-fill" aria-hidden="true">Hold to place ${now.length} order${now.length > 1 ? "s" : ""}</span>
+          <span class="hold-label">${tn("Hold to place 1 order", "Hold to place {n} orders", now.length)}</span>
+          <span class="hold-fill" aria-hidden="true">${tn("Hold to place 1 order", "Hold to place {n} orders", now.length)}</span>
         </button>
-        <p class="hint" id="holdHint">Press and hold for 1.5 seconds. You can undo for 5 seconds afterwards.</p>` : `<p class="empty">All orders are in their cooling-off period.</p>`}
+        <p class="hint" id="holdHint">${t("Press and hold for 1.5 seconds. You can undo for 5 seconds afterwards.")}</p>` : `<p class="empty">${t("All orders are in their cooling-off period.")}</p>`}
         <div id="execErr"></div>
         <div class="printer" id="printer" hidden>
           <div class="slot" aria-hidden="true"></div>
@@ -1025,7 +1027,7 @@ function wireHold(btn, orders) {
     const zone = btn.parentElement;
     const undo = document.createElement("div");
     undo.className = "undo";
-    undo.innerHTML = `<span>Placing orders in <b id="undoN">${left}</b> s</span><button type="button" class="btn secondary" id="undoBtn">Undo</button>`;
+    undo.innerHTML = `<span>${t('Placing orders in <b id="undoN">{n}</b> s', { n: left })}</span><button type="button" class="btn secondary" id="undoBtn">${t("Undo")}</button>`;
     btn.hidden = true;
     $("#holdHint").hidden = true;
     zone.prepend(undo);
@@ -1034,7 +1036,7 @@ function wireHold(btn, orders) {
       left -= 1;
       if (left > 0) { $("#undoN").textContent = left; return; }
       clearInterval(timer);
-      undo.innerHTML = `<span>Placing orders…</span>`;
+      undo.innerHTML = `<span>${t("Placing orders…")}</span>`;
       try {
         const result = await api("/api/orders/confirm", { method: "POST", body: { tokens } });
         undo.remove();
@@ -1051,7 +1053,7 @@ function wireHold(btn, orders) {
       btn.hidden = false;
       $("#holdHint").hidden = false;
       reset();
-      note("Orders cancelled before they were sent. Nothing was placed.");
+      note(t("Orders cancelled before they were sent. Nothing was placed."));
       btn.focus();
     };
   }
@@ -1078,32 +1080,32 @@ function printReceipt(r) {
   const settle = r.executed[0]?.settles_on;
   const line = (l, rgt) => `<div class="rl"><span>${l}</span><span>${rgt}</span></div>`;
   paper.innerHTML = `
-    <div class="rc-head">Wealth Advisor<br>Simulated brokerage account</div>
-    <div class="rc-center">Trade confirmation</div>
-    <div class="rc-center rc-dim">${ts.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${ts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
+    <div class="rc-head">${t("Wealth Advisor")}<br>${t("Simulated brokerage account")}</div>
+    <div class="rc-center">${t("Trade confirmation")}</div>
+    <div class="rc-center rc-dim">${ts.toLocaleDateString(LOCALE, { day: "2-digit", month: "short", year: "numeric" })} ${ts.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })}</div>
     <div class="rc-rule"></div>
     ${r.executed.map((o) => `
       <div class="rc-item">
-        ${line(`BUY ${esc(o.name)}`, "")}
+        ${line(t("BUY {name}", { name: esc(o.name) }), "")}
         ${line(`&nbsp;&nbsp;R${o.risk_class} · ${o.units.toFixed(2)} u @ ${o.nav.toFixed(2)}`, money(o.amount))}
       </div>`).join("")}
     ${later.map((o) => `
       <div class="rc-item rc-dim">
-        ${line(`HOLD ${esc(o.name)}`, "")}
-        ${line(`&nbsp;&nbsp;cooling-off until ${shortDate(o.cooling_off_until)}`, money(o.amount))}
+        ${line(t("HOLD {name}", { name: esc(o.name) }), "")}
+        ${line(`&nbsp;&nbsp;${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}`, money(o.amount))}
       </div>`).join("")}
-    ${r.failed.map((f) => `<div class="rc-item rc-fail">${line(`NOT PLACED ${esc(f.order_id)}`, "")}<div>&nbsp;&nbsp;${esc(f.reason)}</div></div>`).join("")}
+    ${r.failed.map((f) => `<div class="rc-item rc-fail">${line(t("NOT PLACED {id}", { id: esc(f.order_id) }), "")}<div>&nbsp;&nbsp;${esc(f.reason)}</div></div>`).join("")}
     <div class="rc-rule"></div>
-    ${line("<b>Total executed</b>", `<b>${money(r.total)}</b>`)}
-    ${line("Cash remaining", money(r.cash))}
-    ${settle ? line("Settlement", `T+2 · ${shortDate(settle)}`) : ""}
+    ${line(`<b>${t("Total executed")}</b>`, `<b>${money(r.total)}</b>`)}
+    ${line(t("Cash remaining"), money(r.cash))}
+    ${settle ? line(t("Settlement"), `T+2 · ${shortDate(settle)}`) : ""}
     <div class="rc-rule"></div>
-    <div class="rc-dim">Audit record</div>
+    <div class="rc-dim">${t("Audit record")}</div>
     <div class="rc-hash">${r.provenance.audit_hash.match(/.{1,4}/g).slice(0, 8).join(" ")}</div>
     ${barcode(r.provenance.audit_hash)}
-    <div class="stamp" aria-label="Suitability checked">
-      <span>Suitability checked</span>
-      <b>C${r.investor_class} · all ≤ R${r.investor_class}</b>
+    <div class="stamp" aria-label="${t("Suitability checked")}">
+      <span>${t("Suitability checked")}</span>
+      <b>${t("C{n} · all ≤ R{n}", { n: r.investor_class })}</b>
     </div>`;
   printer.hidden = false;
   printer.classList.remove("printing");
@@ -1115,26 +1117,26 @@ function printReceipt(r) {
   anchorOnReceipt(paper);
   say([
     r.executed.length
-      ? `Done. ${r.executed.length} order${r.executed.length > 1 ? "s" : ""} for <strong>${money(r.total)}</strong> ${r.executed.length > 1 ? "were" : "was"} placed on your simulated account and will settle in two business days.`
-      : "No orders were placed.",
-    ...(later.length ? [`${later.length} higher-risk order${later.length > 1 ? "s are" : " is"} held for the cooling-off period, as the rules require.`] : []),
-    "The confirmation carries the audit-record hash, so this trade can be verified later.",
+      ? tn("Done. 1 order for <strong>{amount}</strong> was placed on your simulated account and will settle in two business days.", "Done. {n} orders for <strong>{amount}</strong> were placed on your simulated account and will settle in two business days.", r.executed.length, { amount: money(r.total) })
+      : t("No orders were placed."),
+    ...(later.length ? [tn("1 higher-risk order is held for the cooling-off period, as the rules require.", "{n} higher-risk orders are held for the cooling-off period, as the rules require.", later.length)] : []),
+    t("The confirmation carries the audit-record hash, so this trade can be verified later."),
   ]);
 }
 
 async function anchorOnReceipt(paper) {
   const slot = document.createElement("div");
   slot.className = "rc-chain";
-  slot.innerHTML = `<div class="rc-rule"></div><div class="rc-dim">On-chain proof</div><div>Anchoring on Ethereum Sepolia…</div>`;
+  slot.innerHTML = `<div class="rc-rule"></div><div class="rc-dim">${t("On-chain proof")}</div><div>${t("Anchoring on Ethereum Sepolia…")}</div>`;
   paper.insertBefore(slot, paper.querySelector(".stamp"));
   try {
     const a = await api("/api/anchor", { method: "POST" });
     slot.lastElementChild.innerHTML = a.sent
-      ? `Ethereum Sepolia · <a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${esc(a.tx_hash.slice(0, 10))}…${esc(a.tx_hash.slice(-6))}</a><br><span class="rc-dim">audit head after ${a.record_count} records</span>`
-      : `<span class="rc-dim">Not anchored: ${esc(a.note)}</span>`;
+      ? `Ethereum Sepolia · <a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${esc(a.tx_hash.slice(0, 10))}…${esc(a.tx_hash.slice(-6))}</a><br><span class="rc-dim">${t("audit head after {n} records", { n: a.record_count })}</span>`
+      : `<span class="rc-dim">${t("Not anchored: {why}", { why: esc(a.note) })}</span>`;
     refreshAudit();
   } catch (err) {
-    slot.lastElementChild.innerHTML = `<span class="rc-dim">Not anchored: ${esc(err.message)}</span>`;
+    slot.lastElementChild.innerHTML = `<span class="rc-dim">${t("Not anchored: {why}", { why: esc(err.message) })}</span>`;
   }
 }
 
@@ -1175,7 +1177,7 @@ async function refreshAudit() {
     const pill = $("#auditPill");
     pill.classList.toggle("ok", a.valid);
     pill.classList.toggle("bad", !a.valid);
-    $("#auditText").textContent = a.valid ? `Audit chain verified · ${a.total}` : "Audit chain broken";
+    $("#auditText").textContent = a.valid ? t("Audit chain verified · {n}", { n: a.total }) : t("Audit chain broken");
     return a;
   } catch { return null; }
 }
@@ -1184,13 +1186,13 @@ async function openDrawer() {
   const a = await refreshAudit();
   if (!a) return;
   $("#drawerStatus").textContent = a.valid
-    ? `${a.total} records. Each one includes the hash of the record before it, so editing any past entry breaks the chain.`
-    : `Verification failed: ${a.reason}`;
+    ? t("{n} records. Each one includes the hash of the record before it, so editing any past entry breaks the chain.", { n: a.total })
+    : t("Verification failed: {why}", { why: a.reason });
   renderAnchors();
   $("#chain").innerHTML = a.records.map((r) => `
     <li>
       <div class="ev">${esc(r.event.replace(/_/g, " "))}</div>
-      <div class="src">${esc(new Date(r.timestamp).toLocaleString())}${r.source ? ` · ${esc(r.source)}` : ""}</div>
+      <div class="src">${esc(new Date(r.timestamp).toLocaleString(LOCALE))}${r.source ? ` · ${esc(r.source)}` : ""}</div>
       <div class="h">${esc(r.hash.slice(0, 20))}… ← ${esc((r.prev_hash || "genesis").slice(0, 12))}</div>
     </li>`).join("");
   drawer.hidden = false;
@@ -1204,17 +1206,17 @@ async function renderAnchors() {
   const sent = list.filter((x) => x.sent);
   box.innerHTML = `
     <div class="anchor-head">
-      <div><b>Blockchain anchors</b><div class="hint">${sent.length ? `${sent.length} on Ethereum Sepolia` : "Write the current chain head to a public blockchain."}</div></div>
-      <button class="btn secondary" type="button" id="anchorNow">Anchor now</button>
+      <div><b>${t("Blockchain anchors")}</b><div class="hint">${sent.length ? t("{n} on Ethereum Sepolia", { n: sent.length }) : t("Write the current chain head to a public blockchain.")}</div></div>
+      <button class="btn secondary" type="button" id="anchorNow">${t("Anchor now")}</button>
     </div>
     ${sent.slice().reverse().map((x) => `
       <div class="anchor-row">
         <a href="${esc(x.explorer_url)}" target="_blank" rel="noopener">${esc(x.tx_hash.slice(0, 12))}…</a>
-        <span class="rc-dim">${x.record_count} records</span>
-        <button class="why" type="button" data-verify="${esc(x.tx_hash)}">Verify</button>
+        <span class="rc-dim">${t("{n} records", { n: x.record_count })}</span>
+        <button class="why" type="button" data-verify="${esc(x.tx_hash)}">${t("Verify")}</button>
         <span class="verify-out"></span>
       </div>`).join("")}
-    ${list.length && !sent.length ? `<p class="hint">Last attempt: ${esc(list[list.length - 1].note)}</p>` : ""}`;
+    ${list.length && !sent.length ? `<p class="hint">${t("Last attempt: {why}", { why: esc(list[list.length - 1].note) })}</p>` : ""}`;
   $("#anchorNow").onclick = async (e) => {
     e.target.disabled = true;
     try { await api("/api/anchor", { method: "POST" }); } catch (err) { note(err.message, "msg-error"); }
@@ -1222,10 +1224,10 @@ async function renderAnchors() {
   };
   box.querySelectorAll("[data-verify]").forEach((b) => (b.onclick = async () => {
     const out = b.nextElementSibling;
-    out.textContent = "Checking…";
+    out.textContent = t("Checking…");
     try {
       const v = await api(`/api/anchor/verify?tx=${b.dataset.verify}`);
-      out.textContent = v.matches ? `✓ matches the log at record ${v.record_count}, block ${v.block}` : `✗ does not match (${v.chain_reason})`;
+      out.textContent = v.matches ? t("✓ matches the log at record {n}, block {b}", { n: v.record_count, b: v.block }) : t("✗ does not match ({why})", { why: v.chain_reason });
       out.className = `verify-out ${v.matches ? "ok" : "bad"}`;
     } catch (err) { out.textContent = err.message; }
   }));
@@ -1245,20 +1247,20 @@ scrim.onclick = closeDrawer;
 
 (async function boot() {
   say([
-    "Hello. I'm your digital wealth advisor.",
-    "Before I recommend anything, I need to understand how much risk you can afford and how much you are comfortable with. The short questionnaire on the right takes about two minutes.",
-    "You can also ask me anything here at any time.",
+    t("Hello. I'm your digital wealth advisor."),
+    t("Before I recommend anything, I need to understand how much risk you can afford and how much you are comfortable with. The short questionnaire on the right takes about two minutes."),
+    t("You can also ask me anything here at any time."),
   ]);
   try {
     state.questionnaire = await api("/api/questionnaire");
   } catch (err) {
-    panel.innerHTML = `<p class="err">Could not load the questionnaire: ${esc(err.message)}</p>`;
+    panel.innerHTML = `<p class="err">${t("Could not load the questionnaire: {err}", { err: esc(err.message) })}</p>`;
     return;
   }
   try {
     const restored = await api("/api/state");
     applyServerState(restored);
-    if (restored.profile) note("Welcome back. Your client file from this session is restored.");
+    if (restored.profile) note(t("Welcome back. Your client file from this session is restored."));
   } catch { /* a fresh session simply starts at step 1 */ }
   go(state.profile ? (state.allocation ? "portfolio" : "profile") : "profile");
   refreshAudit();
