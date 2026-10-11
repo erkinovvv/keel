@@ -8,8 +8,10 @@ and the hash of the audit record written for that computation.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import secrets
+from datetime import date
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -23,7 +25,9 @@ from wealth_advisor.allocation import Allocation, build_allocation
 from wealth_advisor.audit import verify_audit_log
 from wealth_advisor.catalog import compare_products, load_catalog
 from wealth_advisor.config import Settings
+from wealth_advisor.permissions import PermissionDenied, PermissionTier
 from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_investor
+from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
 from wealth_advisor.ui.labels import CLASS_NAMES, FLAG_LABELS, explain_reason, humanize, question_label
@@ -222,7 +226,17 @@ def chat(body: ChatIn, response: Response, wa_sid: str | None = Cookie(default=N
         reply = file.session.send(body.message)
     except Exception as exc:  # the UI shows the failure instead of hanging
         raise HTTPException(502, f"The advisor could not answer: {exc}") from exc
-    return {"reply": reply, "mode": file.session.settings.llm_mode}
+    # Shown to the client so they can see what actually reached the model.
+    redacted, pii_types = redact_pii(body.message)
+    return {"reply": reply, "mode": file.session.settings.llm_mode, "redacted": redacted, "pii_types": list(pii_types)}
+
+
+@app.post("/api/redact")
+def redact(body: ChatIn) -> dict[str, Any]:
+    """Preview what the model will see: the same deterministic redaction the session applies."""
+
+    redacted, pii_types = redact_pii(body.message)
+    return {"redacted": redacted, "pii_types": list(pii_types)}
 
 
 @app.get("/api/audit")
@@ -239,6 +253,117 @@ def audit(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict
             {"timestamp": r["timestamp"], "event": r["event"], "source": r.get("details", {}).get("source"), "hash": r["hash"], "prev_hash": r.get("prev_hash")}
             for r in reversed(records[-60:])
         ],
+    }
+
+
+# ---------------------------------------------------------------- execution (human-only path)
+
+
+def _tier_view(file: ClientFile) -> dict[str, Any]:
+    tier = file.session.tier
+    return {"tier": tier.name, "level": int(tier), "kill_switch": file.session.settings.kill_switch}
+
+
+def _order_view(order: dict[str, Any], products: dict[str, Any]) -> dict[str, Any]:
+    product = products[order["product_id"]]
+    cooling = order.get("cooling_off_until")
+    return {
+        **order,
+        "name": product.name,
+        "asset_class": product.asset_class,
+        "nav": product.nav,
+        "units": order["amount"] / product.nav,
+        "cooling_off": bool(cooling and date.fromisoformat(cooling) > date.today()),
+    }
+
+
+@app.get("/api/tier")
+def tier(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    return _tier_view(_file(wa_sid, response))
+
+
+class ConsentIn(BaseModel):
+    full_name: str = Field(min_length=2, max_length=120)
+    accepted: bool
+
+
+@app.post("/api/consent")
+def consent(body: ConsentIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Client signs the risk disclosure and opts this session into simulated execution."""
+
+    file = _file(wa_sid, response)
+    _require_profile(file)
+    if not body.accepted:
+        raise HTTPException(422, "The risk disclosure must be accepted.")
+    if file.session.settings.kill_switch:
+        _record(file, "consent_refused", "ui.server.consent", {"reason": "kill_switch"})
+        raise HTTPException(403, "Trading is switched off for all sessions right now.")
+    file.session.tier = PermissionTier.EXECUTE
+    # The signature name is personal data: only its hash enters the audit log.
+    signer = hashlib.sha256(body.full_name.strip().lower().encode()).hexdigest()
+    stamp = _record(file, "risk_disclosure_signed", "ui.server.consent", {"signer_sha256": signer, "tier": "EXECUTE"})
+    return {**_tier_view(file), "provenance": stamp}
+
+
+@app.post("/api/orders/draft")
+def draft_orders(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    file = _file(wa_sid, response)
+    _require_profile(file)
+    try:
+        orders = file.session.create_draft_orders("latest")
+    except PermissionDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    products = {p.id: p for p in load_catalog()}
+    stamp = _record(file, "ui_orders_drafted", "session.create_draft_orders", {"order_ids": [o["order_id"] for o in orders]})
+    return {
+        "orders": [_order_view(o, products) for o in orders],
+        "cash": file.session.state.account.cash,
+        "investor_class": file.session.state.profile.investor_class,
+        "provenance": stamp,
+    }
+
+
+class TokensIn(BaseModel):
+    order_ids: list[str] = Field(min_length=1, max_length=50)
+
+
+@app.post("/api/orders/tokens")
+def order_tokens(body: TokensIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Issue one-time tokens to the human holding the confirm button. The LLM never sees them."""
+
+    file = _file(wa_sid, response)
+    try:
+        return {"tokens": {order_id: file.session.issue_confirmation_token(order_id) for order_id in body.order_ids}}
+    except PermissionDenied as exc:
+        raise HTTPException(403, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+class ConfirmIn(BaseModel):
+    tokens: dict[str, str] = Field(min_length=1, max_length=50)
+
+
+@app.post("/api/orders/confirm")
+def confirm_orders(body: ConfirmIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    file = _file(wa_sid, response)
+    products = {p.id: p for p in load_catalog()}
+    executed, failed = [], []
+    for order_id, token in body.tokens.items():
+        try:
+            executed.append(_order_view(file.session.confirm_order(order_id, token), products))
+        except (PermissionDenied, ValueError) as exc:
+            failed.append({"order_id": order_id, "reason": str(exc)})
+    stamp = _record(file, "ui_orders_confirmed", "session.confirm_order", {"executed": [o["order_id"] for o in executed], "failed": failed})
+    return {
+        "executed": executed,
+        "failed": failed,
+        "total": sum(o["amount"] for o in executed),
+        "cash": file.session.state.account.cash,
+        "investor_class": file.session.state.profile.investor_class if file.session.state.profile else None,
+        "provenance": stamp,
     }
 
 

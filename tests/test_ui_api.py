@@ -57,3 +57,21 @@ def test_steps_require_a_profile(tmp_path, monkeypatch):
     client = _client(tmp_path, monkeypatch)
     assert client.post("/api/allocation", json={}).status_code == 409
     assert client.get("/api/stress").status_code == 409
+
+
+def test_human_confirmation_flow(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    _profile(client)
+    client.post("/api/allocation", json={})
+    assert client.post("/api/orders/draft").status_code == 403  # advice-only until the disclosure is signed
+    assert client.post("/api/consent", json={"full_name": "Test Client", "accepted": True}).json()["tier"] == "EXECUTE"
+    orders = [o for o in client.post("/api/orders/draft").json()["orders"] if not o["cooling_off"]]
+    ids = [o["order_id"] for o in orders]
+    tokens = client.post("/api/orders/tokens", json={"order_ids": ids}).json()["tokens"]
+    forged = client.post("/api/orders/confirm", json={"tokens": {ids[0]: "forged"}}).json()
+    assert forged["executed"] == [] and forged["failed"]
+    tokens = client.post("/api/orders/tokens", json={"order_ids": ids}).json()["tokens"]
+    result = client.post("/api/orders/confirm", json={"tokens": tokens}).json()
+    assert len(result["executed"]) == len(ids) and not result["failed"]
+    replay = client.post("/api/orders/confirm", json={"tokens": tokens}).json()
+    assert replay["executed"] == []  # one-time tokens cannot be reused

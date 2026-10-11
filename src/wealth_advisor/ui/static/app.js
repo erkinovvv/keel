@@ -79,9 +79,12 @@ function say(paragraphs) {
 function clientSays(text) {
   const li = document.createElement("li");
   li.className = "msg-client";
-  li.textContent = text;
+  const body = document.createElement("span");
+  body.textContent = text;
+  li.append(body);
   thread.append(li);
   thread.scrollTop = thread.scrollHeight;
+  return li;
 }
 function note(text, cls = "msg-note") {
   const li = document.createElement("li");
@@ -98,9 +101,19 @@ $("#composer").addEventListener("submit", async (e) => {
   if (!text) return;
   input.value = "";
   autosize(input);
-  clientSays(text);
+  const bubble = clientSays(text);
   const send = $(".send");
   send.disabled = true;
+  try {
+    const r = await api("/api/redact", { method: "POST", body: { message: text } });
+    if (r.pii_types.length) {
+      scramble(bubble.firstChild, r.redacted);
+      const tag = document.createElement("small");
+      tag.className = "pii-tag";
+      tag.textContent = `Masked before reaching the AI: ${r.pii_types.map((t) => t.toLowerCase().replace(/_/g, " ")).join(", ")}`;
+      bubble.append(tag);
+    }
+  } catch { /* redaction display is best-effort; the server redacts regardless */ }
   const typing = document.createElement("li");
   typing.className = "msg-advisor";
   typing.innerHTML = `<span class="typing" aria-label="Advisor is typing"><i></i><i></i><i></i></span>`;
@@ -261,7 +274,7 @@ function showProfile(narrate) {
 
 async function loadAllocation(amount, level, narrate) {
   const data = await api("/api/allocation", { method: "POST", body: { amount, investor_class: level } });
-  Object.assign(state, { allocation: data.allocation, allocationProv: data.provenance, allocationLevel: level });
+  Object.assign(state, { allocation: data.allocation, allocationProv: data.provenance, allocationLevel: level, drafts: null });
   state.done.add("portfolio");
   refreshAudit();
   if (narrate) {
@@ -443,22 +456,308 @@ async function renderStress() {
 
 // ---------------------------------------------------------------- 5. execute
 
-function renderExecute() {
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+function setTier(t) {
+  state.tier = t;
+  const el = $(".tier");
+  el.textContent = t.level >= 3 ? "Simulated trading on" : "Advice only";
+  el.classList.toggle("live", t.level >= 3);
+  el.title = t.level >= 3
+    ? "You signed the risk disclosure. Orders still need your explicit hold-to-confirm."
+    : "Permission tier: the advisor can explain and recommend, but cannot place orders.";
+}
+
+async function renderExecute() {
+  if (!state.allocation) {
+    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    try { await loadAllocation(state.client.amount, state.allocationLevel, false); }
+    catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  }
+  let t;
+  try { t = await api("/api/tier"); } catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  setTier(t);
+  if (t.level < 3) renderDisclosure(t);
+  else renderTicket();
+}
+
+function renderDisclosure(t) {
+  const p = state.profile;
   panel.innerHTML = `
-    <h1>Place orders</h1>
-    <p class="lede">Orders run on a simulated brokerage account, and only after you confirm the exact order yourself. The advisor can never confirm on your behalf.</p>
-    <div class="sheet locked">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-      <div>
-        <strong>This session is set to advice only.</strong>
-        <ul class="tiers">
-          <li><b>Info</b>Education and product facts</li>
-          <li class="current"><b>Advise</b>Profiling, portfolios, stress tests (current)</li>
-          <li><b>Propose</b>Draft orders for your review</li>
-          <li><b>Execute</b>Run drafts after your one-time confirmation</li>
+    <h1>Before you place orders</h1>
+    <p class="lede">Orders run on a simulated brokerage account. Read the risks below and sign to switch this session from advice only to simulated trading. You will still confirm every order yourself.</p>
+    <div class="sheet disclosure">
+      <h3 style="margin-top:0">Risk disclosure</h3>
+      <ul class="reasons">
+        <li>Investments can fall in value and you may get back less than you invest.</li>
+        <li>Expected returns and stress tests are model estimates. Past performance does not predict future results.</li>
+        <li>Your risk class is C${p.investor_class}. Products above R${p.investor_class} are blocked for you.</li>
+        <li>Products rated R4 or higher have a cooling-off period before they can be bought.</li>
+        <li>The AI advisor can never place or confirm an order on your behalf.</li>
+      </ul>
+      ${t.kill_switch ? `<div class="verdict-bar bad"><div><strong>Trading is switched off for all sessions right now.</strong> You can still use every advice step.</div></div>` : `
+      <form id="consent" class="sign">
+        <label class="check" style="padding-top:18px"><input type="checkbox" id="accept"> I have read and understood these risks</label>
+        <div class="field sign-field">
+          <label for="signName">Sign with your full name</label>
+          <input id="signName" type="text" autocomplete="name" placeholder="Your full name" maxlength="80">
+          <div class="signature" aria-hidden="true"><span id="sigInk"></span></div>
+        </div>
+        <div class="actions"><button class="btn" id="signBtn" type="submit" disabled>Sign and enable simulated trading</button></div>
+        <div id="consentErr"></div>
+      </form>`}
+    </div>`;
+  if (t.kill_switch) return;
+  const name = $("#signName");
+  const accept = $("#accept");
+  const sync = () => {
+    $("#sigInk").textContent = name.value;
+    $("#signBtn").disabled = !(accept.checked && name.value.trim().length >= 2);
+  };
+  name.oninput = sync;
+  accept.onchange = sync;
+  $("#consent").onsubmit = async (e) => {
+    e.preventDefault();
+    $("#signBtn").disabled = true;
+    const ink = $("#sigInk");
+    ink.classList.remove("write");
+    void ink.offsetWidth;
+    ink.classList.add("write");
+    try {
+      const res = await api("/api/consent", { method: "POST", body: { full_name: name.value, accepted: accept.checked } });
+      setTier(res);
+      refreshAudit();
+      await new Promise((r) => setTimeout(r, reduceMotion ? 0 : 1100));
+      say(["Thank you. Simulated trading is now enabled for this session.", "I have prepared an order ticket from your portfolio. Nothing is placed until you hold the confirm button yourself."]);
+      renderTicket();
+    } catch (err) {
+      $("#consentErr").innerHTML = `<p class="err">${esc(err.message)}</p>`;
+      $("#signBtn").disabled = false;
+    }
+  };
+}
+
+async function renderTicket() {
+  panel.innerHTML = `<p class="empty">Preparing your order ticket…</p>`;
+  if (!state.drafts) {
+    try { state.drafts = await api("/api/orders/draft", { method: "POST" }); }
+    catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+    refreshAudit();
+  }
+  const d = state.drafts;
+  const now = d.orders.filter((o) => !o.cooling_off);
+  const later = d.orders.filter((o) => o.cooling_off);
+  const total = now.reduce((s, o) => s + o.amount, 0);
+  panel.innerHTML = `
+    <h1>Review and confirm</h1>
+    <p class="lede">These orders match your recommended portfolio exactly. Every line passed the suitability, liquidity and limit checks on the server.</p>
+    <div class="exec">
+      <div class="ticket">
+        <div class="ticket-head">
+          <div><div class="ticket-sub">Order ticket</div><div class="ticket-title">Buy ${d.orders.length} product${d.orders.length > 1 ? "s" : ""}</div></div>
+          <div class="ticket-acct"><div class="ticket-sub">Simulated cash</div><b>${num(money(d.cash), d.provenance, "Simulated account cash")}</b></div>
+        </div>
+        <div class="perf" aria-hidden="true"></div>
+        <ul class="ticket-lines">
+          ${d.orders.map((o) => `
+            <li class="${o.cooling_off ? "muted" : ""}">
+              <span class="swatch" style="background:var(--${o.asset_class})"></span>
+              <span class="tl-name">${esc(o.name)}<small>R${o.risk_class} · ${o.units.toFixed(2)} units at ${o.nav.toFixed(2)}${o.cooling_off ? ` · cooling-off until ${shortDate(o.cooling_off_until)}` : ""}</small></span>
+              <span class="tl-amt">${money(o.amount)}</span>
+            </li>`).join("")}
         </ul>
+        <div class="perf" aria-hidden="true"></div>
+        <ul class="checks">
+          <li>Every product is rated R${d.investor_class} or lower</li>
+          <li>Per-order and daily limits respected</li>
+          <li>Risk profile valid until ${new Date(state.profile.expires_on).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</li>
+        </ul>
+        <div class="ticket-total"><span>${later.length ? "Placed now" : "Total"}</span><b>${money(total)}</b></div>
+      </div>
+
+      <div class="confirm-zone">
+        ${now.length ? `
+        <button class="hold" id="hold" type="button" aria-describedby="holdHint">
+          <span class="hold-label">Hold to place ${now.length} order${now.length > 1 ? "s" : ""}</span>
+          <span class="hold-fill" aria-hidden="true">Hold to place ${now.length} order${now.length > 1 ? "s" : ""}</span>
+        </button>
+        <p class="hint" id="holdHint">Press and hold for 1.5 seconds. You can undo for 5 seconds afterwards.</p>` : `<p class="empty">All orders are in their cooling-off period.</p>`}
+        <div id="execErr"></div>
+        <div class="printer" id="printer" hidden>
+          <div class="slot" aria-hidden="true"></div>
+          <div class="paper-wrap"><div class="paper" id="paper"></div></div>
+        </div>
       </div>
     </div>`;
+  if (now.length) wireHold($("#hold"), now);
+}
+
+function wireHold(btn, orders) {
+  const DURATION = 1500;
+  let start = 0, raf = 0, progress = 0, done = false;
+  const set = (p) => { progress = p; btn.style.setProperty("--p", p.toFixed(3)); };
+  const tick = (t) => {
+    const p = Math.min(1, (t - start) / DURATION);
+    set(p);
+    if (p >= 1) { done = true; complete(); return; }
+    raf = requestAnimationFrame(tick);
+  };
+  const press = (e) => {
+    if (done || btn.disabled) return;
+    if (e.type === "keydown") { if (e.repeat || (e.key !== " " && e.key !== "Enter")) return; e.preventDefault(); }
+    btn.classList.add("pressing");
+    start = performance.now() - progress * DURATION;
+    raf = requestAnimationFrame(tick);
+  };
+  const release = () => {
+    if (done) return;
+    cancelAnimationFrame(raf);
+    btn.classList.remove("pressing");
+    const from = progress, t0 = performance.now();
+    const back = (t) => { const p = Math.max(0, from - (t - t0) / 300); set(p); if (p > 0 && !btn.classList.contains("pressing")) requestAnimationFrame(back); };
+    requestAnimationFrame(back);
+  };
+  btn.addEventListener("pointerdown", press);
+  btn.addEventListener("keydown", press);
+  ["pointerup", "pointerleave", "pointercancel", "keyup", "blur"].forEach((ev) => btn.addEventListener(ev, release));
+  btn.addEventListener("click", (e) => e.preventDefault());
+
+  async function complete() {
+    btn.classList.remove("pressing");
+    btn.classList.add("armed");
+    let tokens;
+    try {
+      tokens = (await api("/api/orders/tokens", { method: "POST", body: { order_ids: orders.map((o) => o.order_id) } })).tokens;
+    } catch (err) {
+      $("#execErr").innerHTML = `<p class="err">${esc(err.message)}</p>`;
+      reset();
+      return;
+    }
+    let left = 5;
+    const zone = btn.parentElement;
+    const undo = document.createElement("div");
+    undo.className = "undo";
+    undo.innerHTML = `<span>Placing orders in <b id="undoN">${left}</b> s</span><button type="button" class="btn secondary" id="undoBtn">Undo</button>`;
+    btn.hidden = true;
+    $("#holdHint").hidden = true;
+    zone.prepend(undo);
+    $("#undoBtn").focus();
+    const timer = setInterval(async () => {
+      left -= 1;
+      if (left > 0) { $("#undoN").textContent = left; return; }
+      clearInterval(timer);
+      undo.innerHTML = `<span>Placing orders…</span>`;
+      try {
+        const result = await api("/api/orders/confirm", { method: "POST", body: { tokens } });
+        undo.remove();
+        printReceipt(result);
+        refreshAudit();
+      } catch (err) {
+        undo.remove();
+        $("#execErr").innerHTML = `<p class="err">${esc(err.message)}</p>`;
+      }
+    }, 1000);
+    $("#undoBtn").onclick = () => {
+      clearInterval(timer);
+      undo.remove();
+      btn.hidden = false;
+      $("#holdHint").hidden = false;
+      reset();
+      note("Orders cancelled before they were sent. Nothing was placed.");
+      btn.focus();
+    };
+  }
+  function reset() { done = false; btn.classList.remove("armed"); set(0); }
+}
+
+function barcode(hash) {
+  let x = 0;
+  const bars = [];
+  for (const ch of hash.slice(0, 40)) {
+    const v = parseInt(ch, 16);
+    const w = 1 + (v % 3);
+    bars.push(`<rect x="${x}" width="${w}" height="34"/>`);
+    x += w + 1 + ((v >> 2) % 2);
+  }
+  return `<svg class="barcode" viewBox="0 0 ${x} 34" preserveAspectRatio="none" aria-hidden="true">${bars.join("")}</svg>`;
+}
+
+function printReceipt(r) {
+  const printer = $("#printer");
+  const paper = $("#paper");
+  const ts = new Date(r.provenance.timestamp);
+  const later = (state.drafts?.orders || []).filter((o) => o.cooling_off);
+  const settle = r.executed[0]?.settles_on;
+  const line = (l, rgt) => `<div class="rl"><span>${l}</span><span>${rgt}</span></div>`;
+  paper.innerHTML = `
+    <div class="rc-head">Wealth Advisor<br>Simulated brokerage account</div>
+    <div class="rc-center">Trade confirmation</div>
+    <div class="rc-center rc-dim">${ts.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${ts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</div>
+    <div class="rc-rule"></div>
+    ${r.executed.map((o) => `
+      <div class="rc-item">
+        ${line(`BUY ${esc(o.name)}`, "")}
+        ${line(`&nbsp;&nbsp;R${o.risk_class} · ${o.units.toFixed(2)} u @ ${o.nav.toFixed(2)}`, money(o.amount))}
+      </div>`).join("")}
+    ${later.map((o) => `
+      <div class="rc-item rc-dim">
+        ${line(`HOLD ${esc(o.name)}`, "")}
+        ${line(`&nbsp;&nbsp;cooling-off until ${shortDate(o.cooling_off_until)}`, money(o.amount))}
+      </div>`).join("")}
+    ${r.failed.map((f) => `<div class="rc-item rc-fail">${line(`NOT PLACED ${esc(f.order_id)}`, "")}<div>&nbsp;&nbsp;${esc(f.reason)}</div></div>`).join("")}
+    <div class="rc-rule"></div>
+    ${line("<b>Total executed</b>", `<b>${money(r.total)}</b>`)}
+    ${line("Cash remaining", money(r.cash))}
+    ${settle ? line("Settlement", `T+2 · ${shortDate(settle)}`) : ""}
+    <div class="rc-rule"></div>
+    <div class="rc-dim">Audit record</div>
+    <div class="rc-hash">${r.provenance.audit_hash.match(/.{1,4}/g).slice(0, 8).join(" ")}</div>
+    ${barcode(r.provenance.audit_hash)}
+    <div class="stamp" aria-label="Suitability checked">
+      <span>Suitability checked</span>
+      <b>C${r.investor_class} · all ≤ R${r.investor_class}</b>
+    </div>`;
+  printer.hidden = false;
+  printer.classList.remove("printing");
+  void printer.offsetWidth;
+  printer.classList.add("printing");
+  setTimeout(() => printer.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" }), 200);
+  state.drafts = null;
+  state.done.add("execute");
+  say([
+    r.executed.length
+      ? `Done. ${r.executed.length} order${r.executed.length > 1 ? "s" : ""} for <strong>${money(r.total)}</strong> ${r.executed.length > 1 ? "were" : "was"} placed on your simulated account and will settle in two business days.`
+      : "No orders were placed.",
+    ...(later.length ? [`${later.length} higher-risk order${later.length > 1 ? "s are" : " is"} held for the cooling-off period, as the rules require.`] : []),
+    "The confirmation carries the audit-record hash, so this trade can be verified later.",
+  ]);
+}
+
+// ---------------------------------------------------------------- PII scramble (chat)
+
+function scramble(el, target) {
+  const from = el.textContent;
+  if (reduceMotion || from === target) { el.textContent = target; return; }
+  const glyphs = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%*";
+  const len = Math.max(from.length, target.length);
+  const frames = 26;
+  let f = 0;
+  const step = () => {
+    f += 1;
+    let out = "";
+    for (let i = 0; i < len; i++) {
+      const settle = (i / len) * frames * 0.7 + 6;
+      const a = from[i] ?? "", b = target[i] ?? "";
+      if (f >= settle) out += b;
+      else if (a === b) out += a;
+      else out += glyphs[(Math.random() * glyphs.length) | 0];
+    }
+    el.textContent = out;
+    if (f < frames + 6) setTimeout(step, 28);
+    else el.textContent = target;
+  };
+  step();
 }
 
 // ---------------------------------------------------------------- audit drawer
@@ -519,4 +818,5 @@ scrim.onclick = closeDrawer;
   }
   go("profile");
   refreshAudit();
+  api("/api/tier").then(setTier).catch(() => {});
 })();
