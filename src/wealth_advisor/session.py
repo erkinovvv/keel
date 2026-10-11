@@ -21,6 +21,8 @@ class SessionState:
     """Mutable server-side state; the model only sees the compact summary."""
 
     profile: InvestorProfile | None = None
+    amount: float | None = None
+    horizon_years: int | None = None
     allocations: dict[str, Allocation] = field(default_factory=dict)
     stress_results: dict[str, StressResult] = field(default_factory=dict)
     draft_orders: dict[str, Any] = field(default_factory=dict)
@@ -36,6 +38,8 @@ class SessionState:
         return {
             "profile_class": self.profile.class_code if self.profile else None,
             "profile_expires_on": self.profile.expires_on.isoformat() if self.profile else None,
+            "amount": self.amount,
+            "horizon_years": self.horizon_years,
             "latest_allocation_id": self.latest_allocation_id,
             "allocation_ids": list(self.allocations),
             "stress_result_ids": list(self.stress_results),
@@ -85,4 +89,3 @@ class AdvisorSession:
         if not resolved or resolved not in self.state.allocations:
             raise ValueError("allocation not found; build an allocation first")
         return self.state.allocations[resolved]
-

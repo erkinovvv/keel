@@ -1,4 +1,4 @@
-"""Terminal demo for the M1 deterministic advisory flow."""
+"""Interactive chat and deterministic demo for the advisory agent."""
 
 from __future__ import annotations
 
@@ -8,12 +8,13 @@ import json
 from rich.console import Console
 from rich.table import Table
 
-from .agent import AdvisorAgent
 from .allocation import build_allocation
 from .audit import AuditLogger, verify_audit_log
 from .catalog import compare_products, load_catalog
 from .config import Settings
+from .permissions import PermissionTier
 from .profiling import profile_investor
+from .session import AdvisorSession
 from .stress import stress_test
 
 
@@ -28,18 +29,39 @@ DEMO_ANSWERS = {
 }
 
 
-def run_demo(settings: Settings) -> None:
+def run_chat(settings: Settings) -> None:
+    """Run a multi-turn terminal conversation backed by one AdvisorSession."""
+
     console = Console()
-    audit = AuditLogger(settings.audit_log)
-    agent = AdvisorAgent(audit=audit, max_steps=settings.max_tool_steps)
-    console.print(agent.run("Explain how you will build a suitable advisory plan."))
-    profile = profile_investor(DEMO_ANSWERS, age=42)
+    session = AdvisorSession(settings=settings, tier=PermissionTier.ADVISE)
+    console.print("Wealth Advisor chat. Type 'quit' to exit.")
+    while True:
+        message = console.input("[bold]You[/bold] ")
+        if message.strip().lower() in {"quit", "exit"}:
+            break
+        try:
+            console.print(f"[bold]Advisor[/bold] {session.send(message)}")
+        except Exception as exc:
+            console.print(f"[red]Session error:[/red] {exc}")
+
+
+def run_demo(settings: Settings) -> None:
+    """Run the scripted M1 flow while using the session-owned state."""
+
+    console = Console()
+    session = AdvisorSession(settings=settings, tier=PermissionTier.ADVISE)
+    console.print(session.send("Explain how you will build a suitable advisory plan."))
+    session.dispatcher.dispatch("profile_investor", {"answers": DEMO_ANSWERS, "age": 42})
     catalog = load_catalog()
-    comparisons = compare_products(catalog, 100_000, 10, profile.investor_class)
-    allocation = build_allocation(100_000, profile.investor_class, catalog)
+    comparisons = compare_products(catalog, 100_000, 10, session.state.profile.investor_class)
+    allocation = build_allocation(100_000, session.state.profile.investor_class, catalog)
+    session.state.amount = 100_000
+    session.state.horizon_years = 10
+    session.state.allocations["allocation-1"] = allocation
     stress = stress_test(allocation, "2008_gfc", max_tolerable_loss=0.25)
-    audit.append("advisory_flow", {"profile": profile.as_dict(), "allocation": allocation.as_dict(), "stress": stress.as_dict()})
-    console.print(f"Profile: {profile.class_code}; capacity C{profile.capacity_class}; tolerance C{profile.tolerance_class}")
+    session.state.stress_results["stress-1"] = stress
+    session.audit.append("advisory_flow", {"profile": session.state.profile.as_dict(), "allocation": allocation.as_dict(), "stress": stress.as_dict()})
+    console.print(f"Profile: {session.state.profile.class_code}; capacity C{session.state.profile.capacity_class}; tolerance C{session.state.profile.tolerance_class}")
     table = Table("Product", "Risk", "Net return", "Fee drag")
     for item in comparisons[:5]:
         table.add_row(item.product_id, f"R{item.risk_class}", f"{item.net_return:.2%}", f"{item.fee_drag:,.2f}")
@@ -51,13 +73,16 @@ def run_demo(settings: Settings) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Wealth Advisory Agent demo")
+    parser = argparse.ArgumentParser(description="Wealth Advisory Agent")
     parser.add_argument("--verify-audit", action="store_true")
+    parser.add_argument("command", nargs="?", choices=("chat", "demo"), default="demo")
     args = parser.parse_args()
     settings = Settings.from_env()
     if args.verify_audit:
         valid, reason = verify_audit_log(settings.audit_log)
         print(json.dumps({"valid": valid, "reason": reason}))
-        return
-    run_demo(settings)
+    elif args.command == "chat":
+        run_chat(settings)
+    else:
+        run_demo(settings)
 

@@ -75,11 +75,16 @@ class ToolDispatcher:
             args = CompareArgs.model_validate(arguments)
             args_data = args.model_dump()
             args_data["investor_class"] = self._profile_class()
+            if self.session:
+                self.session.state.amount = args.amount
+                self.session.state.horizon_years = args.horizon_years
             result = {"comparisons": [item.as_dict() for item in compare_products(self.catalog, **args_data)]}
         elif name == "build_allocation":
             args = AllocationArgs.model_validate(arguments)
             args_data = args.model_dump()
             args_data["investor_class"] = self._profile_class()
+            if self.session:
+                self.session.state.amount = args.amount
             allocation = build_allocation(products=self.catalog, **args_data)
             if self.session:
                 allocation_id = f"allocation-{len(self.session.state.allocations) + 1}"

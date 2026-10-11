@@ -83,5 +83,8 @@ class AdvisorAgent:
     def run(self, user_message: str, history: list[dict[str, Any]] | None = None) -> str:
         """Backward-compatible one-shot wrapper around the explicit turn loop."""
 
-        messages = [self.system_message(), *trim_complete_turns(history or [], max_turns=6), {"role": "user", "content": user_message}]
+        history_messages = list(history or [])
+        if history_messages and history_messages[0].get("role") == "system":
+            history_messages = history_messages[1:]
+        messages = [self.system_message(), *trim_complete_turns(history_messages, max_turns=6), {"role": "user", "content": user_message}]
         return self.run_turn(messages).content

@@ -53,3 +53,13 @@ def test_session_history_keeps_complete_tool_turns(tmp_path):
     assert session.messages[0]["role"] == "system"
     assert session.messages[-1]["role"] == "assistant"
     json.dumps(session.messages)
+
+
+def test_session_state_summary_keeps_financial_context(tmp_path):
+    session = make_session(tmp_path)
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+    session.dispatcher.dispatch("compare_products", {"amount": 12_000, "horizon_years": 8})
+    summary = session.state.summary()
+    assert summary["profile_class"] == "C4"
+    assert summary["amount"] == 12_000
+    assert summary["horizon_years"] == 8
