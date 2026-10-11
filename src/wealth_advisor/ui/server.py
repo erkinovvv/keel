@@ -186,6 +186,9 @@ def _allocation_view(allocation: Allocation) -> dict[str, Any]:
         "fee": allocation.fee,
         "var_95_1y": allocation.var_95_1y,
         "by_asset_class": {k: v for k, v in allocation.strategic_weights.items() if v > 0},
+        "notes": [explain_reason(code) for code in getattr(allocation, "reason_codes", ()) or ()],
+        "stress_limit_before": getattr(allocation, "stress_limit_before", None),
+        "stress_limit_after": getattr(allocation, "stress_limit_after", None),
         "holdings": [
             {
                 "product_id": h.product_id,
@@ -266,7 +269,10 @@ def allocate(body: AllocationIn, response: Response, wa_sid: str | None = Cookie
         raise HTTPException(403, f"C{requested} exceeds the assessed class C{profile.investor_class}.")
     amount = body.amount or _require_client(file, "amount")["amount"]
     try:
-        allocation = build_allocation(amount, requested, load_catalog(), liquidity_days=profile.liquidity_days)
+        allocation = build_allocation(
+            amount, requested, load_catalog(), liquidity_days=profile.liquidity_days,
+            max_tolerable_loss=_client(file).get("max_loss"),
+        )
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     file.allocation_count += 1

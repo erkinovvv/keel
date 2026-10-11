@@ -230,6 +230,7 @@ const ZH = {
 
   "{n} real Chinese public funds · public data as of {date} · amounts in {cur}": "{n}只真实的中国公募基金 · 公开数据截至{date} · 金额单位{cur}",
   "Fund page and documents": "基金页面与文件",
+  "Worst historical loss: {before} → {after}.": "历史最差情景亏损：{before} → {after}。",
 
   // compare
   "Comparing products…": "正在比较产品…",

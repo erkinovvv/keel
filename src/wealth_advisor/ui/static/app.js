@@ -323,6 +323,14 @@ async function loadAllocation(amount, level, narrate) {
   }
 }
 
+function limitNote(a) {
+  if (!a.notes?.length) return "";
+  const delta = a.stress_limit_before != null && a.stress_limit_after != null
+    ? ` ${t("Worst historical loss: {before} → {after}.", { before: pct(a.stress_limit_before), after: pct(a.stress_limit_after) })}`
+    : "";
+  return `<div class="verdict-bar ok limit-note"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div>${a.notes.map(esc).join(" ")}${delta}</div></div>`;
+}
+
 function dataNote() {
   const c = state.catalog;
   if (!c?.real) return "";
@@ -363,6 +371,7 @@ async function renderPortfolio() {
     <p class="lede">${t("Built from your risk class with fixed allocation rules and a 35% cap per product. Only products rated R{n} or lower are eligible.", { n: a.investor_class })}</p>
     ${dataNote()}
     ${staleBanner()}
+    ${limitNote(a)}
     <div class="kpis">
       <div class="kpi"><div class="k">${t("Expected return")}</div><span class="v">${num(pct(a.expected_return, 2), prov, t("Expected annual return, net of fees"))}</span><div class="h">${t("per year, after fees")}</div></div>
       <div class="kpi"><div class="k">${t("Volatility")}</div><span class="v">${num(pct(a.volatility, 2), prov, t("Annual portfolio volatility"))}</span><div class="h">${t("typical yearly swing")}</div></div>
