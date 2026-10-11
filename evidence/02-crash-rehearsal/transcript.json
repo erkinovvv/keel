@@ -1,0 +1,1447 @@
+[
+ {
+  "step": "Load questionnaire",
+  "request": {
+   "method": "GET",
+   "path": "/api/questionnaire",
+   "body": null
+  },
+  "status": 200,
+  "response": [
+   {
+    "key": "horizon",
+    "question": "How long can this money stay invested?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "under_1y",
+      "label": "Less than 1 year"
+     },
+     {
+      "key": "1_3y",
+      "label": "1–3 years"
+     },
+     {
+      "key": "3_7y",
+      "label": "3–7 years"
+     },
+     {
+      "key": "7_10y",
+      "label": "7–10 years"
+     },
+     {
+      "key": "over_10y",
+      "label": "More than 10 years"
+     }
+    ]
+   },
+   {
+    "key": "liquidity_need",
+    "question": "When might you need to withdraw part of this money?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "within_1d",
+      "label": "Any day"
+     },
+     {
+      "key": "within_7d",
+      "label": "Within a week"
+     },
+     {
+      "key": "within_30d",
+      "label": "Within a month"
+     },
+     {
+      "key": "over_30d",
+      "label": "Not for at least a month"
+     }
+    ]
+   },
+   {
+    "key": "income_stability",
+    "question": "How stable is your income?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "unstable",
+      "label": "Irregular / uncertain"
+     },
+     {
+      "key": "mixed",
+      "label": "Partly stable"
+     },
+     {
+      "key": "stable",
+      "label": "Stable salary or pension"
+     }
+    ]
+   },
+   {
+    "key": "emergency_fund",
+    "question": "How many months of expenses do you hold in cash?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "none",
+      "label": "None"
+     },
+     {
+      "key": "3_6_months",
+      "label": "3–6 months"
+     },
+     {
+      "key": "over_6_months",
+      "label": "More than 6 months"
+     }
+    ]
+   },
+   {
+    "key": "invested_share",
+    "question": "What share of your net worth is this investment?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "over_75",
+      "label": "More than 75%"
+     },
+     {
+      "key": "50_75",
+      "label": "50–75%"
+     },
+     {
+      "key": "25_50",
+      "label": "25–50%"
+     },
+     {
+      "key": "under_25",
+      "label": "Less than 25%"
+     }
+    ]
+   },
+   {
+    "key": "drawdown_reaction",
+    "question": "Your portfolio falls 20% in a month. What do you do?",
+    "domain": "tolerance",
+    "options": [
+     {
+      "key": "sell_all",
+      "label": "Sell everything"
+     },
+     {
+      "key": "reduce",
+      "label": "Sell some to limit losses"
+     },
+     {
+      "key": "hold",
+      "label": "Hold and wait"
+     },
+     {
+      "key": "buy_more",
+      "label": "Buy more at lower prices"
+     }
+    ]
+   },
+   {
+    "key": "experience",
+    "question": "How experienced are you with funds, bonds or shares?",
+    "domain": "tolerance",
+    "options": [
+     {
+      "key": "none",
+      "label": "None"
+     },
+     {
+      "key": "basic",
+      "label": "Basic (deposits, a few funds)"
+     },
+     {
+      "key": "good",
+      "label": "Good (several years investing)"
+     },
+     {
+      "key": "advanced",
+      "label": "Advanced (professional / active investor)"
+     }
+    ]
+   },
+   {
+    "key": "goal",
+    "question": "What is the main goal of this money?",
+    "domain": "tolerance",
+    "options": [
+     {
+      "key": "preserve",
+      "label": "Preserve capital"
+     },
+     {
+      "key": "income",
+      "label": "Regular income"
+     },
+     {
+      "key": "growth",
+      "label": "Long-term growth"
+     },
+     {
+      "key": "aggressive_growth",
+      "label": "Maximum growth, high risk accepted"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "step": "Assess risk profile (age 27, 100,000, 15-year horizon, 25% loss limit)",
+  "request": {
+   "method": "POST",
+   "path": "/api/profile",
+   "body": {
+    "answers": {
+     "horizon": "over_10y",
+     "liquidity_need": "over_30d",
+     "income_stability": "stable",
+     "emergency_fund": "over_6_months",
+     "invested_share": "under_25",
+     "drawdown_reaction": "buy_more",
+     "experience": "advanced",
+     "goal": "aggressive_growth"
+    },
+    "age": 27,
+    "amount": 100000,
+    "horizon_years": 15,
+    "max_loss": 0.25
+   }
+  },
+  "status": 200,
+  "response": {
+   "profile": {
+    "investor_class": 5,
+    "class_name": "Aggressive",
+    "capacity_class": 5,
+    "tolerance_class": 5,
+    "capacity_score": 18,
+    "tolerance_score": 12,
+    "expires_on": "2027-10-11",
+    "reasons": [
+     {
+      "code": "HORIZON_OVER_10Y",
+      "text": "How long can this money stay invested? → More than 10 years"
+     },
+     {
+      "code": "LIQUIDITY_NEED_OVER_30D",
+      "text": "When might you need to withdraw part of this money? → Not for at least a month"
+     },
+     {
+      "code": "INCOME_STABILITY_STABLE",
+      "text": "How stable is your income? → Stable salary or pension"
+     },
+     {
+      "code": "EMERGENCY_FUND_OVER_6_MONTHS",
+      "text": "How many months of expenses do you hold in cash? → More than 6 months"
+     },
+     {
+      "code": "INVESTED_SHARE_UNDER_25",
+      "text": "What share of your net worth is this investment? → Less than 25%"
+     },
+     {
+      "code": "DRAWDOWN_REACTION_BUY_MORE",
+      "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+     },
+     {
+      "code": "EXPERIENCE_ADVANCED",
+      "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+     },
+     {
+      "code": "GOAL_AGGRESSIVE_GROWTH",
+      "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+     }
+    ],
+    "flags": []
+   },
+   "client": {
+    "amount": 100000.0,
+    "horizon_years": 15,
+    "max_loss": 0.25,
+    "age": 27,
+    "borrowed_money": false
+   },
+   "provenance": {
+    "source": "profiling.profile_investor",
+    "audit_hash": "418ec73c77238b4d6b16c1971b11324ae8459ebfb946a9f45ab530dc9e51e94d",
+    "timestamp": "2026-10-11T15:11:20.511468+00:00"
+   }
+  }
+ },
+ {
+  "step": "Build allocation at the questionnaire class",
+  "request": {
+   "method": "POST",
+   "path": "/api/allocation",
+   "body": {}
+  },
+  "status": 200,
+  "response": {
+   "allocation_id": "ui-1",
+   "allocation": {
+    "investor_class": 5,
+    "amount": 100000.0,
+    "expected_return": 0.0814600578655291,
+    "volatility": 0.10014961646811116,
+    "fee": 0.008068618565029176,
+    "var_95_1y": 16474.611909004285,
+    "by_asset_class": {
+     "cash": 0.07185810769950428,
+     "bonds": 0.16596635974427423,
+     "equity": 0.5876288903802271,
+     "gold": 0.12230032113640155,
+     "reits": 0.0522463210395927
+    },
+    "notes": [],
+    "stress_limit_before": null,
+    "stress_limit_after": null,
+    "holdings": [
+     {
+      "product_id": "CN-001821",
+      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+      "source": "https://fund.eastmoney.com/001821.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.07185810769950428,
+      "amount": 7185.810769950428,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C5.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-001316",
+      "name": "Essence Steady Value-Add Hybrid A (001316)",
+      "source": "https://fund.eastmoney.com/001316.html",
+      "asset_class": "bonds",
+      "risk_class": 3,
+      "weight": 0.16596635974427423,
+      "amount": 16596.635974427423,
+      "reasons": [
+       "Suitable: product risk R3 does not exceed your risk class C5.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-270042",
+      "name": "GF Nasdaq-100 ETF Feeder A (QDII) (270042)",
+      "source": "https://fund.eastmoney.com/270042.html",
+      "asset_class": "equity",
+      "risk_class": 4,
+      "weight": 0.29381444519011357,
+      "amount": 29381.44451901136,
+      "reasons": [
+       "Suitable: product risk R4 does not exceed your risk class C5.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-050025",
+      "name": "Bosera S&P 500 ETF Feeder A (050025)",
+      "source": "https://fund.eastmoney.com/050025.html",
+      "asset_class": "equity",
+      "risk_class": 4,
+      "weight": 0.29381444519011357,
+      "amount": 29381.44451901136,
+      "reasons": [
+       "Suitable: product risk R4 does not exceed your risk class C5.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-000216",
+      "name": "Hua An Gold ETF Feeder A (000216)",
+      "source": "https://fund.eastmoney.com/000216.html",
+      "asset_class": "gold",
+      "risk_class": 4,
+      "weight": 0.12230032113640155,
+      "amount": 12230.032113640154,
+      "reasons": [
+       "Suitable: product risk R4 does not exceed your risk class C5.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-000179",
+      "name": "GF US Real Estate Index A (QDII) (000179)",
+      "source": "https://fund.eastmoney.com/000179.html",
+      "asset_class": "reits",
+      "risk_class": 4,
+      "weight": 0.0522463210395927,
+      "amount": 5224.63210395927,
+      "reasons": [
+       "Suitable: product risk R4 does not exceed your risk class C5.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     }
+    ]
+   },
+   "provenance": {
+    "source": "allocation.build_allocation",
+    "audit_hash": "ff1ec6db4cf2da2ff1c81fb87007b01b068b05c3ce0f3e8abddc25e1e80f4495",
+    "timestamp": "2026-10-11T15:11:20.513892+00:00"
+   }
+  }
+ },
+ {
+  "step": "Crash Rehearsal: replay 2007-2013 with this portfolio",
+  "request": {
+   "method": "GET",
+   "path": "/api/rehearsal",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "amount": 100000.0,
+   "points": [
+    {
+     "month": "2007-09",
+     "value": 100000.0,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2007-10",
+     "value": 102001.91526230748,
+     "drawdown": 0.0,
+     "headline": "US stocks close at an all-time high"
+    },
+    {
+     "month": "2007-11",
+     "value": 100052.9809986886,
+     "drawdown": 0.01910683989224138,
+     "headline": null
+    },
+    {
+     "month": "2007-12",
+     "value": 99416.34982563405,
+     "drawdown": 0.025348204786394435,
+     "headline": null
+    },
+    {
+     "month": "2008-01",
+     "value": 97871.51663876486,
+     "drawdown": 0.04049334380556391,
+     "headline": "Fed cuts rates in an emergency move as markets slide"
+    },
+    {
+     "month": "2008-02",
+     "value": 96647.09563350727,
+     "drawdown": 0.05249724590984184,
+     "headline": null
+    },
+    {
+     "month": "2008-03",
+     "value": 97376.48289884556,
+     "drawdown": 0.04534652463698541,
+     "headline": "Bear Stearns rescued in a deal with JPMorgan"
+    },
+    {
+     "month": "2008-04",
+     "value": 98721.7601730999,
+     "drawdown": 0.03215777939828235,
+     "headline": null
+    },
+    {
+     "month": "2008-05",
+     "value": 99342.43578630166,
+     "drawdown": 0.026072838624321082,
+     "headline": null
+    },
+    {
+     "month": "2008-06",
+     "value": 94006.76574523229,
+     "drawdown": 0.07838234700314117,
+     "headline": null
+    },
+    {
+     "month": "2008-07",
+     "value": 94541.41825544377,
+     "drawdown": 0.07314075414837395,
+     "headline": "IndyMac Bank fails; mortgage lenders under pressure"
+    },
+    {
+     "month": "2008-08",
+     "value": 94030.53722153488,
+     "drawdown": 0.0781492976898861,
+     "headline": null
+    },
+    {
+     "month": "2008-09",
+     "value": 89243.70802966705,
+     "drawdown": 0.12507811446315986,
+     "headline": "Lehman Brothers files for bankruptcy; AIG rescued"
+    },
+    {
+     "month": "2008-10",
+     "value": 79688.00852433598,
+     "drawdown": 0.21875968388033884,
+     "headline": "Congress passes $700bn bank rescue; stocks suffer their worst week in decades"
+    },
+    {
+     "month": "2008-11",
+     "value": 75751.13737142697,
+     "drawdown": 0.2573557351680522,
+     "headline": "Citigroup receives a government rescue"
+    },
+    {
+     "month": "2008-12",
+     "value": 78732.81338730127,
+     "drawdown": 0.2281241662489134,
+     "headline": "Fed cuts rates to near zero"
+    },
+    {
+     "month": "2009-01",
+     "value": 76363.60719233938,
+     "drawdown": 0.2513512418275362,
+     "headline": "Job losses mount as the recession deepens"
+    },
+    {
+     "month": "2009-02",
+     "value": 73712.64296774342,
+     "drawdown": 0.2773405991624328,
+     "headline": "Stimulus package signed into law; stocks keep falling"
+    },
+    {
+     "month": "2009-03",
+     "value": 76186.35003386877,
+     "drawdown": 0.25308902447617343,
+     "headline": "Stocks hit a 12-year low"
+    },
+    {
+     "month": "2009-04",
+     "value": 79550.70089081628,
+     "drawdown": 0.22010581187378486,
+     "headline": "Markets rally as bank stress tests approach"
+    },
+    {
+     "month": "2009-05",
+     "value": 81719.19170035628,
+     "drawdown": 0.19884649724264758,
+     "headline": null
+    },
+    {
+     "month": "2009-06",
+     "value": 81759.64077376746,
+     "drawdown": 0.19844994514549175,
+     "headline": null
+    },
+    {
+     "month": "2009-07",
+     "value": 84902.75257658357,
+     "drawdown": 0.1676357021508057,
+     "headline": null
+    },
+    {
+     "month": "2009-08",
+     "value": 86832.57705169712,
+     "drawdown": 0.14871620960842724,
+     "headline": null
+    },
+    {
+     "month": "2009-09",
+     "value": 89817.2773028994,
+     "drawdown": 0.11945499188004605,
+     "headline": null
+    },
+    {
+     "month": "2009-10",
+     "value": 89306.88580847021,
+     "drawdown": 0.12445873610501146,
+     "headline": null
+    },
+    {
+     "month": "2009-11",
+     "value": 93420.29842408973,
+     "drawdown": 0.08413191866201053,
+     "headline": null
+    },
+    {
+     "month": "2009-12",
+     "value": 94943.24522771155,
+     "drawdown": 0.06920134799865174,
+     "headline": "A year after the panic, stocks are up sharply from the low"
+    },
+    {
+     "month": "2010-01",
+     "value": 92893.24373030147,
+     "drawdown": 0.08929902451912008,
+     "headline": null
+    },
+    {
+     "month": "2010-02",
+     "value": 94317.01994658938,
+     "drawdown": 0.07534069626002282,
+     "headline": null
+    },
+    {
+     "month": "2010-03",
+     "value": 97953.2886649052,
+     "drawdown": 0.039691672327827,
+     "headline": null
+    },
+    {
+     "month": "2010-04",
+     "value": 99667.15739454958,
+     "drawdown": 0.0228893532219846,
+     "headline": null
+    },
+    {
+     "month": "2010-05",
+     "value": 96797.50121648473,
+     "drawdown": 0.05102270905834572,
+     "headline": "Euro-area debt crisis shakes markets"
+    },
+    {
+     "month": "2010-06",
+     "value": 94631.60013027217,
+     "drawdown": 0.07225663472182708,
+     "headline": null
+    },
+    {
+     "month": "2010-07",
+     "value": 97626.48511553371,
+     "drawdown": 0.042895568534394024,
+     "headline": null
+    },
+    {
+     "month": "2010-08",
+     "value": 96003.52877281069,
+     "drawdown": 0.05880660646490188,
+     "headline": null
+    },
+    {
+     "month": "2010-09",
+     "value": 101665.27218676152,
+     "drawdown": 0.0033003603381391855,
+     "headline": null
+    },
+    {
+     "month": "2010-10",
+     "value": 104903.55415164602,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2010-11",
+     "value": 105462.93033094496,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2010-12",
+     "value": 108941.07918808222,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-01",
+     "value": 109503.35515499786,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-02",
+     "value": 111822.55910719676,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-03",
+     "value": 113209.21795287973,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-04",
+     "value": 116071.25926074237,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-05",
+     "value": 116138.77686799022,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-06",
+     "value": 115521.92046552009,
+     "drawdown": 0.005311373333742653,
+     "headline": null
+    },
+    {
+     "month": "2011-07",
+     "value": 114831.70219788485,
+     "drawdown": 0.011254420834749035,
+     "headline": null
+    },
+    {
+     "month": "2011-08",
+     "value": 115149.57118388313,
+     "drawdown": 0.008517445342406837,
+     "headline": "US credit rating downgraded; markets swing"
+    },
+    {
+     "month": "2011-09",
+     "value": 111332.59116488264,
+     "drawdown": 0.04138312657253618,
+     "headline": null
+    },
+    {
+     "month": "2011-10",
+     "value": 115296.92103812245,
+     "drawdown": 0.00724870583771231,
+     "headline": null
+    },
+    {
+     "month": "2011-11",
+     "value": 116635.25627983212,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2011-12",
+     "value": 115465.50254801106,
+     "drawdown": 0.010029160728335595,
+     "headline": null
+    },
+    {
+     "month": "2012-01",
+     "value": 118842.74642135386,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2012-02",
+     "value": 123235.48724305321,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2012-03",
+     "value": 123904.27560069946,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2012-04",
+     "value": 123221.19069928284,
+     "drawdown": 0.005513005084812117,
+     "headline": null
+    },
+    {
+     "month": "2012-05",
+     "value": 118542.10366611641,
+     "drawdown": 0.0432767304323175,
+     "headline": null
+    },
+    {
+     "month": "2012-06",
+     "value": 121384.68627981382,
+     "drawdown": 0.020334966720643388,
+     "headline": null
+    },
+    {
+     "month": "2012-07",
+     "value": 121833.4503861771,
+     "drawdown": 0.016713105374958293,
+     "headline": null
+    },
+    {
+     "month": "2012-08",
+     "value": 123999.65049801438,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2012-09",
+     "value": 127777.9197665136,
+     "drawdown": 0.0,
+     "headline": "Central banks launch new support programmes"
+    },
+    {
+     "month": "2012-10",
+     "value": 126646.47157481269,
+     "drawdown": 0.008854802095451086,
+     "headline": null
+    },
+    {
+     "month": "2012-11",
+     "value": 126911.32149593829,
+     "drawdown": 0.006782065885552302,
+     "headline": null
+    },
+    {
+     "month": "2012-12",
+     "value": 127202.74584890495,
+     "drawdown": 0.004501356092348807,
+     "headline": null
+    },
+    {
+     "month": "2013-01",
+     "value": 130556.19578450458,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2013-02",
+     "value": 130749.3653859378,
+     "drawdown": 0.0,
+     "headline": null
+    },
+    {
+     "month": "2013-03",
+     "value": 133265.78373840314,
+     "drawdown": 0.0,
+     "headline": "US stocks return to their 2007 peak"
+    }
+   ],
+   "stated_reaction": "buy_more",
+   "stated_max_loss": 0.25,
+   "investor_class": 5,
+   "sources": [
+    {
+     "asset": "equity, cash",
+     "source": "Kenneth R. French Data Library, Fama/French 3 Factors (monthly)",
+     "url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
+    },
+    {
+     "asset": "reits",
+     "source": "Kenneth R. French Data Library, 49 Industry Portfolios, value-weighted RlEst",
+     "url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
+    },
+    {
+     "asset": "bonds",
+     "source": "FRED GS10, Board of Governors of the Federal Reserve System",
+     "url": "https://fred.stlouisfed.org/series/GS10"
+    },
+    {
+     "asset": "gold",
+     "source": "World Bank Commodity Price Data (Pink Sheet) via datasets/gold-prices, ODC-PDDL",
+     "url": "https://github.com/datasets/gold-prices"
+    }
+   ],
+   "method": "Monthly total returns per asset class. Bonds approximated from 10-year Treasury yield changes with duration 6. US data as a proxy for global markets.",
+   "provenance": {
+    "source": "rehearsal.portfolio_path",
+    "audit_hash": "b4cd7e9eeaa18143ed5db7a1e7b1eafa24e3500c0ba59433741034bbecf2a8f3",
+    "timestamp": "2026-10-11T15:11:20.515875+00:00"
+   }
+  }
+ },
+ {
+  "step": "Client presses Sell in 2008-09",
+  "request": {
+   "method": "POST",
+   "path": "/api/rehearsal/decision",
+   "body": {
+    "action": "sell",
+    "month_index": 12
+   }
+  },
+  "status": 200,
+  "response": {
+   "outcome": {
+    "action": "sell",
+    "month_index": 12,
+    "month": "2008-09",
+    "drawdown_at_decision": 0.12507811446315986,
+    "value_at_decision": 89243.70802966705,
+    "final_value_if_held": 133265.78373840314,
+    "final_value_of_choice": 89601.35118875503,
+    "max_drawdown": 0.2773405991624328,
+    "trough_month": "2009-02",
+    "revealed_class": 3,
+    "stated_tolerance_class": 5,
+    "previous_class": 5,
+    "new_class": 3,
+    "stated_max_loss": 0.25,
+    "reason_code": "REVEALED_TOLERANCE_C3"
+   },
+   "profile": {
+    "investor_class": 3,
+    "class_name": "Balanced",
+    "capacity_class": 5,
+    "tolerance_class": 3,
+    "capacity_score": 18,
+    "tolerance_score": 12,
+    "expires_on": "2027-10-11",
+    "reasons": [
+     {
+      "code": "HORIZON_OVER_10Y",
+      "text": "How long can this money stay invested? → More than 10 years"
+     },
+     {
+      "code": "LIQUIDITY_NEED_OVER_30D",
+      "text": "When might you need to withdraw part of this money? → Not for at least a month"
+     },
+     {
+      "code": "INCOME_STABILITY_STABLE",
+      "text": "How stable is your income? → Stable salary or pension"
+     },
+     {
+      "code": "EMERGENCY_FUND_OVER_6_MONTHS",
+      "text": "How many months of expenses do you hold in cash? → More than 6 months"
+     },
+     {
+      "code": "INVESTED_SHARE_UNDER_25",
+      "text": "What share of your net worth is this investment? → Less than 25%"
+     },
+     {
+      "code": "DRAWDOWN_REACTION_BUY_MORE",
+      "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+     },
+     {
+      "code": "EXPERIENCE_ADVANCED",
+      "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+     },
+     {
+      "code": "GOAL_AGGRESSIVE_GROWTH",
+      "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+     },
+     {
+      "code": "REVEALED_TOLERANCE_C3",
+      "text": "In the crash rehearsal you sold during the fall, so your risk class was lowered to C3."
+     }
+    ],
+    "flags": []
+   },
+   "provenance": {
+    "source": "rehearsal.evaluate",
+    "audit_hash": "4fbc41f8c1120fb27cdd202a2097bed2a7ea0610d8308ddd77345dd7d9dbd66b",
+    "timestamp": "2026-10-11T15:11:20.517482+00:00"
+   }
+  }
+ },
+ {
+  "step": "Try to build at the old, higher class (must be refused)",
+  "request": {
+   "method": "POST",
+   "path": "/api/allocation",
+   "body": {
+    "investor_class": 5
+   }
+  },
+  "status": 403,
+  "response": {
+   "detail": "C5 exceeds the assessed class C3."
+  }
+ },
+ {
+  "step": "Rebuild at the revealed class",
+  "request": {
+   "method": "POST",
+   "path": "/api/allocation",
+   "body": {}
+  },
+  "status": 200,
+  "response": {
+   "allocation_id": "ui-2",
+   "allocation": {
+    "investor_class": 3,
+    "amount": 100000.0,
+    "expected_return": 0.032036173164376874,
+    "volatility": 0.027785473928988672,
+    "fee": 0.004296761857450164,
+    "var_95_1y": 4570.710461318637,
+    "by_asset_class": {
+     "cash": 0.23441271418327864,
+     "bonds": 0.7655872858167214
+    },
+    "notes": [],
+    "stress_limit_before": null,
+    "stress_limit_after": null,
+    "holdings": [
+     {
+      "product_id": "CN-001821",
+      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+      "source": "https://fund.eastmoney.com/001821.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.23441271418327864,
+      "amount": 23441.271418327862,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-001316",
+      "name": "Essence Steady Value-Add Hybrid A (001316)",
+      "source": "https://fund.eastmoney.com/001316.html",
+      "asset_class": "bonds",
+      "risk_class": 3,
+      "weight": 0.25519576193890714,
+      "amount": 25519.576193890713,
+      "reasons": [
+       "Suitable: product risk R3 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-000171",
+      "name": "E Fund Yufeng Return Bond A (000171)",
+      "source": "https://fund.eastmoney.com/000171.html",
+      "asset_class": "bonds",
+      "risk_class": 3,
+      "weight": 0.25519576193890714,
+      "amount": 25519.576193890713,
+      "reasons": [
+       "Suitable: product risk R3 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-003376",
+      "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
+      "source": "https://fund.eastmoney.com/003376.html",
+      "asset_class": "bonds",
+      "risk_class": 2,
+      "weight": 0.25519576193890714,
+      "amount": 25519.576193890713,
+      "reasons": [
+       "Suitable: product risk R2 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     }
+    ]
+   },
+   "provenance": {
+    "source": "allocation.build_allocation",
+    "audit_hash": "52d129eea6483fd9cf765efc43af96241d4d78b427053850cb3cea2c928d26c1",
+    "timestamp": "2026-10-11T15:11:20.521074+00:00"
+   }
+  }
+ },
+ {
+  "step": "Sign risk disclosure (moves session from advice-only to simulated trading)",
+  "request": {
+   "method": "POST",
+   "path": "/api/consent",
+   "body": {
+    "full_name": "Evidence Client Two",
+    "accepted": true
+   }
+  },
+  "status": 200,
+  "response": {
+   "tier": "EXECUTE",
+   "level": 3,
+   "kill_switch": false,
+   "provenance": {
+    "source": "ui.server.consent",
+    "audit_hash": "3c834edd79eda50b6de6be5db269c69040a3a7b44246dd14f3994070b67000db",
+    "timestamp": "2026-10-11T15:11:20.522536+00:00"
+   }
+  }
+ },
+ {
+  "step": "Create draft orders (pre-trade checks on the server)",
+  "request": {
+   "method": "POST",
+   "path": "/api/orders/draft",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "orders": [
+    {
+     "order_id": "order-1",
+     "product_id": "CN-001821",
+     "amount": 23441.271418327862,
+     "risk_class": 1,
+     "status": "DRAFT",
+     "created_on": "2026-10-11",
+     "settles_on": null,
+     "cooling_off_until": null,
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "asset_class": "cash",
+     "nav": 1.0,
+     "units": 23441.271418327862,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-2",
+     "product_id": "CN-001316",
+     "amount": 25519.576193890713,
+     "risk_class": 3,
+     "status": "DRAFT",
+     "created_on": "2026-10-11",
+     "settles_on": null,
+     "cooling_off_until": null,
+     "name": "Essence Steady Value-Add Hybrid A (001316)",
+     "asset_class": "bonds",
+     "nav": 1.8301,
+     "units": 13944.361616245404,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-3",
+     "product_id": "CN-000171",
+     "amount": 25519.576193890713,
+     "risk_class": 3,
+     "status": "DRAFT",
+     "created_on": "2026-10-11",
+     "settles_on": null,
+     "cooling_off_until": null,
+     "name": "E Fund Yufeng Return Bond A (000171)",
+     "asset_class": "bonds",
+     "nav": 2.0361,
+     "units": 12533.557386125787,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-4",
+     "product_id": "CN-003376",
+     "amount": 25519.576193890713,
+     "risk_class": 2,
+     "status": "DRAFT",
+     "created_on": "2026-10-11",
+     "settles_on": null,
+     "cooling_off_until": null,
+     "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
+     "asset_class": "bonds",
+     "nav": 1.387,
+     "units": 18399.117659618394,
+     "cooling_off": false
+    }
+   ],
+   "cash": 1000000.0,
+   "investor_class": 3,
+   "provenance": {
+    "source": "session.create_draft_orders",
+    "audit_hash": "7e3bc59de6d99b3151c71b3e6743f847c50125dda2b6304bbb4ade7c1bf1012e",
+    "timestamp": "2026-10-11T15:11:20.523848+00:00"
+   }
+  }
+ },
+ {
+  "step": "Human holds confirm: issue one-time tokens",
+  "request": {
+   "method": "POST",
+   "path": "/api/orders/tokens",
+   "body": {
+    "order_ids": [
+     "order-1",
+     "order-2",
+     "order-3",
+     "order-4"
+    ]
+   }
+  },
+  "status": 200,
+  "response": {
+   "tokens": {
+    "order-1": "gllptLewpr2rqs4xHA7voLPdVOvrshBY",
+    "order-2": "WY-9Iw1xJZfSotXqBc8mQ816YoRBfwig",
+    "order-3": "sK_DG1xpke9g8iIv1LRhFdoY6zmK4Isq",
+    "order-4": "Ur9fc-kPRM-JD8bx2yxdjK1GoAG8VE0p"
+   }
+  }
+ },
+ {
+  "step": "Confirm orders with the tokens",
+  "request": {
+   "method": "POST",
+   "path": "/api/orders/confirm",
+   "body": {
+    "tokens": {
+     "order-1": "gllptLewpr2rqs4xHA7voLPdVOvrshBY",
+     "order-2": "WY-9Iw1xJZfSotXqBc8mQ816YoRBfwig",
+     "order-3": "sK_DG1xpke9g8iIv1LRhFdoY6zmK4Isq",
+     "order-4": "Ur9fc-kPRM-JD8bx2yxdjK1GoAG8VE0p"
+    }
+   }
+  },
+  "status": 200,
+  "response": {
+   "executed": [
+    {
+     "order_id": "order-1",
+     "product_id": "CN-001821",
+     "amount": 23441.271418327862,
+     "risk_class": 1,
+     "status": "EXECUTED",
+     "created_on": "2026-10-11",
+     "settles_on": "2026-10-13",
+     "cooling_off_until": null,
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "asset_class": "cash",
+     "nav": 1.0,
+     "units": 23441.271418327862,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-2",
+     "product_id": "CN-001316",
+     "amount": 25519.576193890713,
+     "risk_class": 3,
+     "status": "EXECUTED",
+     "created_on": "2026-10-11",
+     "settles_on": "2026-10-13",
+     "cooling_off_until": null,
+     "name": "Essence Steady Value-Add Hybrid A (001316)",
+     "asset_class": "bonds",
+     "nav": 1.8301,
+     "units": 13944.361616245404,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-3",
+     "product_id": "CN-000171",
+     "amount": 25519.576193890713,
+     "risk_class": 3,
+     "status": "EXECUTED",
+     "created_on": "2026-10-11",
+     "settles_on": "2026-10-13",
+     "cooling_off_until": null,
+     "name": "E Fund Yufeng Return Bond A (000171)",
+     "asset_class": "bonds",
+     "nav": 2.0361,
+     "units": 12533.557386125787,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-4",
+     "product_id": "CN-003376",
+     "amount": 25519.576193890713,
+     "risk_class": 2,
+     "status": "EXECUTED",
+     "created_on": "2026-10-11",
+     "settles_on": "2026-10-13",
+     "cooling_off_until": null,
+     "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
+     "asset_class": "bonds",
+     "nav": 1.387,
+     "units": 18399.117659618394,
+     "cooling_off": false
+    }
+   ],
+   "failed": [],
+   "total": 100000.0,
+   "cash": 899999.9999999999,
+   "investor_class": 3,
+   "provenance": {
+    "source": "session.confirm_order",
+    "audit_hash": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+    "timestamp": "2026-10-11T15:11:20.526951+00:00"
+   }
+  }
+ },
+ {
+  "step": "Anchor the audit-chain head on FISCO BCOS",
+  "request": {
+   "method": "POST",
+   "path": "/api/anchor",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "tx_hash": "0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
+   "head_hash": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+   "record_count": 18,
+   "payload_hex": "574130313c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e00000012",
+   "explorer_url": null,
+   "sent": true,
+   "note": "FISCO BCOS contract 0xA0a4C46e3a7bF2F535ba02868Fc3AFd6767FE9E5",
+   "network": "fisco",
+   "block": 10,
+   "verification": {
+    "network": "fisco",
+    "tx_hash": "0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
+    "block": 10,
+    "block_time": 1791731481,
+    "anchored_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+    "local_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+    "record_count": 18,
+    "chain_valid": true,
+    "chain_reason": "audit chain verified",
+    "matches": true,
+    "explorer_url": null
+   }
+  }
+ },
+ {
+  "step": "Verify the anchor against the local audit chain",
+  "request": {
+   "method": "GET",
+   "path": "/api/anchor/verify?tx=0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "network": "fisco",
+   "tx_hash": "0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
+   "block": 10,
+   "block_time": 1791731481,
+   "anchored_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+   "local_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+   "record_count": 18,
+   "chain_valid": true,
+   "chain_reason": "audit chain verified",
+   "matches": true,
+   "explorer_url": null
+  }
+ },
+ {
+  "step": "Account and session state",
+  "request": {
+   "method": "GET",
+   "path": "/api/state",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "profile": {
+    "investor_class": 3,
+    "class_name": "Balanced",
+    "capacity_class": 5,
+    "tolerance_class": 3,
+    "capacity_score": 18,
+    "tolerance_score": 12,
+    "expires_on": "2027-10-11",
+    "reasons": [
+     {
+      "code": "HORIZON_OVER_10Y",
+      "text": "How long can this money stay invested? → More than 10 years"
+     },
+     {
+      "code": "LIQUIDITY_NEED_OVER_30D",
+      "text": "When might you need to withdraw part of this money? → Not for at least a month"
+     },
+     {
+      "code": "INCOME_STABILITY_STABLE",
+      "text": "How stable is your income? → Stable salary or pension"
+     },
+     {
+      "code": "EMERGENCY_FUND_OVER_6_MONTHS",
+      "text": "How many months of expenses do you hold in cash? → More than 6 months"
+     },
+     {
+      "code": "INVESTED_SHARE_UNDER_25",
+      "text": "What share of your net worth is this investment? → Less than 25%"
+     },
+     {
+      "code": "DRAWDOWN_REACTION_BUY_MORE",
+      "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+     },
+     {
+      "code": "EXPERIENCE_ADVANCED",
+      "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+     },
+     {
+      "code": "GOAL_AGGRESSIVE_GROWTH",
+      "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+     },
+     {
+      "code": "REVEALED_TOLERANCE_C3",
+      "text": "In the crash rehearsal you sold during the fall, so your risk class was lowered to C3."
+     }
+    ],
+    "flags": []
+   },
+   "answers": {
+    "drawdown_reaction": "buy_more",
+    "income_stability": "stable",
+    "liquidity_need": "over_30d",
+    "emergency_fund": "over_6_months",
+    "invested_share": "under_25",
+    "experience": "advanced",
+    "horizon": "over_10y",
+    "goal": "aggressive_growth"
+   },
+   "client": {
+    "amount": 100000.0,
+    "horizon_years": 15,
+    "max_loss": 0.25,
+    "age": 27,
+    "borrowed_money": false
+   },
+   "allocation_id": "ui-2",
+   "allocation": {
+    "investor_class": 3,
+    "amount": 100000.0,
+    "expected_return": 0.032036173164376874,
+    "volatility": 0.027785473928988672,
+    "fee": 0.004296761857450164,
+    "var_95_1y": 4570.710461318637,
+    "by_asset_class": {
+     "cash": 0.23441271418327864,
+     "bonds": 0.7655872858167214
+    },
+    "notes": [],
+    "stress_limit_before": null,
+    "stress_limit_after": null,
+    "holdings": [
+     {
+      "product_id": "CN-001821",
+      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+      "source": "https://fund.eastmoney.com/001821.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.23441271418327864,
+      "amount": 23441.271418327862,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-001316",
+      "name": "Essence Steady Value-Add Hybrid A (001316)",
+      "source": "https://fund.eastmoney.com/001316.html",
+      "asset_class": "bonds",
+      "risk_class": 3,
+      "weight": 0.25519576193890714,
+      "amount": 25519.576193890713,
+      "reasons": [
+       "Suitable: product risk R3 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-000171",
+      "name": "E Fund Yufeng Return Bond A (000171)",
+      "source": "https://fund.eastmoney.com/000171.html",
+      "asset_class": "bonds",
+      "risk_class": 3,
+      "weight": 0.25519576193890714,
+      "amount": 25519.576193890713,
+      "reasons": [
+       "Suitable: product risk R3 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     },
+     {
+      "product_id": "CN-003376",
+      "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
+      "source": "https://fund.eastmoney.com/003376.html",
+      "asset_class": "bonds",
+      "risk_class": 2,
+      "weight": 0.25519576193890714,
+      "amount": 25519.576193890713,
+      "reasons": [
+       "Suitable: product risk R2 does not exceed your risk class C3.",
+       "Best expected return per unit of risk, after fees, within its asset class."
+      ]
+     }
+    ]
+   },
+   "allocation_provenance": {
+    "source": "allocation.build_allocation",
+    "audit_hash": "52d129eea6483fd9cf765efc43af96241d4d78b427053850cb3cea2c928d26c1",
+    "timestamp": "2026-10-11T15:11:20.521074+00:00"
+   },
+   "tier": {
+    "tier": "EXECUTE",
+    "level": 3,
+    "kill_switch": false
+   }
+  }
+ }
+]

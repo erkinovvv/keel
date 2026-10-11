@@ -1,0 +1,1023 @@
+[
+ {
+  "step": "Load questionnaire",
+  "request": {
+   "method": "GET",
+   "path": "/api/questionnaire",
+   "body": null
+  },
+  "status": 200,
+  "response": [
+   {
+    "key": "horizon",
+    "question": "How long can this money stay invested?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "under_1y",
+      "label": "Less than 1 year"
+     },
+     {
+      "key": "1_3y",
+      "label": "1–3 years"
+     },
+     {
+      "key": "3_7y",
+      "label": "3–7 years"
+     },
+     {
+      "key": "7_10y",
+      "label": "7–10 years"
+     },
+     {
+      "key": "over_10y",
+      "label": "More than 10 years"
+     }
+    ]
+   },
+   {
+    "key": "liquidity_need",
+    "question": "When might you need to withdraw part of this money?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "within_1d",
+      "label": "Any day"
+     },
+     {
+      "key": "within_7d",
+      "label": "Within a week"
+     },
+     {
+      "key": "within_30d",
+      "label": "Within a month"
+     },
+     {
+      "key": "over_30d",
+      "label": "Not for at least a month"
+     }
+    ]
+   },
+   {
+    "key": "income_stability",
+    "question": "How stable is your income?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "unstable",
+      "label": "Irregular / uncertain"
+     },
+     {
+      "key": "mixed",
+      "label": "Partly stable"
+     },
+     {
+      "key": "stable",
+      "label": "Stable salary or pension"
+     }
+    ]
+   },
+   {
+    "key": "emergency_fund",
+    "question": "How many months of expenses do you hold in cash?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "none",
+      "label": "None"
+     },
+     {
+      "key": "3_6_months",
+      "label": "3–6 months"
+     },
+     {
+      "key": "over_6_months",
+      "label": "More than 6 months"
+     }
+    ]
+   },
+   {
+    "key": "invested_share",
+    "question": "What share of your net worth is this investment?",
+    "domain": "capacity",
+    "options": [
+     {
+      "key": "over_75",
+      "label": "More than 75%"
+     },
+     {
+      "key": "50_75",
+      "label": "50–75%"
+     },
+     {
+      "key": "25_50",
+      "label": "25–50%"
+     },
+     {
+      "key": "under_25",
+      "label": "Less than 25%"
+     }
+    ]
+   },
+   {
+    "key": "drawdown_reaction",
+    "question": "Your portfolio falls 20% in a month. What do you do?",
+    "domain": "tolerance",
+    "options": [
+     {
+      "key": "sell_all",
+      "label": "Sell everything"
+     },
+     {
+      "key": "reduce",
+      "label": "Sell some to limit losses"
+     },
+     {
+      "key": "hold",
+      "label": "Hold and wait"
+     },
+     {
+      "key": "buy_more",
+      "label": "Buy more at lower prices"
+     }
+    ]
+   },
+   {
+    "key": "experience",
+    "question": "How experienced are you with funds, bonds or shares?",
+    "domain": "tolerance",
+    "options": [
+     {
+      "key": "none",
+      "label": "None"
+     },
+     {
+      "key": "basic",
+      "label": "Basic (deposits, a few funds)"
+     },
+     {
+      "key": "good",
+      "label": "Good (several years investing)"
+     },
+     {
+      "key": "advanced",
+      "label": "Advanced (professional / active investor)"
+     }
+    ]
+   },
+   {
+    "key": "goal",
+    "question": "What is the main goal of this money?",
+    "domain": "tolerance",
+    "options": [
+     {
+      "key": "preserve",
+      "label": "Preserve capital"
+     },
+     {
+      "key": "income",
+      "label": "Regular income"
+     },
+     {
+      "key": "growth",
+      "label": "Long-term growth"
+     },
+     {
+      "key": "aggressive_growth",
+      "label": "Maximum growth, high risk accepted"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "step": "Assess risk profile (age 66, 200,000, 5-year horizon, 8% loss limit)",
+  "request": {
+   "method": "POST",
+   "path": "/api/profile",
+   "body": {
+    "answers": {
+     "horizon": "1_3y",
+     "liquidity_need": "within_7d",
+     "income_stability": "mixed",
+     "emergency_fund": "3_6_months",
+     "invested_share": "50_75",
+     "drawdown_reaction": "reduce",
+     "experience": "basic",
+     "goal": "income"
+    },
+    "age": 66,
+    "amount": 200000,
+    "horizon_years": 5,
+    "max_loss": 0.08
+   }
+  },
+  "status": 200,
+  "response": {
+   "profile": {
+    "investor_class": 2,
+    "class_name": "Moderately Conservative",
+    "capacity_class": 3,
+    "tolerance_class": 2,
+    "capacity_score": 6,
+    "tolerance_score": 3,
+    "expires_on": "2027-10-11",
+    "reasons": [
+     {
+      "code": "HORIZON_1_3Y",
+      "text": "How long can this money stay invested? → 1–3 years"
+     },
+     {
+      "code": "LIQUIDITY_NEED_WITHIN_7D",
+      "text": "When might you need to withdraw part of this money? → Within a week"
+     },
+     {
+      "code": "INCOME_STABILITY_MIXED",
+      "text": "How stable is your income? → Partly stable"
+     },
+     {
+      "code": "EMERGENCY_FUND_3_6_MONTHS",
+      "text": "How many months of expenses do you hold in cash? → 3–6 months"
+     },
+     {
+      "code": "INVESTED_SHARE_50_75",
+      "text": "What share of your net worth is this investment? → 50–75%"
+     },
+     {
+      "code": "DRAWDOWN_REACTION_REDUCE",
+      "text": "Your portfolio falls 20% in a month. What do you do? → Sell some to limit losses"
+     },
+     {
+      "code": "EXPERIENCE_BASIC",
+      "text": "How experienced are you with funds, bonds or shares? → Basic (deposits, a few funds)"
+     },
+     {
+      "code": "GOAL_INCOME",
+      "text": "What is the main goal of this money? → Regular income"
+     }
+    ],
+    "flags": []
+   },
+   "client": {
+    "amount": 200000.0,
+    "horizon_years": 5,
+    "max_loss": 0.08,
+    "age": 66,
+    "borrowed_money": false
+   },
+   "provenance": {
+    "source": "profiling.profile_investor",
+    "audit_hash": "7f6819b9be40d0d72cc49dd45b2304a7db4422cc833e07bcef3792629df187c8",
+    "timestamp": "2026-10-11T15:11:19.853342+00:00"
+   }
+  }
+ },
+ {
+  "step": "Build allocation",
+  "request": {
+   "method": "POST",
+   "path": "/api/allocation",
+   "body": {}
+  },
+  "status": 200,
+  "response": {
+   "allocation_id": "ui-1",
+   "allocation": {
+    "investor_class": 1,
+    "amount": 200000.0,
+    "expected_return": 0.011695,
+    "volatility": 0.002,
+    "fee": 0.0027,
+    "var_95_1y": 658.0,
+    "by_asset_class": {
+     "cash": 1.0
+    },
+    "notes": [
+     "Risk was reduced so the worst historical loss stays within the limit you gave us."
+    ],
+    "stress_limit_before": 0.08234781756922491,
+    "stress_limit_after": 0.0,
+    "holdings": [
+     {
+      "product_id": "CN-001821",
+      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+      "source": "https://fund.eastmoney.com/001821.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.5,
+      "amount": 100000.0,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C1.",
+       "Best expected return per unit of risk, after fees, within its asset class.",
+       "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money."
+      ]
+     },
+     {
+      "product_id": "CN-000009",
+      "name": "E Fund Daily Money Market A (000009)",
+      "source": "https://fund.eastmoney.com/000009.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.5,
+      "amount": 100000.0,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C1.",
+       "Best expected return per unit of risk, after fees, within its asset class.",
+       "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money."
+      ]
+     }
+    ]
+   },
+   "provenance": {
+    "source": "allocation.build_allocation",
+    "audit_hash": "58b500f80ce0fc1c36bff33badec51ee8f54dfb0a64c80d90dcd019fd58b7175",
+    "timestamp": "2026-10-11T15:11:19.856920+00:00"
+   }
+  }
+ },
+ {
+  "step": "Compare suitable products",
+  "request": {
+   "method": "GET",
+   "path": "/api/compare",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "rows": [
+    {
+     "product_id": "CN-003376",
+     "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.03689,
+     "volatility": 0.02918,
+     "fee": 0.002,
+     "net_return": 0.03489,
+     "sharpe_like": -0.0037697052775875917,
+     "fee_drag": 1992.0159840064011,
+     "liquidity_days": 3,
+     "source": "https://fund.eastmoney.com/003376.html"
+    },
+    {
+     "product_id": "CN-161119",
+     "name": "E Fund China Bond New Composite Index A (161119)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.0354,
+     "volatility": 0.01834,
+     "fee": 0.002,
+     "net_return": 0.0334,
+     "sharpe_like": -0.08724100327153786,
+     "fee_drag": 1992.0159840064011,
+     "liquidity_days": 3,
+     "source": "https://fund.eastmoney.com/161119.html"
+    },
+    {
+     "product_id": "CN-110027",
+     "name": "E Fund Anxin Return Bond A (110027)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.03688,
+     "volatility": 0.04499,
+     "fee": 0.009,
+     "net_return": 0.027880000000000002,
+     "sharpe_like": -0.1582573905312292,
+     "fee_drag": 8839.451450809798,
+     "liquidity_days": 3,
+     "source": "https://fund.eastmoney.com/110027.html"
+    },
+    {
+     "product_id": "CN-217022",
+     "name": "China Merchants Industry Bond A (217022)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.03774,
+     "volatility": 0.01262,
+     "fee": 0.009,
+     "net_return": 0.02874,
+     "sharpe_like": -0.49603803486529335,
+     "fee_drag": 8839.451450809798,
+     "liquidity_days": 3,
+     "source": "https://fund.eastmoney.com/217022.html"
+    },
+    {
+     "product_id": "CN-050027",
+     "name": "Bosera Credit Pure Bond A (050027)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.02999,
+     "volatility": 0.01298,
+     "fee": 0.004,
+     "net_return": 0.02599,
+     "sharpe_like": -0.6941448382126352,
+     "fee_drag": 3968.127744204808,
+     "liquidity_days": 3,
+     "source": "https://fund.eastmoney.com/050027.html"
+    },
+    {
+     "product_id": "CN-100018",
+     "name": "Fullgoal Tianli Growth Bond A (100018)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.02846,
+     "volatility": 0.00937,
+     "fee": 0.008,
+     "net_return": 0.02046,
+     "sharpe_like": -1.5517609391675564,
+     "fee_drag": 7873.019910553602,
+     "liquidity_days": 3,
+     "source": "https://fund.eastmoney.com/100018.html"
+    },
+    {
+     "product_id": "CN-070009",
+     "name": "Harvest Ultra-Short Bond C (070009)",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "expected_return": 0.02745,
+     "volatility": 0.00484,
+     "fee": 0.0063,
+     "net_return": 0.02115,
+     "sharpe_like": -2.8615702479338854,
+     "fee_drag": 6221.118520688739,
+     "liquidity_days": 2,
+     "source": "https://fund.eastmoney.com/070009.html"
+    },
+    {
+     "product_id": "CN-001821",
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "expected_return": 0.01556,
+     "volatility": 0.002,
+     "fee": 0.002,
+     "net_return": 0.01356,
+     "sharpe_like": -10.720000000000002,
+     "fee_drag": 1992.0159840064011,
+     "liquidity_days": 1,
+     "source": "https://fund.eastmoney.com/001821.html"
+    },
+    {
+     "product_id": "CN-000009",
+     "name": "E Fund Daily Money Market A (000009)",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "expected_return": 0.01323,
+     "volatility": 0.002,
+     "fee": 0.0034,
+     "net_return": 0.00983,
+     "sharpe_like": -12.585000000000003,
+     "fee_drag": 3376.9584744572257,
+     "liquidity_days": 1,
+     "source": "https://fund.eastmoney.com/000009.html"
+    },
+    {
+     "product_id": "CN-000198",
+     "name": "Tianhong Yu'E Bao Money Market (000198)",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "expected_return": 0.01526,
+     "volatility": 0.002,
+     "fee": 0.0062,
+     "net_return": 0.009059999999999999,
+     "sharpe_like": -12.970000000000002,
+     "fee_drag": 6123.595180198648,
+     "liquidity_days": 1,
+     "source": "https://fund.eastmoney.com/000198.html"
+    }
+   ],
+   "hidden": [
+    {
+     "name": "E Fund Steady Income Bond A (110007)",
+     "risk_class": 3
+    },
+    {
+     "name": "E Fund Yufeng Return Bond A (000171)",
+     "risk_class": 3
+    },
+    {
+     "name": "GF Steady Growth Hybrid A (270002)",
+     "risk_class": 3
+    },
+    {
+     "name": "Essence Steady Value-Add Hybrid A (001316)",
+     "risk_class": 3
+    },
+    {
+     "name": "GF Trend Select Flexible Allocation Hybrid A (000215)",
+     "risk_class": 3
+    },
+    {
+     "name": "E Fund CSI 300 ETF Feeder A (110020)",
+     "risk_class": 4
+    },
+    {
+     "name": "Southern CSI 500 ETF Feeder A (160119)",
+     "risk_class": 4
+    },
+    {
+     "name": "Huatai-PineBridge CSI Dividend Low Volatility ETF Feeder A (007466)",
+     "risk_class": 4
+    },
+    {
+     "name": "ChinaAMC Hang Seng ETF Feeder A (000071)",
+     "risk_class": 4
+    },
+    {
+     "name": "Bosera S&P 500 ETF Feeder A (050025)",
+     "risk_class": 4
+    },
+    {
+     "name": "GF Nasdaq-100 ETF Feeder A (QDII) (270042)",
+     "risk_class": 4
+    },
+    {
+     "name": "E Fund Blue Chip Select Hybrid (005827)",
+     "risk_class": 4
+    },
+    {
+     "name": "Hua An Gold ETF Feeder A (000216)",
+     "risk_class": 4
+    },
+    {
+     "name": "GF US Real Estate Index A (QDII) (000179)",
+     "risk_class": 4
+    }
+   ],
+   "locked": [],
+   "provenance": {
+    "source": "catalog.compare_products",
+    "audit_hash": "2c9b6cca6258787bfb78232b18ee5a36839b4f423c559326f91f95678173a278",
+    "timestamp": "2026-10-11T15:11:19.858927+00:00"
+   }
+  }
+ },
+ {
+  "step": "Stress test against the client's limit",
+  "request": {
+   "method": "GET",
+   "path": "/api/stress",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "max_loss": 0.08,
+   "scenarios": [
+    {
+     "key": "2008_gfc",
+     "name": "2008 global financial crisis",
+     "loss": 0.0,
+     "loss_amount": 0.0,
+     "breach": false
+    },
+    {
+     "key": "2020_covid",
+     "name": "2020 pandemic crash",
+     "loss": 0.0,
+     "loss_amount": 0.0,
+     "breach": false
+    },
+    {
+     "key": "2022_rate_shock",
+     "name": "2022 rate shock",
+     "loss": 0.0,
+     "loss_amount": 0.0,
+     "breach": false
+    }
+   ],
+   "provenance": {
+    "source": "stress.stress_test",
+    "audit_hash": "2d96e710783177edef425d4f58643260c322e243af72fc35b1eaf81934ffc497",
+    "timestamp": "2026-10-11T15:11:19.860281+00:00"
+   }
+  }
+ },
+ {
+  "step": "Goal: 220,000 in 5 years",
+  "request": {
+   "method": "POST",
+   "path": "/api/goal",
+   "body": {
+    "target": 220000,
+    "years": 5,
+    "monthly": 500
+   }
+  },
+  "status": 200,
+  "response": {
+   "goal": {
+    "name": "My goal",
+    "target": 220000.0,
+    "years": 5,
+    "monthly": 500.0,
+    "inflation": 0.02
+   },
+   "result": {
+    "probability": 0.481,
+    "target_nominal": 242897.77670400002,
+    "contributions": 230000.0,
+    "terminal_p10": 241537.34111024457,
+    "terminal_p50": 242847.64316373787,
+    "terminal_p90": 244138.85927128777,
+    "median_shortfall": 50.13354026214802,
+    "required_monthly": 530,
+    "fan": [
+     {
+      "year": 0,
+      "p10": 200000.0,
+      "p25": 200000.0,
+      "p50": 200000.0,
+      "p75": 200000.0,
+      "p90": 200000.0
+     },
+     {
+      "year": 1,
+      "p10": 207855.16420193794,
+      "p25": 208114.02107528853,
+      "p50": 208384.69658710022,
+      "p75": 208660.74894926808,
+      "p90": 208910.01313247785
+     },
+     {
+      "year": 2,
+      "p10": 216097.12720286113,
+      "p25": 216450.94109733595,
+      "p50": 216845.1763163983,
+      "p75": 217248.23632378396,
+      "p90": 217628.99737902507
+     },
+     {
+      "year": 3,
+      "p10": 224463.08143370334,
+      "p25": 224907.45861410422,
+      "p50": 225406.01737999302,
+      "p75": 225914.83341402997,
+      "p90": 226375.50328524073
+     },
+     {
+      "year": 4,
+      "p10": 232970.7974794367,
+      "p25": 233494.97689735112,
+      "p50": 234074.59479800367,
+      "p75": 234676.85736808035,
+      "p90": 235234.54303670579
+     },
+     {
+      "year": 5,
+      "p10": 241537.34111024457,
+      "p25": 242167.75690458005,
+      "p50": 242847.64316373787,
+      "p75": 243515.9863569033,
+      "p90": 244138.85927128777
+     }
+    ],
+    "assumptions": [
+     "5,000 simulated paths, monthly steps, fixed seed 20261020 (reproducible)",
+     "Expected return 1.17% a year after fees, volatility 0.20%",
+     "Returns are log-normal and independent month to month; real markets have fatter tails",
+     "Contributions are added at the end of each month; no taxes",
+     "Target grows with 2.0% inflation"
+    ]
+   },
+   "initial": 200000.0,
+   "provenance": {
+    "source": "goals.project_goal",
+    "audit_hash": "d80432740f180b4e150f66e129b850e353ce3de813952172744c08bbf66f5059",
+    "timestamp": "2026-10-11T15:11:19.905762+00:00"
+   }
+  }
+ },
+ {
+  "step": "Sign risk disclosure (moves session from advice-only to simulated trading)",
+  "request": {
+   "method": "POST",
+   "path": "/api/consent",
+   "body": {
+    "full_name": "Evidence Client One",
+    "accepted": true
+   }
+  },
+  "status": 200,
+  "response": {
+   "tier": "EXECUTE",
+   "level": 3,
+   "kill_switch": false,
+   "provenance": {
+    "source": "ui.server.consent",
+    "audit_hash": "fdd7b4b6a4c9063a5f6e5911ea89f7a9a55d81d966bd744fc1c7f8bdefc7641f",
+    "timestamp": "2026-10-11T15:11:19.907570+00:00"
+   }
+  }
+ },
+ {
+  "step": "Create draft orders (pre-trade checks on the server)",
+  "request": {
+   "method": "POST",
+   "path": "/api/orders/draft",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "orders": [
+    {
+     "order_id": "order-1",
+     "product_id": "CN-001821",
+     "amount": 100000.0,
+     "risk_class": 1,
+     "status": "DRAFT",
+     "created_on": "2026-10-11",
+     "settles_on": null,
+     "cooling_off_until": null,
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "asset_class": "cash",
+     "nav": 1.0,
+     "units": 100000.0,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-2",
+     "product_id": "CN-000009",
+     "amount": 100000.0,
+     "risk_class": 1,
+     "status": "DRAFT",
+     "created_on": "2026-10-11",
+     "settles_on": null,
+     "cooling_off_until": null,
+     "name": "E Fund Daily Money Market A (000009)",
+     "asset_class": "cash",
+     "nav": 1.0,
+     "units": 100000.0,
+     "cooling_off": false
+    }
+   ],
+   "cash": 1000000.0,
+   "investor_class": 2,
+   "provenance": {
+    "source": "session.create_draft_orders",
+    "audit_hash": "c2766649c7b3d8c07f7d966acb93cd7cb1e0fa3f9d2fade84e9d17342840c2a6",
+    "timestamp": "2026-10-11T15:11:19.909449+00:00"
+   }
+  }
+ },
+ {
+  "step": "Human holds confirm: issue one-time tokens",
+  "request": {
+   "method": "POST",
+   "path": "/api/orders/tokens",
+   "body": {
+    "order_ids": [
+     "order-1",
+     "order-2"
+    ]
+   }
+  },
+  "status": 200,
+  "response": {
+   "tokens": {
+    "order-1": "MnPcxzrpQIeR07_Npj6WFjRYKfSqcqI0",
+    "order-2": "wq0g11P3hboGZRnIF9BJsEWFFwSCHuXh"
+   }
+  }
+ },
+ {
+  "step": "Confirm orders with the tokens",
+  "request": {
+   "method": "POST",
+   "path": "/api/orders/confirm",
+   "body": {
+    "tokens": {
+     "order-1": "MnPcxzrpQIeR07_Npj6WFjRYKfSqcqI0",
+     "order-2": "wq0g11P3hboGZRnIF9BJsEWFFwSCHuXh"
+    }
+   }
+  },
+  "status": 200,
+  "response": {
+   "executed": [
+    {
+     "order_id": "order-1",
+     "product_id": "CN-001821",
+     "amount": 100000.0,
+     "risk_class": 1,
+     "status": "EXECUTED",
+     "created_on": "2026-10-11",
+     "settles_on": "2026-10-13",
+     "cooling_off_until": null,
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "asset_class": "cash",
+     "nav": 1.0,
+     "units": 100000.0,
+     "cooling_off": false
+    },
+    {
+     "order_id": "order-2",
+     "product_id": "CN-000009",
+     "amount": 100000.0,
+     "risk_class": 1,
+     "status": "EXECUTED",
+     "created_on": "2026-10-11",
+     "settles_on": "2026-10-13",
+     "cooling_off_until": null,
+     "name": "E Fund Daily Money Market A (000009)",
+     "asset_class": "cash",
+     "nav": 1.0,
+     "units": 100000.0,
+     "cooling_off": false
+    }
+   ],
+   "failed": [],
+   "total": 200000.0,
+   "cash": 800000.0,
+   "investor_class": 2,
+   "provenance": {
+    "source": "session.confirm_order",
+    "audit_hash": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+    "timestamp": "2026-10-11T15:11:19.912567+00:00"
+   }
+  }
+ },
+ {
+  "step": "Anchor the audit-chain head on FISCO BCOS",
+  "request": {
+   "method": "POST",
+   "path": "/api/anchor",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "tx_hash": "0xa253c446ca140e293bd1e00d79d9be5ab84f26cea8e9d43c9e12255383e0d28a",
+   "head_hash": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+   "record_count": 13,
+   "payload_hex": "574130314f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c42820000000d",
+   "explorer_url": null,
+   "sent": true,
+   "note": "FISCO BCOS contract 0xA0a4C46e3a7bF2F535ba02868Fc3AFd6767FE9E5",
+   "network": "fisco",
+   "block": 9,
+   "verification": {
+    "network": "fisco",
+    "tx_hash": "0xa253c446ca140e293bd1e00d79d9be5ab84f26cea8e9d43c9e12255383e0d28a",
+    "block": 9,
+    "block_time": 1791731480,
+    "anchored_head": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+    "local_head": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+    "record_count": 13,
+    "chain_valid": true,
+    "chain_reason": "audit chain verified",
+    "matches": true,
+    "explorer_url": null
+   }
+  }
+ },
+ {
+  "step": "Verify the anchor against the local audit chain",
+  "request": {
+   "method": "GET",
+   "path": "/api/anchor/verify?tx=0xa253c446ca140e293bd1e00d79d9be5ab84f26cea8e9d43c9e12255383e0d28a",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "network": "fisco",
+   "tx_hash": "0xa253c446ca140e293bd1e00d79d9be5ab84f26cea8e9d43c9e12255383e0d28a",
+   "block": 9,
+   "block_time": 1791731480,
+   "anchored_head": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+   "local_head": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+   "record_count": 13,
+   "chain_valid": true,
+   "chain_reason": "audit chain verified",
+   "matches": true,
+   "explorer_url": null
+  }
+ },
+ {
+  "step": "Account and session state",
+  "request": {
+   "method": "GET",
+   "path": "/api/state",
+   "body": null
+  },
+  "status": 200,
+  "response": {
+   "profile": {
+    "investor_class": 2,
+    "class_name": "Moderately Conservative",
+    "capacity_class": 3,
+    "tolerance_class": 2,
+    "capacity_score": 6,
+    "tolerance_score": 3,
+    "expires_on": "2027-10-11",
+    "reasons": [
+     {
+      "code": "HORIZON_1_3Y",
+      "text": "How long can this money stay invested? → 1–3 years"
+     },
+     {
+      "code": "LIQUIDITY_NEED_WITHIN_7D",
+      "text": "When might you need to withdraw part of this money? → Within a week"
+     },
+     {
+      "code": "INCOME_STABILITY_MIXED",
+      "text": "How stable is your income? → Partly stable"
+     },
+     {
+      "code": "EMERGENCY_FUND_3_6_MONTHS",
+      "text": "How many months of expenses do you hold in cash? → 3–6 months"
+     },
+     {
+      "code": "INVESTED_SHARE_50_75",
+      "text": "What share of your net worth is this investment? → 50–75%"
+     },
+     {
+      "code": "DRAWDOWN_REACTION_REDUCE",
+      "text": "Your portfolio falls 20% in a month. What do you do? → Sell some to limit losses"
+     },
+     {
+      "code": "EXPERIENCE_BASIC",
+      "text": "How experienced are you with funds, bonds or shares? → Basic (deposits, a few funds)"
+     },
+     {
+      "code": "GOAL_INCOME",
+      "text": "What is the main goal of this money? → Regular income"
+     }
+    ],
+    "flags": []
+   },
+   "answers": {
+    "drawdown_reaction": "reduce",
+    "income_stability": "mixed",
+    "liquidity_need": "within_7d",
+    "emergency_fund": "3_6_months",
+    "invested_share": "50_75",
+    "experience": "basic",
+    "horizon": "1_3y",
+    "goal": "income"
+   },
+   "client": {
+    "amount": 200000.0,
+    "horizon_years": 5,
+    "max_loss": 0.08,
+    "age": 66,
+    "borrowed_money": false
+   },
+   "allocation_id": "ui-1",
+   "allocation": {
+    "investor_class": 1,
+    "amount": 200000.0,
+    "expected_return": 0.011695,
+    "volatility": 0.002,
+    "fee": 0.0027,
+    "var_95_1y": 658.0,
+    "by_asset_class": {
+     "cash": 1.0
+    },
+    "notes": [
+     "Risk was reduced so the worst historical loss stays within the limit you gave us."
+    ],
+    "stress_limit_before": 0.08234781756922491,
+    "stress_limit_after": 0.0,
+    "holdings": [
+     {
+      "product_id": "CN-001821",
+      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+      "source": "https://fund.eastmoney.com/001821.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.5,
+      "amount": 100000.0,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C1.",
+       "Best expected return per unit of risk, after fees, within its asset class.",
+       "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money."
+      ]
+     },
+     {
+      "product_id": "CN-000009",
+      "name": "E Fund Daily Money Market A (000009)",
+      "source": "https://fund.eastmoney.com/000009.html",
+      "asset_class": "cash",
+      "risk_class": 1,
+      "weight": 0.5,
+      "amount": 100000.0,
+      "reasons": [
+       "Suitable: product risk R1 does not exceed your risk class C1.",
+       "Best expected return per unit of risk, after fees, within its asset class.",
+       "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money."
+      ]
+     }
+    ]
+   },
+   "allocation_provenance": {
+    "source": "allocation.build_allocation",
+    "audit_hash": "58b500f80ce0fc1c36bff33badec51ee8f54dfb0a64c80d90dcd019fd58b7175",
+    "timestamp": "2026-10-11T15:11:19.856920+00:00"
+   },
+   "tier": {
+    "tier": "EXECUTE",
+    "level": 3,
+    "kill_switch": false
+   }
+  }
+ }
+]

@@ -1,0 +1,24 @@
+{
+ "tx_hash": "0xa253c446ca140e293bd1e00d79d9be5ab84f26cea8e9d43c9e12255383e0d28a",
+ "head_hash": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+ "record_count": 13,
+ "payload_hex": "574130314f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c42820000000d",
+ "explorer_url": null,
+ "sent": true,
+ "note": "FISCO BCOS contract 0xA0a4C46e3a7bF2F535ba02868Fc3AFd6767FE9E5",
+ "network": "fisco",
+ "block": 9,
+ "verification": {
+  "network": "fisco",
+  "tx_hash": "0xa253c446ca140e293bd1e00d79d9be5ab84f26cea8e9d43c9e12255383e0d28a",
+  "block": 9,
+  "block_time": 1791731480,
+  "anchored_head": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+  "local_head": "4f71fced9c62a878964bfca5fad02ffb54be76967b23bf8e7fb29e58b13c4282",
+  "record_count": 13,
+  "chain_valid": true,
+  "chain_reason": "audit chain verified",
+  "matches": true,
+  "explorer_url": null
+ }
+}

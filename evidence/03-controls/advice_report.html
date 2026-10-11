@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advice Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#14211f; --ink2:#4a5b57; --ink3:#7a8a86; --line:#d9e2df; --jade:#17695a; --paper:#ffffff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#eef2f1; color:var(--ink); font:400 14px/1.55 "Schibsted Grotesk", system-ui, sans-serif; }
+  .page { max-width: 820px; margin: 32px auto; background: var(--paper); padding: 56px 64px; box-shadow: 0 8px 30px rgba(10,30,26,.08); }
+  header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 8px; }
+  h1 { font: 500 34px/1.1 "Newsreader", Georgia, serif; margin: 0; letter-spacing: -0.01em; }
+  header p { margin: 6px 0 0; color: var(--ink2); }
+  .meta { text-align:right; font-size: 12px; color: var(--ink2); }
+  h2 { font: 500 21px/1.2 "Newsreader", Georgia, serif; margin: 34px 0 12px; }
+  h3 { font-size: 13px; margin: 18px 0 6px; color: var(--ink2); font-weight: 600; }
+  p { margin: 8px 0; max-width: 70ch; }
+  .facts { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 12px 0; padding: 1px 0 0 1px; }
+  .facts div { background: #fff; padding: 10px 12px; border: 1px solid var(--line); margin: -1px 0 0 -1px; }
+  .facts span { display:block; font-size: 12px; color: var(--ink3); }
+  .facts b { font-size: 15px; font-weight: 600; }
+  ul { margin: 6px 0; padding-left: 18px; } li { margin: 2px 0; }
+  ul.cols { columns: 2; column-gap: 28px; color: var(--ink2); font-size: 13px; }
+  table { width:100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+  th { text-align:left; font-weight:500; color: var(--ink3); border-bottom: 1px solid var(--ink); padding: 6px 8px; }
+  td { border-bottom: 1px solid var(--line); padding: 8px; vertical-align: top; }
+  td small { display:block; color: var(--ink3); }
+  .r { text-align: right; white-space: nowrap; }
+  .note { font-size: 12px; color: var(--ink3); }
+  footer { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--ink3); }
+  footer code { font-family: "IBM Plex Mono", monospace; color: var(--ink2); word-break: break-all; }
+  .toolbar { max-width: 820px; margin: 24px auto -12px; display:flex; justify-content:flex-end; gap: 8px; }
+  .toolbar button { font: 600 14px "Schibsted Grotesk", sans-serif; border:0; border-radius:10px; padding:10px 16px; background: var(--jade); color:#fff; cursor:pointer; }
+  @media print { body { background:#fff; } .page { box-shadow:none; margin:0; padding: 0; max-width:none; } .toolbar { display:none; } section { break-inside: avoid; } }
+  @media (max-width: 700px) { .page { padding: 28px 20px; margin: 0; } ul.cols { columns: 1; } }
+</style></head>
+<body>
+  <div class="toolbar"><button onclick="window.print()">Save as PDF</button></div>
+  <main class="page">
+    <header>
+      <div><h1>Advice Report</h1><p>Suitability record of your advisory session</p></div>
+      <div class="meta">Wealth Advisor<br>11 October 2026, 15:11 UTC<br>Report cf480c48abcf</div>
+    </header>
+    
+      <section>
+        <h2>1. Your risk profile</h2>
+        <div class="facts">
+          <div><span>Risk class</span><b>C4 · Growth</b></div>
+          <div><span>Capacity for loss</span><b>C4</b></div>
+          <div><span>Tolerance for risk</span><b>C4</b></div>
+          <div><span>Valid until</span><b>11 October 2027</b></div>
+        </div>
+        <p>Your class is the lower of your capacity and your tolerance, as investor-suitability rules require.
+        You may be recommended products rated up to <b>R4</b> only.</p>
+        
+        <h3>Your answers</h3><ul class="cols"><li>How long can this money stay invested? → 3–7 years</li><li>When might you need to withdraw part of this money? → Within a month</li><li>How stable is your income? → Partly stable</li><li>How many months of expenses do you hold in cash? → 3–6 months</li><li>What share of your net worth is this investment? → 25–50%</li><li>Your portfolio falls 20% in a month. What do you do? → Hold and wait</li><li>How experienced are you with funds, bonds or shares? → Good (several years investing)</li><li>What is the main goal of this money? → Long-term growth</li></ul>
+      </section>
+      <section>
+        <h2>2. Recommended portfolio</h2>
+        <div class="facts">
+          <div><span>Amount</span><b>50,000</b></div>
+          <div><span>Expected return a year</span><b>6.26%</b></div>
+          <div><span>Volatility a year</span><b>6.28%</b></div>
+          <div><span>Average fee a year</span><b>0.69%</b></div>
+          <div><span>1-year value at risk (95%)</span><b>5,168</b></div>
+        </div>
+        <table><thead><tr><th>Product</th><th>Risk</th><th class=r>Weight</th><th class=r>Amount</th><th>Why it was chosen</th></tr></thead><tbody><tr><td>Aegon-Industrial Tiantianyi Money Market B (001821)<small>Cash</small></td><td>R1</td><td class=r>20.0%</td><td class=r>10,000</td><td>Suitable: product risk R1 does not exceed your risk class C4.<br>Best expected return per unit of risk, after fees, within its asset class.<br>Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.<br>Risk was reduced so the worst historical loss stays within the limit you gave us.</td></tr><tr><td>Essence Steady Value-Add Hybrid A (001316)<small>Bonds</small></td><td>R3</td><td class=r>32.0%</td><td class=r>16,015</td><td>Suitable: product risk R3 does not exceed your risk class C4.<br>Best expected return per unit of risk, after fees, within its asset class.<br>Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.<br>Risk was reduced so the worst historical loss stays within the limit you gave us.</td></tr><tr><td>GF Nasdaq-100 ETF Feeder A (QDII) (270042)<small>Equity</small></td><td>R4</td><td class=r>17.7%</td><td class=r>8,831</td><td>Suitable: product risk R4 does not exceed your risk class C4.<br>Best expected return per unit of risk, after fees, within its asset class.<br>Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.<br>Risk was reduced so the worst historical loss stays within the limit you gave us.</td></tr><tr><td>Bosera S&amp;P 500 ETF Feeder A (050025)<small>Equity</small></td><td>R4</td><td class=r>17.7%</td><td class=r>8,831</td><td>Suitable: product risk R4 does not exceed your risk class C4.<br>Best expected return per unit of risk, after fees, within its asset class.<br>Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.<br>Risk was reduced so the worst historical loss stays within the limit you gave us.</td></tr><tr><td>Hua An Gold ETF Feeder A (000216)<small>Gold</small></td><td>R4</td><td class=r>12.6%</td><td class=r>6,323</td><td>Suitable: product risk R4 does not exceed your risk class C4.<br>Best expected return per unit of risk, after fees, within its asset class.<br>Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.<br>Risk was reduced so the worst historical loss stays within the limit you gave us.</td></tr></tbody></table>
+        <p class="note">Expected return and volatility are model estimates, net of product fees. They are not guaranteed.</p>
+      </section>
+      <section>
+        <h2>3. Stress test</h2>
+        <p>Historical shocks replayed on the recommended portfolio, compared with the 15% loss you said you could accept in a bad year.</p>
+        <table><thead><tr><th>Scenario</th><th class=r>Loss</th><th class=r>Amount</th><th>Against your limit</th></tr></thead><tbody><tr><td>2008 global financial crisis</td><td class=r>−15.0%</td><td class=r>7,500</td><td>Within your limit</td></tr><tr><td>2020 pandemic crash</td><td class=r>−11.7%</td><td class=r>5,875</td><td>Within your limit</td></tr><tr><td>2022 rate shock</td><td class=r>−10.6%</td><td class=r>5,324</td><td>Within your limit</td></tr></tbody></table>
+      </section>
+      <section>
+        <h2>Important information</h2>
+        <ul>
+          <li>Investments can fall as well as rise and you may get back less than you invest. Past performance does not predict future results.</li>
+          <li>Products rated R4 or higher are subject to a cooling-off period before purchase.</li>
+          <li>All figures were produced by deterministic, tested code; the AI assistant explains them but does not calculate them.</li>
+          <li>This is a competition prototype. Fund data is public information on real Chinese mutual funds (East Money / Tiantian Fund) and may be out of date; orders run on a simulated account. It is not investment advice.</li>
+        </ul>
+        <div class="facts">
+          <div><span>Risk disclosure</span><b>Signed in this session</b></div>
+          <div><span>Audit chain</span><b>Verified · 14 records</b></div>
+          <div><span>Language model</span><b>replay mode</b></div>
+        </div>
+      </section>
+    <footer>Report fingerprint (SHA-256): <code>cf480c48abcf39bb2f43b8a7ba45620e6ac8b495a8ef4d708c059ae156800b78</code><br>This fingerprint is recorded in the session's hash-chained audit log, so any change to this report can be detected.</footer>
+  </main>
+</body></html>

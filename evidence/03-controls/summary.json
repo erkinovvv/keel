@@ -1,0 +1,179 @@
+{
+ "scenario": "03-controls",
+ "summary": "Server-side controls: above-class request, trading before consent, forged and replayed confirmation tokens, PII masking.",
+ "result": {
+  "forged_token_executed": 0,
+  "replayed_token_executed": 0,
+  "redacted_message": "My [PASSPORT_REDACTED] and my card is [PHONE_REDACTED]"
+ },
+ "state": {
+  "profile": {
+   "investor_class": 4,
+   "class_name": "Growth",
+   "capacity_class": 4,
+   "tolerance_class": 4,
+   "capacity_score": 9,
+   "tolerance_score": 9,
+   "expires_on": "2027-10-11",
+   "reasons": [
+    {
+     "code": "HORIZON_3_7Y",
+     "text": "How long can this money stay invested? → 3–7 years"
+    },
+    {
+     "code": "LIQUIDITY_NEED_WITHIN_30D",
+     "text": "When might you need to withdraw part of this money? → Within a month"
+    },
+    {
+     "code": "INCOME_STABILITY_MIXED",
+     "text": "How stable is your income? → Partly stable"
+    },
+    {
+     "code": "EMERGENCY_FUND_3_6_MONTHS",
+     "text": "How many months of expenses do you hold in cash? → 3–6 months"
+    },
+    {
+     "code": "INVESTED_SHARE_25_50",
+     "text": "What share of your net worth is this investment? → 25–50%"
+    },
+    {
+     "code": "DRAWDOWN_REACTION_HOLD",
+     "text": "Your portfolio falls 20% in a month. What do you do? → Hold and wait"
+    },
+    {
+     "code": "EXPERIENCE_GOOD",
+     "text": "How experienced are you with funds, bonds or shares? → Good (several years investing)"
+    },
+    {
+     "code": "GOAL_GROWTH",
+     "text": "What is the main goal of this money? → Long-term growth"
+    }
+   ],
+   "flags": []
+  },
+  "answers": {
+   "drawdown_reaction": "hold",
+   "income_stability": "mixed",
+   "liquidity_need": "within_30d",
+   "emergency_fund": "3_6_months",
+   "invested_share": "25_50",
+   "experience": "good",
+   "horizon": "3_7y",
+   "goal": "growth"
+  },
+  "client": {
+   "amount": 50000.0,
+   "horizon_years": 8,
+   "max_loss": 0.15,
+   "age": 35,
+   "borrowed_money": false
+  },
+  "allocation_id": "ui-1",
+  "allocation": {
+   "investor_class": 4,
+   "amount": 50000.0,
+   "expected_return": 0.06257291005039743,
+   "volatility": 0.0628283265945771,
+   "fee": 0.006900317937937628,
+   "var_95_1y": 5167.629862403966,
+   "by_asset_class": {
+    "cash": 0.2,
+    "bonds": 0.32029674207511966,
+    "equity": 0.3532414845957963,
+    "gold": 0.12646177332908398
+   },
+   "notes": [
+    "Risk was reduced so the worst historical loss stays within the limit you gave us."
+   ],
+   "stress_limit_before": 0.2131804674489499,
+   "stress_limit_after": 0.15,
+   "holdings": [
+    {
+     "product_id": "CN-001821",
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "source": "https://fund.eastmoney.com/001821.html",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "weight": 0.2,
+     "amount": 10000.0,
+     "reasons": [
+      "Suitable: product risk R1 does not exceed your risk class C4.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.",
+      "Risk was reduced so the worst historical loss stays within the limit you gave us."
+     ]
+    },
+    {
+     "product_id": "CN-001316",
+     "name": "Essence Steady Value-Add Hybrid A (001316)",
+     "source": "https://fund.eastmoney.com/001316.html",
+     "asset_class": "bonds",
+     "risk_class": 3,
+     "weight": 0.32029674207511966,
+     "amount": 16014.837103755983,
+     "reasons": [
+      "Suitable: product risk R3 does not exceed your risk class C4.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.",
+      "Risk was reduced so the worst historical loss stays within the limit you gave us."
+     ]
+    },
+    {
+     "product_id": "CN-270042",
+     "name": "GF Nasdaq-100 ETF Feeder A (QDII) (270042)",
+     "source": "https://fund.eastmoney.com/270042.html",
+     "asset_class": "equity",
+     "risk_class": 4,
+     "weight": 0.17662074229789815,
+     "amount": 8831.037114894907,
+     "reasons": [
+      "Suitable: product risk R4 does not exceed your risk class C4.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.",
+      "Risk was reduced so the worst historical loss stays within the limit you gave us."
+     ]
+    },
+    {
+     "product_id": "CN-050025",
+     "name": "Bosera S&P 500 ETF Feeder A (050025)",
+     "source": "https://fund.eastmoney.com/050025.html",
+     "asset_class": "equity",
+     "risk_class": 4,
+     "weight": 0.17662074229789815,
+     "amount": 8831.037114894907,
+     "reasons": [
+      "Suitable: product risk R4 does not exceed your risk class C4.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.",
+      "Risk was reduced so the worst historical loss stays within the limit you gave us."
+     ]
+    },
+    {
+     "product_id": "CN-000216",
+     "name": "Hua An Gold ETF Feeder A (000216)",
+     "source": "https://fund.eastmoney.com/000216.html",
+     "asset_class": "gold",
+     "risk_class": 4,
+     "weight": 0.12646177332908398,
+     "amount": 6323.0886664541995,
+     "reasons": [
+      "Suitable: product risk R4 does not exceed your risk class C4.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.",
+      "Risk was reduced so the worst historical loss stays within the limit you gave us."
+     ]
+    }
+   ]
+  },
+  "allocation_provenance": {
+   "source": "allocation.build_allocation",
+   "audit_hash": "2a65c19797aba33a027b1c5b7465d759945c0695818134f0623aaf6a2d40d4ea",
+   "timestamp": "2026-10-11T15:11:21.112874+00:00"
+  },
+  "tier": {
+   "tier": "EXECUTE",
+   "level": 3,
+   "kill_switch": false
+  }
+ }
+}

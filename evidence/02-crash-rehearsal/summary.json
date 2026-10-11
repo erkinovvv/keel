@@ -1,0 +1,158 @@
+{
+ "scenario": "02-crash-rehearsal",
+ "summary": "A self-declared aggressive investor sells during the 2008 replay; the class is lowered, the old portfolio is refused, a suitable one is rebuilt and executed.",
+ "result": {
+  "class_before": 5,
+  "class_after": 3,
+  "old_class_request_status": 403,
+  "executed": 4,
+  "total": 100000.0
+ },
+ "state": {
+  "profile": {
+   "investor_class": 3,
+   "class_name": "Balanced",
+   "capacity_class": 5,
+   "tolerance_class": 3,
+   "capacity_score": 18,
+   "tolerance_score": 12,
+   "expires_on": "2027-10-11",
+   "reasons": [
+    {
+     "code": "HORIZON_OVER_10Y",
+     "text": "How long can this money stay invested? → More than 10 years"
+    },
+    {
+     "code": "LIQUIDITY_NEED_OVER_30D",
+     "text": "When might you need to withdraw part of this money? → Not for at least a month"
+    },
+    {
+     "code": "INCOME_STABILITY_STABLE",
+     "text": "How stable is your income? → Stable salary or pension"
+    },
+    {
+     "code": "EMERGENCY_FUND_OVER_6_MONTHS",
+     "text": "How many months of expenses do you hold in cash? → More than 6 months"
+    },
+    {
+     "code": "INVESTED_SHARE_UNDER_25",
+     "text": "What share of your net worth is this investment? → Less than 25%"
+    },
+    {
+     "code": "DRAWDOWN_REACTION_BUY_MORE",
+     "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+    },
+    {
+     "code": "EXPERIENCE_ADVANCED",
+     "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+    },
+    {
+     "code": "GOAL_AGGRESSIVE_GROWTH",
+     "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+    },
+    {
+     "code": "REVEALED_TOLERANCE_C3",
+     "text": "In the crash rehearsal you sold during the fall, so your risk class was lowered to C3."
+    }
+   ],
+   "flags": []
+  },
+  "answers": {
+   "drawdown_reaction": "buy_more",
+   "income_stability": "stable",
+   "liquidity_need": "over_30d",
+   "emergency_fund": "over_6_months",
+   "invested_share": "under_25",
+   "experience": "advanced",
+   "horizon": "over_10y",
+   "goal": "aggressive_growth"
+  },
+  "client": {
+   "amount": 100000.0,
+   "horizon_years": 15,
+   "max_loss": 0.25,
+   "age": 27,
+   "borrowed_money": false
+  },
+  "allocation_id": "ui-2",
+  "allocation": {
+   "investor_class": 3,
+   "amount": 100000.0,
+   "expected_return": 0.032036173164376874,
+   "volatility": 0.027785473928988672,
+   "fee": 0.004296761857450164,
+   "var_95_1y": 4570.710461318637,
+   "by_asset_class": {
+    "cash": 0.23441271418327864,
+    "bonds": 0.7655872858167214
+   },
+   "notes": [],
+   "stress_limit_before": null,
+   "stress_limit_after": null,
+   "holdings": [
+    {
+     "product_id": "CN-001821",
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "source": "https://fund.eastmoney.com/001821.html",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "weight": 0.23441271418327864,
+     "amount": 23441.271418327862,
+     "reasons": [
+      "Suitable: product risk R1 does not exceed your risk class C3.",
+      "Best expected return per unit of risk, after fees, within its asset class."
+     ]
+    },
+    {
+     "product_id": "CN-001316",
+     "name": "Essence Steady Value-Add Hybrid A (001316)",
+     "source": "https://fund.eastmoney.com/001316.html",
+     "asset_class": "bonds",
+     "risk_class": 3,
+     "weight": 0.25519576193890714,
+     "amount": 25519.576193890713,
+     "reasons": [
+      "Suitable: product risk R3 does not exceed your risk class C3.",
+      "Best expected return per unit of risk, after fees, within its asset class."
+     ]
+    },
+    {
+     "product_id": "CN-000171",
+     "name": "E Fund Yufeng Return Bond A (000171)",
+     "source": "https://fund.eastmoney.com/000171.html",
+     "asset_class": "bonds",
+     "risk_class": 3,
+     "weight": 0.25519576193890714,
+     "amount": 25519.576193890713,
+     "reasons": [
+      "Suitable: product risk R3 does not exceed your risk class C3.",
+      "Best expected return per unit of risk, after fees, within its asset class."
+     ]
+    },
+    {
+     "product_id": "CN-003376",
+     "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
+     "source": "https://fund.eastmoney.com/003376.html",
+     "asset_class": "bonds",
+     "risk_class": 2,
+     "weight": 0.25519576193890714,
+     "amount": 25519.576193890713,
+     "reasons": [
+      "Suitable: product risk R2 does not exceed your risk class C3.",
+      "Best expected return per unit of risk, after fees, within its asset class."
+     ]
+    }
+   ]
+  },
+  "allocation_provenance": {
+   "source": "allocation.build_allocation",
+   "audit_hash": "52d129eea6483fd9cf765efc43af96241d4d78b427053850cb3cea2c928d26c1",
+   "timestamp": "2026-10-11T15:11:20.521074+00:00"
+  },
+  "tier": {
+   "tier": "EXECUTE",
+   "level": 3,
+   "kill_switch": false
+  }
+ }
+}

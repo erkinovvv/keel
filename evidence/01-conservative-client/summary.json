@@ -1,0 +1,129 @@
+{
+ "scenario": "01-conservative-client",
+ "summary": "A cautious 66-year-old: profiling, allocation within an 8% loss limit, comparison, stress test, goal, signed disclosure, hold-to-confirm execution.",
+ "result": {
+  "class": 2,
+  "executed": 2,
+  "total": 200000.0
+ },
+ "state": {
+  "profile": {
+   "investor_class": 2,
+   "class_name": "Moderately Conservative",
+   "capacity_class": 3,
+   "tolerance_class": 2,
+   "capacity_score": 6,
+   "tolerance_score": 3,
+   "expires_on": "2027-10-11",
+   "reasons": [
+    {
+     "code": "HORIZON_1_3Y",
+     "text": "How long can this money stay invested? → 1–3 years"
+    },
+    {
+     "code": "LIQUIDITY_NEED_WITHIN_7D",
+     "text": "When might you need to withdraw part of this money? → Within a week"
+    },
+    {
+     "code": "INCOME_STABILITY_MIXED",
+     "text": "How stable is your income? → Partly stable"
+    },
+    {
+     "code": "EMERGENCY_FUND_3_6_MONTHS",
+     "text": "How many months of expenses do you hold in cash? → 3–6 months"
+    },
+    {
+     "code": "INVESTED_SHARE_50_75",
+     "text": "What share of your net worth is this investment? → 50–75%"
+    },
+    {
+     "code": "DRAWDOWN_REACTION_REDUCE",
+     "text": "Your portfolio falls 20% in a month. What do you do? → Sell some to limit losses"
+    },
+    {
+     "code": "EXPERIENCE_BASIC",
+     "text": "How experienced are you with funds, bonds or shares? → Basic (deposits, a few funds)"
+    },
+    {
+     "code": "GOAL_INCOME",
+     "text": "What is the main goal of this money? → Regular income"
+    }
+   ],
+   "flags": []
+  },
+  "answers": {
+   "drawdown_reaction": "reduce",
+   "income_stability": "mixed",
+   "liquidity_need": "within_7d",
+   "emergency_fund": "3_6_months",
+   "invested_share": "50_75",
+   "experience": "basic",
+   "horizon": "1_3y",
+   "goal": "income"
+  },
+  "client": {
+   "amount": 200000.0,
+   "horizon_years": 5,
+   "max_loss": 0.08,
+   "age": 66,
+   "borrowed_money": false
+  },
+  "allocation_id": "ui-1",
+  "allocation": {
+   "investor_class": 1,
+   "amount": 200000.0,
+   "expected_return": 0.011695,
+   "volatility": 0.002,
+   "fee": 0.0027,
+   "var_95_1y": 658.0,
+   "by_asset_class": {
+    "cash": 1.0
+   },
+   "notes": [
+    "Risk was reduced so the worst historical loss stays within the limit you gave us."
+   ],
+   "stress_limit_before": 0.08234781756922491,
+   "stress_limit_after": 0.0,
+   "holdings": [
+    {
+     "product_id": "CN-001821",
+     "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
+     "source": "https://fund.eastmoney.com/001821.html",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "weight": 0.5,
+     "amount": 100000.0,
+     "reasons": [
+      "Suitable: product risk R1 does not exceed your risk class C1.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money."
+     ]
+    },
+    {
+     "product_id": "CN-000009",
+     "name": "E Fund Daily Money Market A (000009)",
+     "source": "https://fund.eastmoney.com/000009.html",
+     "asset_class": "cash",
+     "risk_class": 1,
+     "weight": 0.5,
+     "amount": 100000.0,
+     "reasons": [
+      "Suitable: product risk R1 does not exceed your risk class C1.",
+      "Best expected return per unit of risk, after fees, within its asset class.",
+      "Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money."
+     ]
+    }
+   ]
+  },
+  "allocation_provenance": {
+   "source": "allocation.build_allocation",
+   "audit_hash": "58b500f80ce0fc1c36bff33badec51ee8f54dfb0a64c80d90dcd019fd58b7175",
+   "timestamp": "2026-10-11T15:11:19.856920+00:00"
+  },
+  "tier": {
+   "tier": "EXECUTE",
+   "level": 3,
+   "kill_switch": false
+  }
+ }
+}
