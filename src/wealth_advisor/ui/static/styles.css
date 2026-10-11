@@ -143,7 +143,7 @@ svg { display: block; }
 .send:disabled { opacity: .45; cursor: progress; }
 
 /* ------------------------------------------------------------ client file */
-.file { display: flex; flex-direction: column; min-height: 0; }
+.file { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .steps { display: flex; gap: 4px; padding: 14px 28px 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
 .steps button {
   display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
@@ -575,7 +575,8 @@ td.r, th.r { text-align: right; }
 
 /* ------------------------------------------------------------ responsive + motion */
 @media (max-width: 920px) {
-  .workspace { grid-template-columns: 1fr; height: auto; }
+  .workspace { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .workspace > * { min-width: 0; }
   .advisor { border-right: 0; border-bottom: 1px solid var(--line); max-height: 70vh; }
   .panel { padding: 20px 16px; }
   .steps { padding: 8px 16px 0; }
@@ -584,6 +585,16 @@ td.r, th.r { text-align: right; }
   .stress-row { grid-template-columns: 1fr; gap: 6px; }
   .topbar { padding: 0 16px; }
   .tier { display: none; }
+}
+@media (max-width: 560px) {
+  .brand span { font-size: 15px; }
+  .report-link { padding: 5px 6px; }
+  .audit-pill #auditText { display: none; }
+  .audit-pill { padding: 8px 10px; }
+  .topbar-meta { gap: 6px; }
+  .kpi .v { font-size: 22px; }
+  .stress-row .name { font-size: 13px; }
+  .ri-facts b { font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
