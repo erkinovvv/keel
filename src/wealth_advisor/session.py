@@ -63,8 +63,19 @@ class SessionState:
     def summary(self) -> dict[str, Any]:
         """Return only non-sensitive identifiers and profile facts for the model."""
 
+        client_profile = None
+        if self.profile:
+            client_profile = {
+                "class_code": self.profile.class_code,
+                "investor_class": self.profile.investor_class,
+                "capacity_class": self.profile.capacity_class,
+                "tolerance_class": self.profile.tolerance_class,
+                "liquidity_days": self.profile.liquidity_days,
+                "reason_codes": list(self.profile.reason_codes),
+            }
         return {
             "profile_class": self.profile.class_code if self.profile else None,
+            "client_profile": client_profile,
             "profile_expires_on": self.profile.expires_on.isoformat() if self.profile else None,
             "client": self.client.as_dict(),
             "amount": self.client.amount if self.client.amount is not None else self.amount,

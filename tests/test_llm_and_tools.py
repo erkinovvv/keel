@@ -54,6 +54,17 @@ def test_tool_schemas_use_explicit_units_and_errors_are_actionable(tmp_path):
         raise AssertionError("percent-like fraction should be rejected")
 
 
+def test_model_tool_results_are_compact_and_display_ready(tmp_path):
+    from wealth_advisor.tools import compact_tool_result
+
+    compact = compact_tool_result(
+        "build_allocation",
+        {"allocation_id": "allocation-1", "investor_class": 3, "expected_return": 0.05, "volatility": 0.08, "holdings": [{"product_id": "BOND-1", "asset_class": "bonds", "weight": 0.4}]},
+    )
+    assert "holdings" not in compact
+    assert "BOND-1" in compact["display"]
+
+
 def test_tool_dispatcher_exposes_stress_test(tmp_path):
     from wealth_advisor.permissions import PermissionTier
     from wealth_advisor.session import AdvisorSession

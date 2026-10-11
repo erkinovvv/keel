@@ -156,6 +156,73 @@ TOOL_SCHEMAS = [
 ]
 
 
+def _display_percent(value: Any) -> str:
+    return f"{float(value):.1%}"
+
+
+def compact_tool_result(name: str, result: dict[str, Any]) -> dict[str, Any]:
+    """Keep model-visible tool output high-signal without changing server-owned results."""
+
+    if result.get("error"):
+        return result
+    if name == "record_client_facts":
+        client = result.get("client", {})
+        profile = {key: client.get(key) for key in ("amount", "horizon_years", "max_loss", "age", "borrowed_money")}
+        display = "; ".join(f"{key}={value}" for key, value in profile.items() if value is not None)
+        return {"client_profile": profile, "display": f"Client facts recorded: {display}."}
+    if name == "profile_investor":
+        profile = {
+            key: result.get(key)
+            for key in ("class_code", "investor_class", "capacity_class", "tolerance_class", "liquidity_days")
+            if key in result
+        }
+        reasons = ", ".join(result.get("reason_codes", ()))
+        display = (
+            f"Investor profile {profile.get('class_code', 'assessed')}: capacity C{profile.get('capacity_class')}, "
+            f"tolerance C{profile.get('tolerance_class')}, liquidity {profile.get('liquidity_days')} days."
+        )
+        if reasons:
+            display += f" Reasons: {reasons}."
+        profile["reason_codes"] = reasons
+        return {"client_profile": profile, "display": display}
+    if name == "compare_products":
+        comparisons = result.get("comparisons", [])
+        display_items = [
+            f"{item.get('product_id')} {item.get('name')} ({item.get('asset_class')}, R{item.get('risk_class')}, net {_display_percent(item.get('net_return', 0))}, fee {_display_percent(item.get('fee', 0))})"
+            for item in comparisons[:5]
+        ]
+        return {"display": "Suitable products: " + "; ".join(display_items) + "."}
+    if name == "build_allocation":
+        holdings = result.get("holdings", [])
+        product_mix = "; ".join(
+            f"{holding.get('product_id')} {holding.get('asset_class')} {_display_percent(holding.get('weight', 0))}"
+            for holding in holdings
+        )
+        return {
+            "allocation_id": result.get("allocation_id"),
+            "display": (
+                f"Allocation {result.get('allocation_id', 'built')} for C{result.get('investor_class')}: {product_mix}. "
+                f"Expected return {_display_percent(result.get('expected_return', 0))}; volatility {_display_percent(result.get('volatility', 0))}."
+            ),
+        }
+    if name == "stress_test":
+        return {
+            key: result.get(key)
+            for key in ("stress_id", "allocation_id", "scenario", "loss_percent", "loss_amount", "max_tolerable_loss", "mismatch")
+            if key in result
+        } | {
+            "display": (
+                f"{result.get('scenario')} stress: loss {_display_percent(result.get('loss_percent', 0))} "
+                f"({result.get('loss_amount')}); limit {_display_percent(result.get('max_tolerable_loss', 0))}; "
+                f"limit breached={result.get('mismatch')}."
+            ),
+        }
+    if name == "create_draft_orders":
+        orders = result.get("orders", [])
+        return {"display": "Draft orders created: " + "; ".join(f"{order.get('order_id')} {order.get('product_id')} {order.get('amount')}" for order in orders) + "."}
+    return {"display": str(result)}
+
+
 class ToolDispatcher:
     """Validate tool arguments and route only known deterministic operations."""
 

@@ -64,6 +64,7 @@ def test_session_state_summary_keeps_financial_context(tmp_path):
     assert summary["profile_class"] == "C4"
     assert summary["amount"] == 12_000
     assert summary["horizon_years"] == 8
+    assert summary["client_profile"]["class_code"] == "C4"
 
 
 def test_record_client_facts_is_validated_and_merged(tmp_path):

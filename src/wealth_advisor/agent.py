@@ -11,7 +11,7 @@ from .audit import AuditLogger
 from .llm import LLMClient
 from .prompts import SYSTEM_PROMPT
 from .security import tool_output_guard
-from .tools import TOOL_SCHEMAS, ToolDispatcher
+from .tools import TOOL_SCHEMAS, ToolDispatcher, compact_tool_result
 
 
 @dataclass(frozen=True)
@@ -107,8 +107,9 @@ class AdvisorAgent:
                     result = {"error": "Unsafe tool output blocked", "hint": "The tool result contained instruction-like text."}
                     if self.audit:
                         self.audit.append("tool_output_blocked", {"tool": call.name})
-                tool_results.append(result)
-                messages.append({"role": "tool", "tool_call_id": call.id, "name": call.name, "content": json.dumps(result, separators=(",", ":"))})
+                compact_result = compact_tool_result(call.name, result)
+                tool_results.append(compact_result)
+                messages.append({"role": "tool", "tool_call_id": call.id, "name": call.name, "content": json.dumps(compact_result, separators=(",", ":"))})
         raise RuntimeError("maximum tool steps exceeded")
 
     def run(self, user_message: str, history: list[dict[str, Any]] | None = None) -> str:
