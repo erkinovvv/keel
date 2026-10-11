@@ -92,7 +92,7 @@ LLM_MODE=live uv run python evals/journeys/run.py      # 30 client personas on t
 |---|---|
 | Red-team, attacks stopped | 57 / 57 |
 | Red-team, benign requests handled correctly | 8 / 8 |
-| Client journeys completed on the live model | *being measured — see `evals/journeys/REPORT.md`* |
+| Client journeys completed on the live model | **29 / 30** (97%; 30 personas across C1–C5, 6 in Chinese; profile class correct 29/30, suitable allocation 30/30) |
 
 ## Documentation
 

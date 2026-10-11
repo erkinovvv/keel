@@ -19,7 +19,7 @@ const THEME = {
 };
 const HEX = THEME.colors;
 const NUMBERS = {
-  journeys: "[__ / 30]",  // filled after the full live run
+  journeys: "29 / 30",  // evals/journeys/REPORT.md, 2026-10-11
   redteam: "57 / 57",
   tests: "89",
   backtest: "5 / 5",
@@ -242,7 +242,7 @@ pres.addSection({ title: "Results and fit" });
   card(s, M, 4.55, W - 2 * M, 1.95, { fill: C.text2, line: "07110F", name: "backtest-insight" });
   text(s, "What the backtest taught us", { x: M + 0.35, y: 4.75, w: 6, h: 0.4, fontSize: 15, bold: true, color: C.accent6 });
   text(s, "Every class kept its volatility target for 18 years, yet every class's worst fall was deeper than that number suggests: C5's 2008 drawdown was 34%. A volatility figure does not tell a client what 2008 feels like. That is why Lucid enforces the client's own loss limit and makes them rehearse the crash.", { x: M + 0.35, y: 5.2, w: W - 2 * M - 0.7, h: 1.2, fontSize: 15, color: C.background1 });
-  s.addNotes("Numbers we measured. [x] of 30 scripted clients completed the whole journey on a live model. All 57 red-team attacks stopped. 89 automated tests. And a backtest from 2008 to 2026: every model portfolio stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why we enforce the client's own loss limit and make them rehearse the crash.");
+  s.addNotes("Numbers we measured. 29 of 30 scripted clients completed the whole journey on a live model. All 57 red-team attacks stopped. 89 automated tests. And a backtest from 2008 to 2026: every model portfolio stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why we enforce the client's own loss limit and make them rehearse the crash.");
 }
 
 // ------------------------------------------------------------------ 10 architecture
