@@ -79,7 +79,10 @@ def _file(sid: str | None, response: Response) -> ClientFile:
     if sid and sid in _FILES:
         return _FILES[sid]
     sid = secrets.token_urlsafe(16)
-    _FILES[sid] = ClientFile(session=AdvisorSession(Settings.from_env()))
+    session = AdvisorSession(Settings.from_env())
+    # A pseudonymous tag (never the cookie itself) lets one session be replayed from the shared log.
+    session.audit.session_id = hashlib.sha256(sid.encode()).hexdigest()[:12]
+    _FILES[sid] = ClientFile(session=session)
     response.set_cookie("wa_sid", sid, httponly=True, samesite="strict")
     return _FILES[sid]
 
