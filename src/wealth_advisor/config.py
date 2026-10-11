@@ -23,6 +23,11 @@ class Settings:
     cash_rate: float = 0.035
     kill_switch: bool = False
     max_session_turns: int = 30
+    max_order_amount: float = 100_000.0
+    max_daily_order_amount: float = 250_000.0
+    max_orders_per_session: int = 20
+    cooling_off_days: int = 1
+    simulated_cash: float = 1_000_000.0
 
     @classmethod
     def from_env(cls, env_file: str | Path | None = ".env") -> "Settings":
@@ -46,4 +51,9 @@ class Settings:
             cash_rate=float(os.getenv("CASH_RATE", "0.035")),
             kill_switch=os.getenv("WEALTH_ADVISOR_KILL_SWITCH", "false").lower() in {"1", "true", "yes"},
             max_session_turns=int(os.getenv("MAX_SESSION_TURNS", "30")),
+            max_order_amount=float(os.getenv("MAX_ORDER_AMOUNT", "100000")),
+            max_daily_order_amount=float(os.getenv("MAX_DAILY_ORDER_AMOUNT", "250000")),
+            max_orders_per_session=int(os.getenv("MAX_ORDERS_PER_SESSION", "20")),
+            cooling_off_days=int(os.getenv("COOLING_OFF_DAYS", "1")),
+            simulated_cash=float(os.getenv("SIMULATED_CASH", "1000000")),
         )

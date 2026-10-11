@@ -11,6 +11,7 @@ from .audit import AuditLogger
 from .catalog import compare_products, load_catalog
 from .profiling import profile_investor
 from .stress import stress_test
+from .permissions import PermissionTier, require_tier
 
 
 class ProfileArgs(BaseModel):
@@ -40,11 +41,16 @@ class StressArgs(BaseModel):
     max_tolerable_loss: float = Field(default=0.20, ge=0)
 
 
+class DraftOrderArgs(BaseModel):
+    allocation_id: str = "latest"
+
+
 TOOL_SCHEMAS = [
     {"type": "function", "function": {"name": "profile_investor", "description": "Score enumerated investor answers", "parameters": ProfileArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalog products", "parameters": CompareArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation", "parameters": AllocationArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "stress_test", "description": "Apply a historical-style portfolio stress", "parameters": StressArgs.model_json_schema()}},
+    {"type": "function", "function": {"name": "create_draft_orders", "description": "Create proposed simulated orders from a stored allocation", "parameters": DraftOrderArgs.model_json_schema()}},
 ]
 
 
@@ -67,11 +73,15 @@ class ToolDispatcher:
 
     def dispatch(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if name == "profile_investor":
+            if self.session:
+                require_tier(self.session.tier, PermissionTier.ADVISE)
             profile = profile_investor(**ProfileArgs.model_validate(arguments).model_dump())
             if self.session:
                 self.session.state.profile = profile
             result = profile.as_dict()
         elif name == "compare_products":
+            if self.session:
+                require_tier(self.session.tier, PermissionTier.ADVISE)
             args = CompareArgs.model_validate(arguments)
             args_data = args.model_dump()
             args_data["investor_class"] = self._profile_class()
@@ -82,6 +92,8 @@ class ToolDispatcher:
                 self.session.state.horizon_years = args.horizon_years
             result = {"comparisons": [item.as_dict() for item in compare_products(self.catalog, **args_data)]}
         elif name == "build_allocation":
+            if self.session:
+                require_tier(self.session.tier, PermissionTier.ADVISE)
             args = AllocationArgs.model_validate(arguments)
             args_data = args.model_dump()
             args_data["investor_class"] = self._profile_class()
@@ -97,6 +109,8 @@ class ToolDispatcher:
             else:
                 result = allocation.as_dict()
         elif name == "stress_test":
+            if self.session:
+                require_tier(self.session.tier, PermissionTier.ADVISE)
             args = StressArgs.model_validate(arguments)
             if not self.session:
                 raise ValueError("stress_test requires a server-side AdvisorSession")
@@ -105,6 +119,12 @@ class ToolDispatcher:
             stress_id = f"stress-{len(self.session.state.stress_results) + 1}"
             self.session.state.stress_results[stress_id] = stress_result
             result = {"stress_id": stress_id, "allocation_id": args.allocation_id, **stress_result.as_dict()}
+        elif name == "create_draft_orders":
+            if not self.session:
+                raise ValueError("create_draft_orders requires a server-side AdvisorSession")
+            require_tier(self.session.tier, PermissionTier.PROPOSE)
+            args = DraftOrderArgs.model_validate(arguments)
+            result = {"orders": self.session.create_draft_orders(args.allocation_id)}
         else:
             raise ValueError(f"unknown tool: {name}")
         if self.audit:
