@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --frozen
+      - name: Unit, API and red-team regression tests (offline, no API keys)
+        run: uv run pytest -q
+      - name: Red-team suite must stop every attack
+        run: uv run python evals/redteam/run.py --strict
+      - name: Audit chain of the committed evidence pack
+        run: |
+          for log in evidence/*/audit.jsonl; do
+            AUDIT_LOG="$log" uv run wealth-advisor --verify-audit
+          done
