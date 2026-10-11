@@ -153,7 +153,7 @@ function go(step) {
     b.disabled = b.dataset.step !== "profile" && !state.profile;
   }
   popover.hidden = true;
-  ({ profile: renderProfile, portfolio: renderPortfolio, compare: renderCompare, stress: renderStress, execute: renderExecute })[step]();
+  ({ profile: renderProfile, portfolio: renderPortfolio, goal: renderGoal, compare: renderCompare, stress: renderStress, execute: renderExecute })[step]();
   panel.scrollTop = 0;
 }
 
@@ -343,7 +343,7 @@ async function renderPortfolio() {
         </tbody>
       </table>
     </div>
-    <div class="actions"><button class="btn" type="button" id="toStress">Stress-test this portfolio</button><button class="btn secondary" type="button" id="toCompare">Compare products</button></div>
+    <div class="actions"><button class="btn" type="button" id="toGoal">Check my goal</button><button class="btn secondary" type="button" id="toStress">Stress-test this portfolio</button><button class="btn secondary" type="button" id="toCompare">Compare products</button></div>
     <div id="allocErr"></div>`;
 
   panel.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
@@ -354,6 +354,7 @@ async function renderPortfolio() {
   panel.querySelectorAll("[data-level]").forEach((b) => (b.onclick = () => rebuild(+$("#wiAmount").value, +b.dataset.level)));
   let t;
   $("#wiAmount").oninput = (e) => { clearTimeout(t); t = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
+  $("#toGoal").onclick = () => go("goal");
   $("#toStress").onclick = () => go("stress");
   $("#toCompare").onclick = () => go("compare");
 }
@@ -370,7 +371,164 @@ async function rebuild(amount, level) {
   }
 }
 
-// ---------------------------------------------------------------- 3. compare
+// ---------------------------------------------------------------- 3. goal
+
+const short = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : `${Math.round(v)}`);
+const GOAL_KINDS = ["Buy a home", "Children's education", "Retirement", "Something else"];
+
+async function renderGoal() {
+  if (!state.allocation) {
+    panel.innerHTML = `<p class="empty">Building your portfolio…</p>`;
+    try { await loadAllocation(state.client.amount, state.allocationLevel, false); }
+    catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  }
+  const g = state.goalInput || {
+    name: GOAL_KINDS[0],
+    target: Math.round((state.allocation.amount * 2.5) / 10000) * 10000,
+    years: state.client.horizon_years,
+    monthly: 1000,
+    inflation: 0.02,
+  };
+  state.goalInput = g;
+  panel.innerHTML = `
+    <h1>Will you reach your goal?</h1>
+    <p class="lede">We simulate 5,000 possible futures for your portfolio of ${money(state.allocation.amount)} and count how many reach your target. Same inputs always give the same answer.</p>
+    <div class="sheet">
+      <div class="filters" role="radiogroup" aria-label="Goal">
+        ${GOAL_KINDS.map((k) => `<label class="chip"><input type="radio" name="gk" value="${esc(k)}" ${k === g.name ? "checked" : ""}><span>${esc(k)}</span></label>`).join("")}
+      </div>
+      <div class="facts">
+        <div class="field"><label for="gTarget">Target amount</label><input id="gTarget" type="number" min="1000" step="1000" value="${g.target}"></div>
+        <div class="field"><label for="gYears">In <span class="range-value" id="gYearsV">${g.years} yrs</span></label><input id="gYears" type="range" min="1" max="40" value="${g.years}"></div>
+        <div class="field"><label for="gMonthly">Monthly saving</label><input id="gMonthly" type="number" min="0" step="100" value="${g.monthly}"></div>
+        <label class="check"><input id="gInfl" type="checkbox" ${g.inflation ? "checked" : ""}> Target in today's money (2% inflation)</label>
+      </div>
+    </div>
+    <div id="goalOut"><p class="empty" style="margin-top:20px">Simulating…</p></div>`;
+  const read = () => ({
+    name: $('input[name="gk"]:checked').value,
+    target: +$("#gTarget").value,
+    years: +$("#gYears").value,
+    monthly: +$("#gMonthly").value,
+    inflation: $("#gInfl").checked ? 0.02 : 0,
+  });
+  let t;
+  const update = () => { clearTimeout(t); t = setTimeout(() => runGoal(read()), 250); };
+  panel.querySelectorAll('input[name="gk"]').forEach((i) => (i.onchange = update));
+  $("#gYears").oninput = (e) => { $("#gYearsV").textContent = `${e.target.value} yrs`; update(); };
+  ["gTarget", "gMonthly"].forEach((id) => ($(`#${id}`).oninput = update));
+  $("#gInfl").onchange = update;
+  runGoal(g);
+}
+
+async function runGoal(input) {
+  if (!(input.target > 0) || input.monthly < 0) return;
+  state.goalInput = input;
+  let data;
+  try { data = await api("/api/goal", { method: "POST", body: input }); }
+  catch (err) { $("#goalOut").innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  refreshAudit();
+  const r = data.result;
+  const prov = data.provenance;
+  const year = new Date().getFullYear() + input.years;
+  const chance = Math.round(r.probability * 100);
+  const tone = r.probability >= 0.8 ? "ok" : r.probability >= 0.5 ? "mid" : "low";
+  $("#goalOut").innerHTML = `
+    <div class="goal-head">
+      <div class="goal-chance">${num(`${chance}%`, prov, "Share of simulated futures that reach the target")}</div>
+      <div>
+        <span class="tone ${tone}">${tone === "ok" ? "On track" : tone === "mid" ? "Possible" : "Unlikely"}</span>
+        <div class="goal-line">chance of reaching <b>${money(r.target_nominal)}</b> by ${year}</div>
+        <div class="hint">${input.inflation ? `${money(input.target)} in today's money, grown by 2% inflation a year.` : "Nominal target, no inflation adjustment."}</div>
+      </div>
+    </div>
+    ${r.required_monthly === null ? "" : r.required_monthly <= input.monthly
+      ? `<div class="verdict-bar ok"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div><strong>You are on track.</strong> Your saving already gives at least an 80% chance.</div></div>`
+      : `<div class="verdict-bar nudge"><div>Save <strong>${num(money(r.required_monthly), prov, "Monthly saving needed for an 80% chance")}</strong> a month to reach an 80% chance.</div><button class="btn secondary" type="button" id="useMonthly">Use ${money(r.required_monthly)} a month</button></div>`}
+    <div class="sheet" style="margin-top:16px">
+      ${fanChart(r.fan, r.target_nominal)}
+      <div class="legend fan-legend">
+        <span><i class="band-outer"></i>8 in 10 futures</span>
+        <span><i class="band-inner"></i>Half of futures</span>
+        <span><i class="line-median"></i>Median</span>
+        <span><i class="line-target"></i>Your target</span>
+      </div>
+    </div>
+    <div class="kpis" style="margin-top:16px;grid-template-columns:repeat(3,1fr)">
+      <div class="kpi"><div class="k">Bad case (1 in 10)</div><span class="v">${num(money(r.terminal_p10), prov, "10th percentile outcome")}</span></div>
+      <div class="kpi"><div class="k">Median outcome</div><span class="v">${num(money(r.terminal_p50), prov, "Median outcome")}</span></div>
+      <div class="kpi"><div class="k">Good case (1 in 10)</div><span class="v">${num(money(r.terminal_p90), prov, "90th percentile outcome")}</span></div>
+    </div>
+    <details class="assume"><summary>Assumptions</summary><ul>${r.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+  const use = $("#useMonthly");
+  if (use) use.onclick = () => { $("#gMonthly").value = r.required_monthly; runGoal({ ...input, monthly: r.required_monthly }); };
+  wireFan(r.fan, r.target_nominal);
+  state.done.add("goal");
+  if (!state.goalNarrated) {
+    state.goalNarrated = true;
+    say([
+      `With ${money(input.monthly)} a month, about <strong>${chance} in 100</strong> simulated futures reach ${money(r.target_nominal)} by ${year}.`,
+      r.required_monthly && r.required_monthly > input.monthly
+        ? `Saving ${money(r.required_monthly)} a month would lift that to <strong>80 in 100</strong>. A longer horizon also helps. Taking more risk than your class allows is not an option I can offer.`
+        : "That is a comfortable margin. Keep the plan under review once a year.",
+    ]);
+  }
+}
+
+function fanChart(fan, target) {
+  const W = 720, H = 280, L = 52, R = 16, T = 16, B = 30;
+  const maxY = Math.max(target, ...fan.map((f) => f.p90)) * 1.08;
+  const n = fan.length - 1;
+  const x = (i) => L + (i / n) * (W - L - R);
+  const y = (v) => T + (1 - v / maxY) * (H - T - B);
+  const area = (lo, hi) => `M${fan.map((f, i) => `${x(i)},${y(f[hi])}`).join("L")}L${fan.map((f, i) => `${x(n - i)},${y(fan[n - i][lo])}`).join("L")}Z`;
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((k) => k * maxY);
+  const step = n > 20 ? 5 : n > 10 ? 2 : 1;
+  return `
+    <svg class="fan" id="fan" viewBox="0 0 ${W} ${H}" role="img" aria-label="Projected value over ${n} years: median ${money(fan[n].p50)}, target ${money(target)}">
+      ${ticks.map((v) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${short(v)}</text>`).join("")}
+      ${fan.filter((_, i) => i % step === 0).map((f) => `<text class="axis" x="${x(f.year)}" y="${H - 8}" text-anchor="middle">${f.year === 0 ? "Now" : `${f.year}y`}</text>`).join("")}
+      <path class="band-outer" d="${area("p10", "p90")}"/>
+      <path class="band-inner" d="${area("p25", "p75")}"/>
+      <path class="median" d="M${fan.map((f, i) => `${x(i)},${y(f.p50)}`).join("L")}"/>
+      <line class="target" x1="${L}" x2="${W - R}" y1="${y(target)}" y2="${y(target)}"/>
+      <text class="target-label" x="${W - R}" y="${y(target) - 6}" text-anchor="end">Target ${short(target)}</text>
+      <line class="cross" id="fanCross" y1="${T}" y2="${H - B}" visibility="hidden"/>
+      <circle class="cross-dot" id="fanDot" r="5" visibility="hidden"/>
+      <rect id="fanHit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>
+    </svg>
+    <div class="fan-tip" id="fanTip" hidden></div>`;
+}
+
+function wireFan(fan, target) {
+  const svg = $("#fan");
+  const hit = $("#fanHit");
+  const tip = $("#fanTip");
+  if (!svg) return;
+  const W = 720, L = 52, R = 16, T = 16, B = 30, H = 280;
+  const n = fan.length - 1;
+  const maxY = Math.max(target, ...fan.map((f) => f.p90)) * 1.08;
+  const show = (evt) => {
+    const box = svg.getBoundingClientRect();
+    const sx = ((evt.clientX - box.left) / box.width) * W;
+    const i = Math.max(0, Math.min(n, Math.round(((sx - L) / (W - L - R)) * n)));
+    const f = fan[i];
+    const px = L + (i / n) * (W - L - R);
+    const py = T + (1 - f.p50 / maxY) * (H - T - B);
+    $("#fanCross").setAttribute("x1", px); $("#fanCross").setAttribute("x2", px); $("#fanCross").setAttribute("visibility", "visible");
+    $("#fanDot").setAttribute("cx", px); $("#fanDot").setAttribute("cy", py); $("#fanDot").setAttribute("visibility", "visible");
+    tip.innerHTML = `<b>${i === 0 ? "Today" : `Year ${i}`}</b><div>Median ${money(f.p50)}</div><div class="dim">8 in 10 between ${short(f.p10)} and ${short(f.p90)}</div>`;
+    tip.hidden = false;
+    const left = (px / W) * box.width;
+    tip.style.left = `${Math.min(box.width - 190, Math.max(0, left + 12))}px`;
+    tip.style.top = `${(py / H) * box.height - 20}px`;
+  };
+  const hide = () => { tip.hidden = true; $("#fanCross").setAttribute("visibility", "hidden"); $("#fanDot").setAttribute("visibility", "hidden"); };
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerleave", hide);
+}
+
+// ---------------------------------------------------------------- 4. compare
 
 async function renderCompare(asset = "") {
   panel.innerHTML = `<p class="empty">Comparing products…</p>`;
@@ -410,7 +568,7 @@ async function renderCompare(asset = "") {
   panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare(i.value)));
 }
 
-// ---------------------------------------------------------------- 4. stress
+// ---------------------------------------------------------------- 5. stress
 
 async function renderStress() {
   if (!state.allocation) { await renderPortfolio(); }
@@ -454,7 +612,7 @@ async function renderStress() {
   ]);
 }
 
-// ---------------------------------------------------------------- 5. execute
+// ---------------------------------------------------------------- 6. execute
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const shortDate = (iso) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });

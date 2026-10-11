@@ -25,6 +25,7 @@ from wealth_advisor.allocation import Allocation, build_allocation
 from wealth_advisor.audit import verify_audit_log
 from wealth_advisor.catalog import compare_products, load_catalog
 from wealth_advisor.config import Settings
+from wealth_advisor.goals import GoalInput, project_goal
 from wealth_advisor.permissions import PermissionDenied, PermissionTier
 from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_investor
 from wealth_advisor.security import redact_pii
@@ -213,6 +214,33 @@ def stress(response: Response, wa_sid: str | None = Cookie(default=None)) -> dic
         ],
         "provenance": stamp,
     }
+
+
+class GoalIn(BaseModel):
+    name: str = Field(default="My goal", max_length=60)
+    target: float = Field(gt=0, le=1_000_000_000)
+    years: int = Field(ge=1, le=50)
+    monthly: float = Field(ge=0, le=10_000_000)
+    inflation: float = Field(default=0.02, ge=0, lt=0.2)
+
+
+@app.post("/api/goal")
+def goal(body: GoalIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    file = _file(wa_sid, response)
+    _require_profile(file)
+    try:
+        allocation = file.session.stored_allocation("latest")
+        result = project_goal(
+            GoalInput(
+                target=body.target, years=body.years, initial=allocation.amount, monthly=body.monthly,
+                expected_return=allocation.expected_return, volatility=allocation.volatility, inflation=body.inflation,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(409 if "allocation" in str(exc) else 422, str(exc)) from exc
+    view = result.as_dict()
+    stamp = _record(file, "ui_goal_projected", "goals.project_goal", {"goal": body.model_dump(), "probability": result.probability, "required_monthly": result.required_monthly})
+    return {"goal": body.model_dump(), "result": view, "initial": allocation.amount, "provenance": stamp}
 
 
 class ChatIn(BaseModel):

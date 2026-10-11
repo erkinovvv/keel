@@ -300,6 +300,43 @@ td.r, th.r { text-align: right; }
 .tiers li b { color: var(--ink); font-weight: 600; }
 .tiers li.current b { color: var(--jade-ink); }
 
+/* ------------------------------------------------------------ goal planning */
+.goal-head { display: flex; align-items: center; gap: 22px; margin: 24px 0 14px; }
+.goal-chance { font: 500 72px/1 var(--serif); letter-spacing: -0.03em; }
+.goal-line { font-size: 17px; margin-top: 6px; }
+.tone { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.tone.ok { background: var(--jade-soft); color: var(--jade-ink); }
+.tone.mid { background: var(--warning-soft); color: var(--warning); }
+.tone.low { background: var(--critical-soft); color: var(--critical); }
+.verdict-bar.nudge { background: var(--sunken); color: var(--ink); justify-content: space-between; align-items: center; }
+.sheet:has(.fan) { position: relative; }
+.fan { width: 100%; height: auto; display: block; overflow: visible; }
+.fan .grid { stroke: var(--line); stroke-width: 1; }
+.fan .axis { fill: var(--ink-3); font-size: 11px; }
+.fan .band-outer { fill: var(--jade); opacity: .14; }
+.fan .band-inner { fill: var(--jade); opacity: .26; }
+.fan .median { fill: none; stroke: var(--jade); stroke-width: 2; stroke-linejoin: round; }
+.fan .target { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.fan .target-label { fill: var(--ink-2); font-size: 12px; font-weight: 500; }
+.fan .cross { stroke: var(--ink-3); stroke-width: 1; }
+.fan .cross-dot { fill: var(--jade); stroke: var(--surface); stroke-width: 2; }
+#fanHit { cursor: crosshair; }
+.fan-tip {
+  position: absolute; pointer-events: none; min-width: 170px; padding: 8px 10px; border-radius: 8px;
+  background: var(--ink); color: var(--paper); font-size: 12.5px; line-height: 1.45; z-index: 5;
+}
+.fan-tip .dim { opacity: .7; }
+.fan-legend { margin-top: 10px; }
+.fan-legend i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.fan-legend .band-outer { background: var(--jade); opacity: .22; }
+.fan-legend .band-inner { background: var(--jade); opacity: .42; }
+.fan-legend .line-median { height: 2px; background: var(--jade); }
+.fan-legend .line-target { height: 0; border-top: 2px dashed var(--ink-2); border-radius: 0; }
+.assume { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
+.assume summary { cursor: pointer; font-weight: 500; color: var(--jade-ink); }
+.assume ul { margin: 8px 0 0; padding-left: 18px; }
+@media (max-width: 920px) { .goal-chance { font-size: 56px; } .verdict-bar.nudge { flex-direction: column; align-items: flex-start; } }
+
 /* ------------------------------------------------------------ tier pill */
 .tier.live { color: var(--jade-ink); border-color: var(--jade); background: var(--jade-soft); }
 
