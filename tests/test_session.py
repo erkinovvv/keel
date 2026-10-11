@@ -193,5 +193,5 @@ def test_complete_state_fallback_omits_empty_missing_clause():
         {"profile": {}, "allocation": {}, "stress_results": {"stress-1": {}}},
         "the client's language",
     )
-    assert reply == "Your investor profile, allocation, and stress test are recorded. Next, review the result or try the Crash Rehearsal before any orders."
+    assert reply == "Your investor profile, allocation, and stress test are recorded. Next, open Rehearse step 3 and live through 2008 with your portfolio before confirming any orders."
     assert "Stored in this session" not in reply

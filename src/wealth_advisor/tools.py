@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Iterable, Literal
 
 from pydantic import BaseModel, Field, ValidationError, create_model
 
@@ -160,9 +160,10 @@ def _display_percent(value: Any) -> str:
     return f"{float(value):.1%}"
 
 
-def compact_tool_result(name: str, result: dict[str, Any]) -> dict[str, Any]:
+def compact_tool_result(name: str, result: dict[str, Any], catalog: Iterable[Product] | None = None) -> dict[str, Any]:
     """Keep model-visible tool output high-signal without changing server-owned results."""
 
+    product_names = {product.id: product.name for product in catalog or ()}
     if result.get("error"):
         return result
     if name == "record_client_facts":
@@ -188,27 +189,26 @@ def compact_tool_result(name: str, result: dict[str, Any]) -> dict[str, Any]:
     if name == "compare_products":
         comparisons = result.get("comparisons", [])
         display_items = [
-            f"{item.get('product_id')} {item.get('name')} ({item.get('asset_class')}, R{item.get('risk_class')}, net {_display_percent(item.get('net_return', 0))}, fee {_display_percent(item.get('fee', 0))})"
+            f"{item.get('name', 'Selected fund')} ({item.get('asset_class')}, R{item.get('risk_class')}, net {_display_percent(item.get('net_return', 0))}, fee {_display_percent(item.get('fee', 0))})"
             for item in comparisons[:5]
         ]
         return {"display": "Suitable products: " + "; ".join(display_items) + "."}
     if name == "build_allocation":
         holdings = result.get("holdings", [])
         product_mix = "; ".join(
-            f"{holding.get('product_id')} {holding.get('asset_class')} {_display_percent(holding.get('weight', 0))}"
+            f"{product_names.get(holding.get('product_id'), 'Selected fund')} ({holding.get('asset_class')}) {_display_percent(holding.get('weight', 0))}"
             for holding in holdings
         )
         return {
-            "allocation_id": result.get("allocation_id"),
             "display": (
-                f"Allocation {result.get('allocation_id', 'built')} for C{result.get('investor_class')}: {product_mix}. "
+                f"Your portfolio for C{result.get('investor_class')}: {product_mix}. "
                 f"Expected return {_display_percent(result.get('expected_return', 0))}; volatility {_display_percent(result.get('volatility', 0))}."
             ),
         }
     if name == "stress_test":
         return {
             key: result.get(key)
-            for key in ("stress_id", "allocation_id", "scenario", "loss_percent", "loss_amount", "max_tolerable_loss", "mismatch")
+            for key in ("scenario", "loss_percent", "loss_amount", "max_tolerable_loss", "mismatch")
             if key in result
         } | {
             "display": (
@@ -219,7 +219,7 @@ def compact_tool_result(name: str, result: dict[str, Any]) -> dict[str, Any]:
         }
     if name == "create_draft_orders":
         orders = result.get("orders", [])
-        return {"display": "Draft orders created: " + "; ".join(f"{order.get('order_id')} {order.get('product_id')} {order.get('amount')}" for order in orders) + "."}
+        return {"display": "Draft orders created: " + "; ".join(f"{product_names.get(order.get('product_id'), 'Selected fund')} {order.get('amount')}" for order in orders) + "."}
     return {"display": str(result)}
 
 

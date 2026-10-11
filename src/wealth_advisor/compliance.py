@@ -12,6 +12,7 @@ from .profiling import InvestorProfile
 
 
 DISCLAIMER = "This is educational information based on the selected product catalogue and deterministic historical calculations, not a guarantee or personal investment advice. Past performance does not predict future results."
+DISCLAIMER_ZH = "以上为基于所选产品目录和确定性历史计算的教育性信息，不构成保证或个人投资建议。过往业绩不预示未来表现。"
 _UNSAFE_CLAIMS = re.compile(r"guaranteed|risk[- ]free|you\s+will\s+earn|certain\s+profit|future\s+price\s+will|no\s+way\s+(?:you\s+)?can\s+lose\s+money|you\s+cannot\s+lose\s+money|\b(?:will\s+(?:definitely\s+)?double|will\s+definitely\s+(?:rise|increase|grow)|sure\s+to\s+(?:rise|increase|grow|double))\b", re.I)
 _NUMBER_SPACE = " \u00a0\u202f\u2009\u2007\u202f\u2060"
 _NUMBER = re.compile(
@@ -100,7 +101,9 @@ _QUESTIONNAIRE_NUMBER_CONTEXT = re.compile(
     r"(?:option\s*|under_1y|1_3y|3_7y|7_10y|over_10y|within_1d|within_7d|within_30d|over_30d|"
     r"3_6_months|over_6_months|over_75|50_75|25_50|under_25|"
     r"3\s*[-–]\s*6\s*months?|20\s*%?\s*(?:fall|drop|loss)|"
-    r"25\s*/\s*50\s*/\s*75\s*%?|1\s*/\s*3\s*/\s*7\s*/\s*10\s*years?|"
+    r"25\s*/\s*50\s*/\s*75\s*%?|(?:25|50|75)\s*%?\s*(?:,|or|and|/)\s*(?:25|50|75)\s*%?|"
+    r"(?:share|portion).{0,64}(?:net worth|savings).{0,64}(?:25|50|75)\s*%?|"
+    r"(?:25|50|75)\s*%?.{0,64}(?:net worth|savings)|1\s*/\s*3\s*/\s*7\s*/\s*10\s*years?|"
     r"(?:7|30)\s*days?)",
     re.I,
 )
@@ -126,6 +129,7 @@ def output_guard(
     tool_results: Iterable[dict[str, Any]] = (),
     recommendation: bool = False,
     client_messages: Iterable[str] = (),
+    language: str | None = None,
 ) -> ComplianceResult:
     """Block unsafe claims and ungrounded numbers, then add recommendation notices."""
 
@@ -157,5 +161,6 @@ def output_guard(
         )
     safe_message = message
     if recommendation:
-        safe_message = f"{safe_message}\n\n{DISCLAIMER}"
+        disclaimer = DISCLAIMER_ZH if language == "Chinese" or (language is None and any("\u4e00" <= character <= "\u9fff" for character in message)) else DISCLAIMER
+        safe_message = f"{safe_message}\n\n{disclaimer}"
     return ComplianceResult(True, safe_message, tuple(reasons), ())

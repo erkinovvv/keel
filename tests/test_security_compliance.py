@@ -1,6 +1,6 @@
 from wealth_advisor.allocation import build_allocation
 from wealth_advisor.catalog import load_catalog
-from wealth_advisor.compliance import DISCLAIMER, output_guard, pretrade_check, suitability_check
+from wealth_advisor.compliance import DISCLAIMER, DISCLAIMER_ZH, output_guard, pretrade_check, suitability_check
 from wealth_advisor.profiling import profile_investor
 from wealth_advisor.security import RateLimiter, input_guard, redact_pii, tool_output_guard
 
@@ -78,11 +78,18 @@ def test_output_guard_allows_questionnaire_numbers_and_small_integers():
     )
     assert output_guard(questionnaire).allowed
     assert output_guard("There are 12 steps and 3 months in this process.").allowed
+    assert output_guard("I could accept a 20% fall; I invest 25%, 50%, or 75% of my net worth.").allowed
 
 
 def test_output_guard_allows_rounded_tool_percentages():
     assert output_guard("The allocation weight is 23 %.", [{"weight": 0.2344}]).allowed
     assert output_guard("The allocation weight is 23.4%.", [{"weight": 0.2344}]).allowed
+
+
+def test_output_guard_localizes_disclaimer():
+    result = output_guard("这是一个确定性结果。", recommendation=True)
+    assert DISCLAIMER_ZH in result.message
+    assert DISCLAIMER not in result.message
 
 
 def test_pretrade_suitability_checks_risk_liquidity_and_allocation():

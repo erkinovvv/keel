@@ -56,13 +56,19 @@ def test_tool_schemas_use_explicit_units_and_errors_are_actionable(tmp_path):
 
 def test_model_tool_results_are_compact_and_display_ready(tmp_path):
     from wealth_advisor.tools import compact_tool_result
+    from wealth_advisor.catalog import load_catalog
 
+    catalog = load_catalog()
+    product = catalog[0]
     compact = compact_tool_result(
         "build_allocation",
-        {"allocation_id": "allocation-1", "investor_class": 3, "expected_return": 0.05, "volatility": 0.08, "holdings": [{"product_id": "BOND-1", "asset_class": "bonds", "weight": 0.4}]},
+        {"allocation_id": "allocation-1", "investor_class": 3, "expected_return": 0.05, "volatility": 0.08, "holdings": [{"product_id": product.id, "asset_class": product.asset_class, "weight": 0.4}]},
+        catalog,
     )
     assert "holdings" not in compact
-    assert "BOND-1" in compact["display"]
+    assert product.name in compact["display"]
+    assert "allocation-1" not in compact["display"]
+    assert product.id not in compact["display"]
 
 
 def test_stage_tool_lists_preserve_canonical_order(tmp_path):

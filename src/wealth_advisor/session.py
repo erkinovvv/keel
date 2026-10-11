@@ -80,9 +80,8 @@ class SessionState:
             "client": self.client.as_dict(),
             "amount": self.client.amount if self.client.amount is not None else self.amount,
             "horizon_years": self.client.horizon_years if self.client.horizon_years is not None else self.horizon_years,
-            "latest_allocation_id": self.latest_allocation_id,
-            "allocation_ids": list(self.allocations),
-            "stress_result_ids": list(self.stress_results),
+            "has_allocation": bool(self.allocations),
+            "has_stress_result": bool(self.stress_results),
         }
 
 
@@ -169,6 +168,7 @@ class AdvisorSession:
         turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
         self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
+        language = "Chinese" if any("\u4e00" <= character <= "\u9fff" for character in guard.text) else "the client's language"
         client_messages = [message["content"] for message in self.messages if message.get("role") == "user"]
         client_messages.append(guard.text)
         guarded_output = output_guard(
@@ -176,9 +176,9 @@ class AdvisorSession:
             [*self._tool_results, self.snapshot()],
             recommendation=recommendation,
             client_messages=client_messages,
+            language=language,
         )
         if not guarded_output.allowed:
-            language = "Chinese" if any("\u4e00" <= character <= "\u9fff" for character in guard.text) else "the client's language"
             feedback = (
                 f"Rewrite your last answer in {language}, under 120 words, with no tables. "
                 "Use only figures present in the tool results or in the client's messages. "
@@ -193,6 +193,7 @@ class AdvisorSession:
                 [*self._tool_results, self.snapshot()],
                 recommendation=recommendation,
                 client_messages=client_messages,
+                language=language,
             )
             if guarded_regenerated.allowed:
                 self.audit.append(
@@ -234,7 +235,7 @@ class AdvisorSession:
                 return "您的投资者画像已经记录。下一步我可以为您建立合适的资产配置。"
             if not stress_results:
                 return "您的资产配置已经保存。下一步我可以运行历史压力测试。"
-            return "您的资产配置和压力测试已经保存。下一步可以先查看结果，或在下单前进行崩溃演练。"
+                return "您的资产配置和压力测试已经保存。下一步可以先查看结果，或在下单前打开第3步“危机演练”体验这套组合。"
 
         if profile is None:
             if client.get("amount") is None:
@@ -254,7 +255,7 @@ class AdvisorSession:
             return f"Your investor profile{class_text} is recorded. Next I can build a suitable allocation."
         if not stress_results:
             return f"Your investor profile{class_text} and allocation are recorded. Next I can run a historical stress test."
-        return f"Your investor profile{class_text}, allocation, and stress test are recorded. Next, review the result or try the Crash Rehearsal before any orders."
+        return f"Your investor profile{class_text}, allocation, and stress test are recorded. Next, open Rehearse step 3 and live through 2008 with your portfolio before confirming any orders."
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:
         """Resolve a server-side allocation identifier for non-LLM callers."""

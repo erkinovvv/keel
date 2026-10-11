@@ -105,7 +105,7 @@ class AdvisorAgent:
                     result = {"error": "Unsafe tool output blocked", "message": "The tool result contained instruction-like text."}
                     if self.audit:
                         self.audit.append("tool_output_blocked", {"tool": call.name})
-                compact_result = compact_tool_result(call.name, result)
+                compact_result = compact_tool_result(call.name, result, self.dispatcher.catalog)
                 tool_results.append(compact_result)
                 messages.append({"role": "tool", "tool_call_id": call.id, "name": call.name, "content": json.dumps(compact_result, separators=(",", ":"))})
         raise RuntimeError("maximum tool steps exceeded")
