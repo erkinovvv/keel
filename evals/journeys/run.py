@@ -84,7 +84,10 @@ def run_persona(persona: dict[str, Any]) -> dict[str, Any]:
     risks = {p.id: p.risk_class for p in load_catalog()}
     with tempfile.TemporaryDirectory() as tmp:
         audit_path = Path(tmp) / "audit.jsonl"
-        settings = dataclasses.replace(Settings.from_env(), audit_log=audit_path)
+        settings = Settings.from_env()
+        # Evaluation runs use the second team member's key so they do not consume the product's quota.
+        eval_key = os.getenv("GROQ_EVAL_API_KEY")
+        settings = dataclasses.replace(settings, audit_log=audit_path, **({"groq_api_key": eval_key} if eval_key else {}))
         session = AdvisorSession(settings)
         replies, errors, started, spent = [], [], time.monotonic(), 0
         for turn in persona["turns"]:
