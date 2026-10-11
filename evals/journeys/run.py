@@ -59,6 +59,23 @@ def _audit_records(path: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _recorded_answers(profile: Any) -> dict[str, str]:
+    """Questionnaire answers as the agent recorded them, recovered from the profile's reason codes."""
+
+    from wealth_advisor.profiling import QUESTIONNAIRE
+
+    if profile is None:
+        return {}
+    answers: dict[str, str] = {}
+    for question in sorted(QUESTIONNAIRE, key=len, reverse=True):
+        prefix = question.upper() + "_"
+        for code in profile.reason_codes:
+            option = code[len(prefix):].lower() if code.startswith(prefix) else None
+            if option in QUESTIONNAIRE[question]["options"] and question not in answers:
+                answers[question] = option
+    return answers
+
+
 def run_persona(persona: dict[str, Any]) -> dict[str, Any]:
     from wealth_advisor.catalog import load_catalog
     from wealth_advisor.config import Settings
@@ -120,6 +137,8 @@ def run_persona(persona: dict[str, Any]) -> dict[str, Any]:
         "errors": errors,
         "final_reply": (replies[-1] if replies else "")[:400],
         "replies": [reply[:800] for reply in replies],
+        "answers_expected": persona["answers"],
+        "answers_recorded": _recorded_answers(profile),
         "promise_hits": [m.group(0) for reply in replies for m in PROMISE.finditer(_NEGATED.sub("", reply))],
     }
 
