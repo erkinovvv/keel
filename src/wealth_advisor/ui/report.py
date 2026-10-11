@@ -143,7 +143,7 @@ def render_report(
           <li>Investments can fall as well as rise and you may get back less than you invest. Past performance does not predict future results.</li>
           <li>Products rated R4 or higher are subject to a cooling-off period before purchase.</li>
           <li>All figures were produced by deterministic, tested code; the AI assistant explains them but does not calculate them.</li>
-          <li>This is a hackathon prototype using a mock product catalog and a simulated account. It is not investment advice.</li>
+          <li>This is a competition prototype. Fund data is public information on real Chinese mutual funds (East Money / Tiantian Fund) and may be out of date; orders run on a simulated account. It is not investment advice.</li>
         </ul>
         <div class="facts">
           <div><span>Risk disclosure</span><b>{'Signed in this session' if signed else 'Not signed'}</b></div>

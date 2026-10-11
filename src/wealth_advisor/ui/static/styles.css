@@ -248,6 +248,13 @@ svg { display: block; }
 .popover dt { opacity: .65; }
 .popover dd { margin: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; word-break: break-all; }
 
+/* ------------------------------------------------------------ real data note */
+.data-note { display: flex; align-items: center; gap: 8px; margin: -14px 0 20px; font-size: 13px; color: var(--ink-2); }
+.dot-live { width: 7px; height: 7px; border-radius: 50%; background: var(--jade); box-shadow: 0 0 0 3px var(--jade-soft); flex: none; }
+.fund-link { color: inherit; text-decoration: none; }
+.fund-link:hover { color: var(--jade-ink); text-decoration: underline; }
+.why-row a { color: var(--jade-ink); }
+
 /* ------------------------------------------------------------ what-if */
 .whatif { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; margin: 22px 0; align-items: end; }
 .seg { display: flex; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }

@@ -11,9 +11,11 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import os
 import secrets
 from datetime import date
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
@@ -35,7 +37,7 @@ from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
 from wealth_advisor.ui.report import render_report
-from wealth_advisor.ui.labels import LANG, class_name, explain_reason, flag_label, humanize, question_label
+from wealth_advisor.ui.labels import LANG, class_name, lang, explain_reason, flag_label, humanize, question_label
 
 STATIC = Path(__file__).parent / "static"
 SCENARIO_NAMES = {
@@ -154,6 +156,26 @@ def _profile_view(profile: InvestorProfile) -> dict[str, Any]:
     }
 
 
+@lru_cache(maxsize=1)
+def _fund_meta() -> dict[str, Any]:
+    """Codes, Chinese names and sources for the real-fund catalog (empty for the mock catalog)."""
+
+    path = Path(__file__).parents[1] / "data" / "products_cn_meta.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"funds": {}}
+
+
+def _product_name(product: Any) -> str:
+    meta = _fund_meta()["funds"].get(product.id)
+    if meta and lang() == "zh":
+        return f"{meta['name_zh']}（{meta['code']}）"
+    return product.name
+
+
+def _product_source(product_id: str) -> str | None:
+    meta = _fund_meta()["funds"].get(product_id)
+    return meta["source"] if meta else None
+
+
 def _allocation_view(allocation: Allocation) -> dict[str, Any]:
     products = {p.id: p for p in load_catalog()}
     return {
@@ -167,7 +189,8 @@ def _allocation_view(allocation: Allocation) -> dict[str, Any]:
         "holdings": [
             {
                 "product_id": h.product_id,
-                "name": products[h.product_id].name,
+                "name": _product_name(products[h.product_id]),
+                "source": _product_source(h.product_id),
                 "asset_class": h.asset_class,
                 "risk_class": products[h.product_id].risk_class,
                 "weight": h.weight,
@@ -264,10 +287,12 @@ def compare(response: Response, asset_class: str | None = None, wa_sid: str | No
         catalog, client["amount"], client["horizon_years"], profile.investor_class,
         liquidity_days=profile.liquidity_days, asset_class=asset_class or None,
     )
-    hidden = [{"name": p.name, "risk_class": p.risk_class} for p in catalog if p.risk_class > profile.investor_class]
-    locked = [{"name": p.name, "liquidity_days": p.liquidity_days} for p in catalog if p.risk_class <= profile.investor_class and p.liquidity_days > profile.liquidity_days]
+    hidden = [{"name": _product_name(p), "risk_class": p.risk_class} for p in catalog if p.risk_class > profile.investor_class]
+    locked = [{"name": _product_name(p), "liquidity_days": p.liquidity_days} for p in catalog if p.risk_class <= profile.investor_class and p.liquidity_days > profile.liquidity_days]
     stamp = _record(file, "ui_products_compared", "catalog.compare_products", {"asset_class": asset_class, "count": len(rows)})
-    return {"rows": [row.as_dict() for row in rows], "hidden": hidden, "locked": locked, "provenance": stamp}
+    by_id = {p.id: p for p in catalog}
+    view_rows = [{**row.as_dict(), "name": _product_name(by_id[row.product_id]), "source": _product_source(row.product_id)} for row in rows]
+    return {"rows": view_rows, "hidden": hidden, "locked": locked, "provenance": stamp}
 
 
 @app.get("/api/stress")
@@ -429,12 +454,19 @@ def _order_view(order: dict[str, Any], products: dict[str, Any]) -> dict[str, An
     cooling = order.get("cooling_off_until")
     return {
         **order,
-        "name": product.name,
+        "name": _product_name(product),
         "asset_class": product.asset_class,
         "nav": product.nav,
         "units": order["amount"] / product.nav,
         "cooling_off": bool(cooling and date.fromisoformat(cooling) > date.today()),
     }
+
+
+@app.get("/api/catalog-info")
+def catalog_info() -> dict[str, Any]:
+    meta = _fund_meta()
+    real = bool(meta["funds"]) and os.getenv("WEALTH_ADVISOR_CATALOG", "").lower() == "cn"
+    return {"real": real, "as_of": meta.get("as_of"), "source": meta.get("source"), "currency": meta.get("currency") if real else None, "count": len(load_catalog())}
 
 
 @app.get("/api/tier")
@@ -599,5 +631,9 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 def main() -> None:
     import uvicorn
+
+    # The web app advises on real Chinese public funds by default; tests keep the mock catalog.
+    os.environ.setdefault("WEALTH_ADVISOR_CATALOG", "cn")
+    os.environ.setdefault("CASH_RATE", "0.015")
 
     uvicorn.run("wealth_advisor.ui.server:app", host="127.0.0.1", port=8600, reload=False)

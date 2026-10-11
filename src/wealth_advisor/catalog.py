@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
@@ -48,9 +49,12 @@ class ProductComparison:
 
 
 def load_catalog(path: str | Path | None = None) -> list[Product]:
-    """Load and validate the local mock catalog used by every calculation."""
+    """Load and validate the product catalog used by every calculation."""
 
-    catalog_path = Path(path) if path else DATA_DIR / "products.json"
+    # WEALTH_ADVISOR_CATALOG=cn selects real Chinese public funds (scripts/build_cn_catalog.py);
+    # the default mock catalog keeps tests deterministic.
+    default = "products_cn.json" if os.getenv("WEALTH_ADVISOR_CATALOG", "").lower() == "cn" else "products.json"
+    catalog_path = Path(path) if path else DATA_DIR / default
     raw = json.loads(catalog_path.read_text(encoding="utf-8"))
     products = [Product(**item) for item in raw]
     if not products or any(product.risk_class not in range(1, 6) for product in products):

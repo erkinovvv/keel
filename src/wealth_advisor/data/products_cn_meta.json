@@ -1,0 +1,476 @@
+{
+ "as_of": "2026-10-11",
+ "currency": "CNY",
+ "source": "East Money / Tiantian Fund public fund pages (as used by the open-source AkShare library)",
+ "method": "Volatility from 10-year monthly accumulated-NAV returns; expected return = 50% historical CAGR (gross of ongoing fees) + 50% asset-class prior; money funds use the 1-year average 7-day yield.",
+ "funds": {
+  "CN-000198": {
+   "code": "000198",
+   "name_zh": "天弘余额宝货币",
+   "name_en": "Tianhong Yu'E Bao Money Market",
+   "risk_text": "低风险",
+   "fees": {
+    "management": 0.003,
+    "custody": 0.0007000000000000001,
+    "sales_service": 0.0025
+   },
+   "history": {
+    "seven_day_yield_latest": 0.00823,
+    "seven_day_yield_1y_avg": 0.00906
+   },
+   "source": "https://fund.eastmoney.com/000198.html"
+  },
+  "CN-000009": {
+   "code": "000009",
+   "name_zh": "易方达天天理财货币A",
+   "name_en": "E Fund Daily Money Market A",
+   "risk_text": "低风险",
+   "fees": {
+    "management": 0.0015,
+    "custody": 0.0004,
+    "sales_service": 0.0015
+   },
+   "history": {
+    "seven_day_yield_latest": 0.0115,
+    "seven_day_yield_1y_avg": 0.00983
+   },
+   "source": "https://fund.eastmoney.com/000009.html"
+  },
+  "CN-001821": {
+   "code": "001821",
+   "name_zh": "兴全天添益货币B",
+   "name_en": "Aegon-Industrial Tiantianyi Money Market B",
+   "risk_text": "低风险",
+   "fees": {
+    "management": 0.0015,
+    "custody": 0.0004,
+    "sales_service": 0.0001
+   },
+   "history": {
+    "seven_day_yield_latest": 0.0131,
+    "seven_day_yield_1y_avg": 0.01356
+   },
+   "source": "https://fund.eastmoney.com/001821.html"
+  },
+  "CN-217022": {
+   "code": "217022",
+   "name_zh": "招商产业债券A",
+   "name_en": "China Merchants Industry Bond A",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.006999999999999999,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.03648,
+    "volatility": 0.01262,
+    "max_drawdown": 0.0109
+   },
+   "source": "https://fund.eastmoney.com/217022.html"
+  },
+  "CN-070009": {
+   "code": "070009",
+   "name_zh": "嘉实超短债债券C",
+   "name_en": "Harvest Ultra-Short Bond C",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.003,
+    "custody": 0.0008,
+    "sales_service": 0.0025
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.01861,
+    "volatility": 0.00484,
+    "max_drawdown": 0.00225
+   },
+   "source": "https://fund.eastmoney.com/070009.html"
+  },
+  "CN-100018": {
+   "code": "100018",
+   "name_zh": "富国天利增长债券A",
+   "name_en": "Fullgoal Tianli Growth Bond A",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.0064,
+    "custody": 0.0016,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.01893,
+    "volatility": 0.00937,
+    "max_drawdown": 0.01787
+   },
+   "source": "https://fund.eastmoney.com/100018.html"
+  },
+  "CN-050027": {
+   "code": "050027",
+   "name_zh": "博时信用债纯债债券A",
+   "name_en": "Bosera Credit Pure Bond A",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.003,
+    "custody": 0.001,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.02599,
+    "volatility": 0.01298,
+    "max_drawdown": 0.01417
+   },
+   "source": "https://fund.eastmoney.com/050027.html"
+  },
+  "CN-161119": {
+   "code": "161119",
+   "name_zh": "易方达中债新综指发起式(LOF)A",
+   "name_en": "E Fund China Bond New Composite Index A",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.0015,
+    "custody": 0.0005,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.0388,
+    "volatility": 0.01834,
+    "max_drawdown": 0.02728
+   },
+   "source": "https://fund.eastmoney.com/161119.html"
+  },
+  "CN-003376": {
+   "code": "003376",
+   "name_zh": "广发中债7-10年国开债指数A",
+   "name_en": "GF CDB 7-10Y Policy Bank Bond Index A",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.0015,
+    "custody": 0.0005,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.04178,
+    "volatility": 0.02918,
+    "max_drawdown": 0.0764
+   },
+   "source": "https://fund.eastmoney.com/003376.html"
+  },
+  "CN-110007": {
+   "code": "110007",
+   "name_zh": "易方达稳健收益债券A",
+   "name_en": "E Fund Steady Income Bond A",
+   "risk_text": "中风险",
+   "fees": {
+    "management": 0.006,
+    "custody": 0.002,
+    "sales_service": 0.003
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.02624,
+    "volatility": 0.02475,
+    "max_drawdown": 0.02292
+   },
+   "source": "https://fund.eastmoney.com/110007.html"
+  },
+  "CN-110027": {
+   "code": "110027",
+   "name_zh": "易方达安心回报债券A",
+   "name_en": "E Fund Anxin Return Bond A",
+   "risk_text": "中低风险",
+   "fees": {
+    "management": 0.006999999999999999,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.03475,
+    "volatility": 0.04499,
+    "max_drawdown": 0.05902
+   },
+   "source": "https://fund.eastmoney.com/110027.html"
+  },
+  "CN-000171": {
+   "code": "000171",
+   "name_zh": "易方达裕丰回报债券A",
+   "name_en": "E Fund Yufeng Return Bond A",
+   "risk_text": "中风险",
+   "fees": {
+    "management": 0.004,
+    "custody": 0.001,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.05346,
+    "volatility": 0.04259,
+    "max_drawdown": 0.05543
+   },
+   "source": "https://fund.eastmoney.com/000171.html"
+  },
+  "CN-270002": {
+   "code": "270002",
+   "name_zh": "广发稳健增长混合A",
+   "name_en": "GF Steady Growth Hybrid A",
+   "risk_text": "中风险",
+   "fees": {
+    "management": 0.012,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.01604,
+    "volatility": 0.03153,
+    "max_drawdown": 0.08357
+   },
+   "source": "https://fund.eastmoney.com/270002.html"
+  },
+  "CN-001316": {
+   "code": "001316",
+   "name_zh": "安信稳健增值混合A",
+   "name_en": "Essence Steady Value-Add Hybrid A",
+   "risk_text": "中风险",
+   "fees": {
+    "management": 0.006,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.05592,
+    "volatility": 0.03691,
+    "max_drawdown": 0.04381
+   },
+   "source": "https://fund.eastmoney.com/001316.html"
+  },
+  "CN-000215": {
+   "code": "000215",
+   "name_zh": "广发趋势优选灵活配置混合A",
+   "name_en": "GF Trend Select Flexible Allocation Hybrid A",
+   "risk_text": "中风险",
+   "fees": {
+    "management": 0.006,
+    "custody": 0.0015,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.03643,
+    "volatility": 0.02821,
+    "max_drawdown": 0.04681
+   },
+   "source": "https://fund.eastmoney.com/000215.html"
+  },
+  "CN-110020": {
+   "code": "110020",
+   "name_zh": "易方达沪深300ETF联接A",
+   "name_en": "E Fund CSI 300 ETF Feeder A",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.0015,
+    "custody": 0.0005,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.04795,
+    "volatility": 0.15906,
+    "max_drawdown": 0.34592
+   },
+   "source": "https://fund.eastmoney.com/110020.html"
+  },
+  "CN-160119": {
+   "code": "160119",
+   "name_zh": "南方中证500ETF联接(LOF)A",
+   "name_en": "Southern CSI 500 ETF Feeder A",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.0015,
+    "custody": 0.0005,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.02564,
+    "volatility": 0.18951,
+    "max_drawdown": 0.32232
+   },
+   "source": "https://fund.eastmoney.com/160119.html"
+  },
+  "CN-007466": {
+   "code": "007466",
+   "name_zh": "华泰柏瑞中证红利低波ETF联接A",
+   "name_en": "Huatai-PineBridge CSI Dividend Low Volatility ETF Feeder A",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.005,
+    "custody": 0.001,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2019-07",
+    "to": "2026-10",
+    "years": 7.2,
+    "cagr": 0.09975,
+    "volatility": 0.14061,
+    "max_drawdown": 0.11613
+   },
+   "source": "https://fund.eastmoney.com/007466.html"
+  },
+  "CN-000071": {
+   "code": "000071",
+   "name_zh": "华夏恒生ETF联接A",
+   "name_en": "ChinaAMC Hang Seng ETF Feeder A",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.006,
+    "custody": 0.0015,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.0146,
+    "volatility": 0.1682,
+    "max_drawdown": 0.42173
+   },
+   "source": "https://fund.eastmoney.com/000071.html"
+  },
+  "CN-050025": {
+   "code": "050025",
+   "name_zh": "博时标普500ETF联接A",
+   "name_en": "Bosera S&P 500 ETF Feeder A",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.006,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.12915,
+    "volatility": 0.14452,
+    "max_drawdown": 0.21947
+   },
+   "source": "https://fund.eastmoney.com/050025.html"
+  },
+  "CN-270042": {
+   "code": "270042",
+   "name_zh": "广发纳斯达克100ETF联接人民币(QDII)A",
+   "name_en": "GF Nasdaq-100 ETF Feeder A (QDII)",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.008,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.17442,
+    "volatility": 0.17589,
+    "max_drawdown": 0.26662
+   },
+   "source": "https://fund.eastmoney.com/270042.html"
+  },
+  "CN-005827": {
+   "code": "005827",
+   "name_zh": "易方达蓝筹精选混合",
+   "name_en": "E Fund Blue Chip Select Hybrid",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.012,
+    "custody": 0.002,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2018-09",
+    "to": "2026-10",
+    "years": 8.1,
+    "cagr": 0.04332,
+    "volatility": 0.23668,
+    "max_drawdown": 0.5517
+   },
+   "source": "https://fund.eastmoney.com/005827.html"
+  },
+  "CN-000216": {
+   "code": "000216",
+   "name_zh": "华安黄金ETF联接A",
+   "name_en": "Hua An Gold ETF Feeder A",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.005,
+    "custody": 0.001,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.11601,
+    "volatility": 0.13598,
+    "max_drawdown": 0.25486
+   },
+   "source": "https://fund.eastmoney.com/000216.html"
+  },
+  "CN-000179": {
+   "code": "000179",
+   "name_zh": "广发美国房地产指数人民币(QDII)A",
+   "name_en": "GF US Real Estate Index A (QDII)",
+   "risk_text": "中高风险",
+   "fees": {
+    "management": 0.008,
+    "custody": 0.003,
+    "sales_service": 0.0
+   },
+   "history": {
+    "from": "2016-10",
+    "to": "2026-10",
+    "years": 10.0,
+    "cagr": 0.02846,
+    "volatility": 0.12937,
+    "max_drawdown": 0.24113
+   },
+   "source": "https://fund.eastmoney.com/000179.html"
+  }
+ }
+}

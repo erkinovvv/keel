@@ -323,6 +323,12 @@ async function loadAllocation(amount, level, narrate) {
   }
 }
 
+function dataNote() {
+  const c = state.catalog;
+  if (!c?.real) return "";
+  return `<p class="data-note"><span class="dot-live"></span>${t("{n} real Chinese public funds · public data as of {date} · amounts in {cur}", { n: c.count, date: longDate(c.as_of), cur: c.currency })}</p>`;
+}
+
 function staleBanner() {
   const a = state.allocation, p = state.profile;
   if (!a || !p || a.investor_class <= p.investor_class) return "";
@@ -350,6 +356,7 @@ async function renderPortfolio() {
   panel.innerHTML = `
     <h1>${t("Your recommended portfolio")}</h1>
     <p class="lede">${t("Built from your risk class with fixed allocation rules and a 35% cap per product. Only products rated R{n} or lower are eligible.", { n: a.investor_class })}</p>
+    ${dataNote()}
     ${staleBanner()}
     <div class="kpis">
       <div class="kpi"><div class="k">${t("Expected return")}</div><span class="v">${num(pct(a.expected_return, 2), prov, t("Expected annual return, net of fees"))}</span><div class="h">${t("per year, after fees")}</div></div>
@@ -389,7 +396,7 @@ async function renderPortfolio() {
               <td class="r">${num(money(h.amount), prov, t("Amount in {name}", { name: h.name }))}</td>
               <td class="r"><button class="why" type="button" data-why="${i}" aria-expanded="false">${t("Why?")}</button></td>
             </tr>
-            <tr class="why-row" id="why${i}" hidden><td colspan="5"><ul>${h.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></td></tr>`).join("")}
+            <tr class="why-row" id="why${i}" hidden><td colspan="5"><ul>${h.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}${h.source ? `<li><a href="${esc(h.source)}" target="_blank" rel="noopener">${t("Fund page and documents")}</a></li>` : ""}</ul></td></tr>`).join("")}
         </tbody>
       </table>
     </div>
@@ -764,6 +771,7 @@ async function renderCompare(asset = "") {
   panel.innerHTML = `
     <h1>${t("Compare products")}</h1>
     <p class="lede">${t("Every product you are eligible for, ranked by return per unit of risk after fees. Fee cost shows what fees would take from {amount} over {years} years.", { amount: money(c.amount), years: c.horizon_years })}</p>
+    ${dataNote()}
     <div class="filters">
       ${["", ...ASSET_ORDER].map((k) => `<label class="chip"><input type="radio" name="af" value="${k}" ${k === asset ? "checked" : ""}><span>${k ? ASSET_NAMES[k] : t("All")}</span></label>`).join("")}
     </div>
@@ -774,13 +782,13 @@ async function renderCompare(asset = "") {
         <tbody>
           ${data.rows.map((r) => `
             <tr>
-              <td class="prod"><span class="swatch" style="background:var(--${r.asset_class})"></span>${esc(r.name)}<small>${ASSET_NAMES[r.asset_class]}</small></td>
+              <td class="prod"><span class="swatch" style="background:var(--${r.asset_class})"></span>${r.source ? `<a class="fund-link" href="${esc(r.source)}" target="_blank" rel="noopener">${esc(r.name)}</a>` : esc(r.name)}<small>${ASSET_NAMES[r.asset_class]}</small></td>
               <td><span class="risk">R${r.risk_class}</span></td>
               <td class="r">${num(pct(r.net_return, 2), prov, t("Expected return after fees: {name}", { name: r.name }))}</td>
               <td class="r">${pct(r.volatility, 1)}</td>
               <td class="r">${pct(r.fee, 2)}</td>
               <td class="r">${num(money(r.fee_drag), prov, t("Fee cost over {years} years: {name}", { years: c.horizon_years, name: r.name }))}</td>
-              <td class="r">${r.liquidity_days <= 3 ? tn("1 day", "{n} days", r.liquidity_days) : t("{n} months", { n: Math.round(r.liquidity_days / 30) })}</td>
+              <td class="r">${r.liquidity_days <= 31 ? tn("1 day", "{n} days", r.liquidity_days) : t("{n} months", { n: Math.round(r.liquidity_days / 30) })}</td>
             </tr>`).join("")}
         </tbody>
       </table>` : `<p class="empty">${t("No products in this group match your risk class.")}</p>`}
@@ -1251,6 +1259,7 @@ scrim.onclick = closeDrawer;
     t("Before I recommend anything, I need to understand how much risk you can afford and how much you are comfortable with. The short questionnaire on the right takes about two minutes."),
     t("You can also ask me anything here at any time."),
   ]);
+  try { state.catalog = await api("/api/catalog-info"); } catch { state.catalog = null; }
   try {
     state.questionnaire = await api("/api/questionnaire");
   } catch (err) {

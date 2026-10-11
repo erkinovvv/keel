@@ -228,6 +228,9 @@ const ZH = {
   "Median {v}": "中位数 {v}",
   "8 in 10 between {a} and {b}": "十分之八介于{a}和{b}之间",
 
+  "{n} real Chinese public funds · public data as of {date} · amounts in {cur}": "{n}只真实的中国公募基金 · 公开数据截至{date} · 金额单位{cur}",
+  "Fund page and documents": "基金页面与文件",
+
   // compare
   "Comparing products…": "正在比较产品…",
   "Every product you are eligible for, ranked by return per unit of risk after fees. Fee cost shows what fees would take from {amount} over {years} years.": "列出您可购买的所有产品，按扣费后单位风险收益排序。费用成本表示{years}年内费用将从{amount}中扣除多少。",
