@@ -52,14 +52,14 @@ Scoring: Task completion 40 · Security & compliance 30 · Innovation & interact
 | # | Feature | Score | Owner | Notes |
 |---|---|---|---|---|
 | M1 | **Live Groq end-to-end** | Task | Codex | Real key, full journey through chat, fallback verified, token budget logged |
-| M2 | **Conversational KYC + panel sync** | Task, Interaction | Codex + Claude | The agent can run the whole journey in chat; the client file updates live (and vice versa) |
+| M2 | **Conversational KYC + panel sync** | Task, Interaction | Codex (agent tools + `/api/state`) · Claude (UI sync) | The agent can run the whole journey in chat; the client file updates live (and vice versa) |
 | M3 | **Finish security pass** | Security | Codex | PII regex fix, injection classifier (prompt-guard model), output grounding, rate limits |
-| M4 | **Red-team suite (50+ attacks) with pass rate** | Security | Codex | Direct/indirect injection, suitability bypass, tool-arg tampering, PII exfiltration, token forgery. Publish the table |
-| M5 | **Journey eval harness (30 client personas)** | Task | Codex | Scripted conversations vs live model; report completion rate, tool-error rate, tokens/journey |
-| M6 | **Goal planning with Monte Carlo** | Task, Interaction | Codex (engine) + Claude (UI) | "Will I reach 500k for a flat in 8 years?" → probability + fan chart; contribution what-ifs |
+| M4 | **Red-team suite (50+ attacks) with pass rate** | Security | Claude (attacks + runner) · Codex (fixes) | Direct/indirect injection, suitability bypass, tool-arg tampering, PII exfiltration, token forgery. Publish the table |
+| M5 | **Journey eval harness (30 client personas)** | Task | Claude | Scripted conversations vs live model; report completion rate, tool-error rate, tokens/journey |
+| M6 | **Goal planning with Monte Carlo** | Task, Interaction | Claude (`goals.py` + UI) | "Will I reach 500k for a flat in 8 years?" → probability + fan chart; contribution what-ifs |
 | M7 | **Real-data allocation** | Task (Xiu) | Codex | Kenneth French data library + FRED (free, licensed for research); Ledoit-Wolf covariance; Black-Litterman; 2008–2025 backtest of C1–C5 model portfolios |
 | M8 | **Client Advice Report** | Task, Compliance | Claude | One-click HTML/PDF suitability report (profile, reasons, allocation, stress, fees, disclosures, audit hashes) |
-| M9 | **On-chain audit anchoring** | Bonus 0–5 | Codex (chain) + Claude (UI) | Merkle root of the audit log → Ethereum Sepolia; receipt and audit drawer show the tx hash with explorer link |
+| M9 | **On-chain audit anchoring** | Bonus 0–5 | Claude (`anchor.py` + UI) | Merkle root of the audit log → Ethereum Sepolia; receipt and audit drawer show the tx hash with explorer link |
 | M10 | **Bilingual EN / 中文** | Interaction | Claude | UI + advisor narration; judges are Shenzhen-based |
 
 ### SHOULD (if M-items land early)
@@ -82,13 +82,13 @@ Real broker APIs, real client data, mobile app, voice, federated learning implem
 
 | Date (UTC+8) | Codex | Claude | You (team) |
 |---|---|---|---|
-| **Sun 10-11** | Finish M2 milestone + PII fix (M3) | UI done (execute flow) · this plan | **Confirm team (2–5 students, ≥60% non-Chinese nationals)** · get Groq key |
-| **Mon 10-12** | M1 live Groq · M2 chat tools | M2 panel sync · M10 i18n skeleton | Fill registration form + passport scans |
-| **Tue 10-13** | M7 real data + BL + backtest | M6 goal-planning UI | Pick product name |
-| **Wed 10-14** | M6 Monte Carlo engine · M4 red-team | M8 Advice Report | Review demo flow |
-| **Thu 10-15** | M9 on-chain anchoring · M5 eval harness | M9 UI · M10 Chinese copy | — |
+| **Sun 10-11** | M2 milestone done ✓ · PII fix ✓ | UI execute flow ✓ · plan ✓ · M6 goals engine + UI | **Confirm team (2–5 students, ≥60% non-Chinese nationals)** · get Groq key |
+| **Mon 10-12** | M1 live Groq · M2 chat tools + `/api/state` | M4 red-team attacks + runner · M2 UI sync | Fill registration form + passport scans |
+| **Tue 10-13** | M7 real data + BL + backtest | M9 on-chain anchoring (needs a Sepolia key) · M5 eval harness | Pick product name · fund Sepolia wallet from a faucet |
+| **Wed 10-14** | Fix red-team failures · M7 polish | M8 Advice Report · M10 i18n | Review demo flow |
+| **Thu 10-15** | S-items (S1/S2) | M10 Chinese copy · S3/S4 | — |
 | **Fri 10-16** | **Feature freeze** · bug bash · evidence runner | Bug bash · screenshots | Test on your own laptop from a clean clone |
-| **Sat 10-17** | Fix-only | ARCHITECTURE, ALGORITHM, SECURITY self-assessment, README | Read docs |
+| **Sat 10-17** | Fix-only · code references for docs | ARCHITECTURE, ALGORITHM, SECURITY self-assessment, README | Read docs |
 | **Sun 10-18** | Fix-only | Deck (≤10 min) + demo script | Rehearse pitch |
 | **Mon 10-19** | Evidence logs final | Demo video (≤5 min) | **Send registration + submission draft** |
 | **Tue 10-20** | — | Final check | **Submit by 12:00** |
