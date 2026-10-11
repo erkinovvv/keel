@@ -39,7 +39,10 @@ def stress_test(
     """Apply asset-class shocks and flag losses above the client's stated tolerance."""
 
     if scenario == "custom":
-        shocks = dict(custom_shocks or {})
+        shocks = {
+            asset: max(-1.0, min(1.0, float(shock)))
+            for asset, shock in (custom_shocks or {}).items()
+        }
     else:
         try:
             shocks = SCENARIOS[scenario]
@@ -52,4 +55,3 @@ def stress_test(
     loss_amount = allocation.amount * loss_percent
     tolerance_amount = max_tolerable_loss if tolerance_is_amount else allocation.amount * max_tolerable_loss
     return StressResult(scenario, loss_percent, loss_amount, tolerance_amount, loss_amount > tolerance_amount, dict(shocks))
-

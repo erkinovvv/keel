@@ -20,6 +20,7 @@ STRATEGIC_WEIGHTS: dict[int, dict[str, float]] = {
 }
 EQUITY_CAPS = {1: 0.10, 2: 0.20, 3: 0.35, 4: 0.50, 5: 0.60}
 MAX_PRODUCT_WEIGHT = 0.35
+VOLATILITY_BANDS = {1: (0.00, 0.06), 2: (0.02, 0.09), 3: (0.04, 0.14), 4: (0.06, 0.20), 5: (0.08, 0.28)}
 
 
 @dataclass(frozen=True)
@@ -44,8 +45,15 @@ class Allocation:
     expected_return: float
     volatility: float
     fee: float
-    var_95_1y: float
+    var_95_1y_parametric: float
     strategic_weights: dict[str, float]
+    volatility_band: tuple[float, float]
+
+    @property
+    def var_95_1y(self) -> float:
+        """Backward-compatible alias for the zero-mean parametric one-year VaR."""
+
+        return self.var_95_1y_parametric
 
     def as_dict(self) -> dict[str, object]:
         result = asdict(self)
@@ -72,12 +80,7 @@ def _select_holdings(products: list[Product], asset_class: str, target: float, a
     if not eligible:
         raise ValueError(f"amount {amount} is too small for {asset_class} minimum investment")
     selected = eligible[:count]
-    weights: list[float] = []
-    remaining = target
-    for _ in selected:
-        weight = min(MAX_PRODUCT_WEIGHT, remaining)
-        weights.append(weight)
-        remaining -= weight
+    weights = [target / count] * count
     return [
         Holding(
             product_id=product.id,
@@ -88,6 +91,78 @@ def _select_holdings(products: list[Product], asset_class: str, target: float, a
         )
         for product, weight in zip(selected, weights)
     ]
+
+
+def _project_bounds(weights: np.ndarray, lower: np.ndarray, upper: np.ndarray) -> np.ndarray:
+    """Project class weights onto box constraints and the unit-sum simplex."""
+
+    projected = np.clip(weights, lower, upper)
+    for _ in range(20):
+        difference = 1.0 - float(projected.sum())
+        if abs(difference) <= 1e-12:
+            break
+        if difference > 0:
+            room = upper - projected
+        else:
+            room = projected - lower
+        total_room = float(room.sum())
+        if total_room <= 1e-12:
+            break
+        projected += difference * room / total_room
+        projected = np.clip(projected, lower, upper)
+    return projected
+
+
+def _refine_class_weights(
+    base_weights: dict[str, float],
+    eligible_by_class: dict[str, list[Product]],
+    investor_class: int,
+) -> dict[str, float]:
+    """Apply a small projected-gradient mean-variance refinement around strategic weights."""
+
+    classes, correlations = load_correlations()
+    active = [asset for asset in classes if base_weights.get(asset, 0.0) > 0]
+    if len(active) < 2:
+        return dict(base_weights)
+    index = {asset: position for position, asset in enumerate(classes)}
+    expected = np.array([
+        max(product.expected_return - product.fee for product in eligible_by_class[asset])
+        for asset in active
+    ])
+    class_volatility = np.array([
+        min(product.volatility for product in eligible_by_class[asset])
+        for asset in active
+    ])
+    correlation = np.array([
+        [correlations[index[left]][index[right]] for right in active]
+        for left in active
+    ])
+    covariance = correlation * np.outer(class_volatility, class_volatility)
+    base = np.array([base_weights[asset] for asset in active], dtype=float)
+    lower = np.maximum(0.0, base - 0.10)
+    upper = np.minimum(1.0, base + 0.10)
+    if "cash" in active:
+        lower[active.index("cash")] = max(lower[active.index("cash")], 0.05)
+    if "equity" in active:
+        upper[active.index("equity")] = min(upper[active.index("equity")], EQUITY_CAPS[investor_class])
+    target_min, target_max = VOLATILITY_BANDS[investor_class]
+
+    def score(weights: np.ndarray) -> float:
+        variance = float(weights @ covariance @ weights)
+        volatility = math.sqrt(max(variance, 0.0))
+        band_penalty = max(0.0, target_min - volatility) ** 2 + max(0.0, volatility - target_max) ** 2
+        return float(weights @ expected - 0.75 * variance - 4.0 * band_penalty)
+
+    weights = base.copy()
+    for _ in range(40):
+        gradient = expected - 1.5 * (covariance @ weights)
+        candidate = _project_bounds(weights + 0.15 * gradient, lower, upper)
+        if score(candidate) <= score(weights) + 1e-12:
+            break
+        weights = candidate
+    return {asset: float(weights[position]) for position, asset in enumerate(active)} | {
+        asset: float(base_weights.get(asset, 0.0)) for asset in classes if asset not in active
+    }
 
 
 def build_allocation(
@@ -129,6 +204,7 @@ def build_allocation(
                 break
         else:
             raise ValueError("no suitable products remain after exclusions")
+    strategic = _refine_class_weights(strategic, eligible_by_class, investor_class)
     holdings: list[Holding] = []
     for asset_class, target in strategic.items():
         if target:
@@ -156,6 +232,7 @@ def build_allocation(
         expected_return=float(weights @ returns),
         volatility=portfolio_volatility,
         fee=float(sum(h.weight * by_id[h.product_id].fee for h in holdings)),
-        var_95_1y=float(1.645 * portfolio_volatility * amount),
+        var_95_1y_parametric=float(1.645 * portfolio_volatility * amount),
         strategic_weights={asset: float(weight) for asset, weight in zip(classes, class_weights)},
+        volatility_band=VOLATILITY_BANDS[investor_class],
     )

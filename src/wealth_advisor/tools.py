@@ -75,6 +75,8 @@ class ToolDispatcher:
             args = CompareArgs.model_validate(arguments)
             args_data = args.model_dump()
             args_data["investor_class"] = self._profile_class()
+            if args_data["liquidity_days"] is None and self.session:
+                args_data["liquidity_days"] = self.session.state.profile.liquidity_days
             if self.session:
                 self.session.state.amount = args.amount
                 self.session.state.horizon_years = args.horizon_years
@@ -83,6 +85,8 @@ class ToolDispatcher:
             args = AllocationArgs.model_validate(arguments)
             args_data = args.model_dump()
             args_data["investor_class"] = self._profile_class()
+            if args_data["liquidity_days"] is None and self.session:
+                args_data["liquidity_days"] = self.session.state.profile.liquidity_days
             if self.session:
                 self.session.state.amount = args.amount
             allocation = build_allocation(products=self.catalog, **args_data)

@@ -14,3 +14,9 @@ def test_custom_stress_is_supported():
     result = stress_test(allocation, "custom", custom_shocks={"cash": 0, "bonds": 0, "equity": -0.1, "gold": 0, "reits": -0.1})
     assert result.loss_percent >= 0
 
+
+def test_custom_stress_shocks_are_clamped():
+    allocation = build_allocation(50_000, 2)
+    result = stress_test(allocation, "custom", custom_shocks={"cash": 4, "bonds": -2, "equity": 0, "gold": 0, "reits": 0})
+    assert result.shocks["cash"] == 1.0
+    assert result.shocks["bonds"] == -1.0

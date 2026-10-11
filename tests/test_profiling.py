@@ -22,6 +22,7 @@ def test_profile_separates_capacity_tolerance_and_expires():
     assert profile.tolerance_class == 4
     assert profile.investor_class == 4
     assert profile.expires_on == date(2027, 1, 1)
+    assert profile.liquidity_days == 7
     assert "HORIZON_7_10Y" in profile.reason_codes
 
 
@@ -36,3 +37,8 @@ def test_vulnerability_flags_cap_class():
 def test_profile_rejects_unmapped_answers():
     with pytest.raises(ValueError, match="invalid option"):
         profile_investor(dict(BASE_ANSWERS, goal="free_text"))
+
+
+def test_liquidity_need_is_explicit_and_maps_to_days():
+    profile = profile_investor(dict(BASE_ANSWERS, liquidity_need="within_1d"))
+    assert profile.liquidity_days == 1

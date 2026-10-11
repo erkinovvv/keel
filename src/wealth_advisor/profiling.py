@@ -9,6 +9,7 @@ from typing import Any
 
 QUESTIONNAIRE: dict[str, dict[str, Any]] = {
     "horizon": {"domain": "capacity", "options": {"under_1y": 0, "1_3y": 1, "3_7y": 2, "7_10y": 3, "over_10y": 4}},
+    "liquidity_need": {"domain": "capacity", "options": {"within_1d": 0, "within_7d": 1, "within_30d": 2, "over_30d": 4}},
     "income_stability": {"domain": "capacity", "options": {"unstable": 0, "mixed": 1, "stable": 2}},
     "emergency_fund": {"domain": "capacity", "options": {"none": 0, "3_6_months": 2, "over_6_months": 4}},
     "invested_share": {"domain": "capacity", "options": {"over_75": 0, "50_75": 1, "25_50": 2, "under_25": 4}},
@@ -27,6 +28,7 @@ class InvestorProfile:
     tolerance_score: int
     capacity_class: int
     tolerance_class: int
+    liquidity_days: int
     reason_codes: tuple[str, ...]
     vulnerability_flags: tuple[str, ...]
     expires_on: date
@@ -58,6 +60,8 @@ def profile_investor(
 ) -> InvestorProfile:
     """Score objective capacity and behavioral tolerance separately, then take their minimum."""
 
+    answers = dict(answers)
+    answers.setdefault("liquidity_need", "within_7d")
     unknown = set(answers) - set(QUESTIONNAIRE)
     missing = set(QUESTIONNAIRE) - set(answers)
     if unknown or missing:
@@ -94,14 +98,15 @@ def profile_investor(
         investor_class = min(investor_class, 1 if "SHORT_HORIZON" in flags else 2)
         reason_codes.append("VULNERABILITY_CAP_APPLIED")
     effective_date = as_of or date.today()
+    liquidity_days = {"within_1d": 1, "within_7d": 7, "within_30d": 30, "over_30d": 365}[answers["liquidity_need"]]
     return InvestorProfile(
         investor_class=investor_class,
         capacity_score=capacity_score,
         tolerance_score=tolerance_score,
         capacity_class=capacity_class,
         tolerance_class=tolerance_class,
+        liquidity_days=liquidity_days,
         reason_codes=tuple(reason_codes),
         vulnerability_flags=tuple(flags),
         expires_on=effective_date + timedelta(days=365),
     )
-

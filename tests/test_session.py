@@ -63,3 +63,10 @@ def test_session_state_summary_keeps_financial_context(tmp_path):
     assert summary["profile_class"] == "C4"
     assert summary["amount"] == 12_000
     assert summary["horizon_years"] == 8
+
+
+def test_session_liquidity_need_excludes_long_lockup(tmp_path):
+    session = make_session(tmp_path)
+    session.dispatcher.dispatch("profile_investor", {"answers": dict(ANSWERS, liquidity_need="within_7d")})
+    result = session.dispatcher.dispatch("compare_products", {"amount": 100_000, "horizon_years": 5})
+    assert "CASH-DEP" not in {item["product_id"] for item in result["comparisons"]}

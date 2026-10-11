@@ -20,6 +20,7 @@ from .stress import stress_test
 
 DEMO_ANSWERS = {
     "horizon": "7_10y",
+    "liquidity_need": "over_30d",
     "income_stability": "stable",
     "emergency_fund": "over_6_months",
     "invested_share": "under_25",
@@ -66,7 +67,7 @@ def run_demo(settings: Settings) -> None:
     for item in comparisons[:5]:
         table.add_row(item.product_id, f"R{item.risk_class}", f"{item.net_return:.2%}", f"{item.fee_drag:,.2f}")
     console.print(table)
-    console.print(f"Allocation expected return: {allocation.expected_return:.2%}; volatility: {allocation.volatility:.2%}; 95% VaR: {allocation.var_95_1y:,.2f}")
+    console.print(f"Allocation expected return: {allocation.expected_return:.2%}; volatility: {allocation.volatility:.2%}; parametric 95% VaR: {allocation.var_95_1y_parametric:,.2f}")
     console.print(f"2008 GFC loss: {stress.loss_percent:.2%} ({stress.loss_amount:,.2f}); mismatch={stress.mismatch}")
     valid, reason = verify_audit_log(settings.audit_log)
     console.print(f"Audit: {reason} ({valid})")
@@ -85,4 +86,3 @@ def main() -> None:
         run_chat(settings)
     else:
         run_demo(settings)
-
