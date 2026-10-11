@@ -11,7 +11,7 @@ from .catalog import Product
 from .profiling import InvestorProfile
 
 
-DISCLAIMER = "This is educational information based on mock data, not a guarantee or personal investment advice. Past performance does not predict future results."
+DISCLAIMER = "This is educational information based on the selected product catalogue and deterministic historical calculations, not a guarantee or personal investment advice. Past performance does not predict future results."
 _UNSAFE_CLAIMS = re.compile(r"guaranteed|risk[- ]free|you\s+will\s+earn|certain\s+profit|future\s+price\s+will|no\s+way\s+(?:you\s+)?can\s+lose\s+money|you\s+cannot\s+lose\s+money|\b(?:will\s+(?:definitely\s+)?double|will\s+definitely\s+(?:rise|increase|grow)|sure\s+to\s+(?:rise|increase|grow|double))\b", re.I)
 _NUMBER = re.compile(r"(?<![A-Za-z])(?:[$€£]?\d[\d,]*(?:\.\d+)?)(?:\s*(?:%|percent|pct))?(?![A-Za-z])", re.I)
 

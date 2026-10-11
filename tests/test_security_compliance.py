@@ -53,6 +53,7 @@ def test_output_guard_enforces_claims_numbers_and_disclaimer():
     result = output_guard("The allocation is based on the selected tool outputs.", [], recommendation=True)
     assert result.allowed
     assert DISCLAIMER in result.message
+    assert "mock data" not in DISCLAIMER.lower()
 
 
 def test_output_guard_normalizes_percentages_amounts_and_years():
