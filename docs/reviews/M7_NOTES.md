@@ -1,0 +1,17 @@
+# M7 algorithm notes (for `docs/ALGORITHM.md`)
+
+**Data and provenance.** `scripts/build_market_data.py` generates `data/market/returns.json` with 224 aligned monthly observations, January 2008–August 2026. US equity and cash are Kenneth R. French's Fama/French `Mkt-RF + RF` and `RF`; listed real estate is the French 49-industry value-weighted `RlEst` portfolio. Bonds approximate a 10-year Treasury total return from FRED `GS10`: previous yield / 12 minus duration 6 times the yield change. Gold is the World Bank Pink Sheet monthly price return via `datasets/gold-prices`. These are US-market/commodity **proxies**, not CN fund returns or investable indices. Sources and use caveats are in `data/market/SOURCES.md`; the separate Crash Rehearsal file covers October 2007–March 2013.
+
+**Estimation and allocation.** `estimate_market_parameters()` annualises each asset's arithmetic monthly mean by 12. The Ledoit–Wolf estimator centres monthly returns, forms the sample covariance with divisor *n*, and shrinks it toward a scaled identity (average sample variance); shrinkage intensity is `clip(beta / delta, 0, 1)`, then covariance is annualised by 12. The current dataset's estimated intensity is **0.06995**. Passing `market_data` to `build_allocation()` uses these historical means and covariance in the constrained weight refinement; the default path remains catalog-based. Reported allocation expected return and volatility still use selected product estimates and catalog correlations, not the historical class estimate. Optional Black–Litterman uses strategic weights as the reverse-optimised prior (`pi = 3 Σ w`), **tau = 0.05** by default, and optional views `(asset exposures, annual expected return, uncertainty variance)`; without views the BL anchor equals the strategic mix. Suitability, equity caps, product caps, and ±10-percentage-point class bands still apply.
+
+**Suitability adjustments.** When a class has no eligible products (notably C3 equity/gold/REITs in the CN catalog, whose funds are R4), its weight is redistributed **proportionally to the remaining eligible strategic weights**, rather than all to cash. When `max_tolerable_loss` is supplied (the chat tool reads `state.client.max_loss`), the allocator checks the worst deterministic loss across 2008 GFC, 2020 COVID, and 2022 rate-shock scenarios. If over limit, it shifts REIT/equity weight toward cash/bonds within class bands, then steps down a class if necessary; if no class can fit, it raises instead of recommending. It records `STRESS_LIMIT_APPLIED` and before/after worst losses. No limit preserves the unconstrained path.
+
+**Backtest.** `scripts/backtest_market.py` applies static, monthly-rebalanced C1–C5 strategic weights to the proxy returns (no product fees or trading costs); realised volatility is monthly sample standard deviation × √12, and drawdown is peak-to-trough wealth loss including initial wealth. “Tolerance” below is the *upper volatility-band number used as a drawdown comparison proxy*, not a client-specific loss limit. All five static mixes breach that proxy; this is a diagnostic, not a claim that the stress-constrained recommendation breaches a client limit.
+
+| Class | Realised vol. | Max drawdown | Proxy tolerance | Within? |
+|---|---:|---:|---:|---|
+| C1 | 2.39% | 6.80% | 6% | No |
+| C2 | 3.93% | 9.69% | 9% | No |
+| C3 | 7.13% | 19.57% | 14% | No |
+| C4 | 9.30% | 27.29% | 20% | No |
+| C5 | 11.60% | 34.71% | 28% | No |

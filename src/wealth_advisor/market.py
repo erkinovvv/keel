@@ -100,29 +100,37 @@ def black_litterman_weights(
     strategic_weights: Mapping[str, float],
     *,
     risk_aversion: float = 3.0,
+    tau: float = 0.05,
     views: Sequence[tuple[Mapping[str, float], float, float]] = (),
 ) -> dict[str, float]:
     """Return non-negative BL weights, with the strategic mix as the market prior.
 
-    Each view is ``(asset exposures, expected return, uncertainty variance)``. With
-    no views, the posterior is the reverse-optimised strategic prior.
+    Each view is ``(asset exposures, expected return, uncertainty variance)``.
+    Tau scales uncertainty in the reverse-optimised strategic prior.
     """
 
+    if risk_aversion <= 0 or tau <= 0:
+        raise ValueError("risk_aversion and tau must be positive")
     assets = tuple(estimate.annual_expected_returns)
     covariance = np.array([[estimate.annual_covariance[left][right] for right in assets] for left in assets])
     prior_weights = np.array([float(strategic_weights.get(asset, 0.0)) for asset in assets])
     prior_weights = np.maximum(prior_weights, 0.0)
+    if prior_weights.sum() <= 0:
+        raise ValueError("strategic weights must contain a positive allocation")
     prior_weights /= prior_weights.sum()
     prior_return = risk_aversion * covariance @ prior_weights
     posterior = prior_return.copy()
     if views:
-        prior_precision = np.linalg.pinv(covariance)
-        for exposure, view_return, uncertainty in views:
-            vector = np.array([float(exposure.get(asset, 0.0)) for asset in assets])
-            view_precision = np.outer(vector, vector) / max(float(uncertainty), 1e-8)
-            posterior = np.linalg.pinv(prior_precision + view_precision) @ (
-                prior_precision @ posterior + vector * float(view_return) / max(float(uncertainty), 1e-8)
-            )
+        exposures = np.array([[float(exposure.get(asset, 0.0)) for asset in assets] for exposure, _, _ in views])
+        view_returns = np.array([float(view_return) for _, view_return, _ in views])
+        uncertainties = np.array([float(uncertainty) for _, _, uncertainty in views])
+        if np.any(uncertainties <= 0) or np.any(np.linalg.norm(exposures, axis=1) == 0):
+            raise ValueError("views require nonzero exposures and positive uncertainty")
+        prior_precision = np.linalg.pinv(tau * covariance)
+        view_precision = np.diag(1.0 / uncertainties)
+        posterior = np.linalg.pinv(prior_precision + exposures.T @ view_precision @ exposures) @ (
+            prior_precision @ prior_return + exposures.T @ view_precision @ view_returns
+        )
     weights = np.linalg.pinv(covariance) @ posterior / max(risk_aversion, 1e-8)
     weights = np.maximum(weights, 0.0)
     if weights.sum() <= 1e-12:
@@ -141,7 +149,7 @@ def backtest_model_portfolios(data: MarketData) -> list[dict[str, object]]:
     for investor_class, strategic in STRATEGIC_WEIGHTS.items():
         weights = np.array([strategic.get(asset, 0.0) for asset in data.asset_classes])
         series = data.returns @ weights
-        wealth = np.cumprod(1.0 + series)
+        wealth = np.concatenate(([1.0], np.cumprod(1.0 + series)))
         peaks = np.maximum.accumulate(wealth)
         drawdowns = 1.0 - wealth / peaks
         tolerance = VOLATILITY_BANDS[investor_class][1]
@@ -156,4 +164,3 @@ def backtest_model_portfolios(data: MarketData) -> list[dict[str, object]]:
             "drawdown_within_tolerance": bool(drawdowns.max(initial=0.0) <= tolerance + 1e-12),
         })
     return reports
-

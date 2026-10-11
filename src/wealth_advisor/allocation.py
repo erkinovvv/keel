@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict, dataclass, replace
-from typing import Iterable
+from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 
@@ -202,6 +202,8 @@ def _refine_class_weights(
     investor_class: int,
     market_estimate: object | None = None,
     use_black_litterman: bool = False,
+    bl_tau: float = 0.05,
+    bl_views: Sequence[tuple[Mapping[str, float], float, float]] = (),
 ) -> dict[str, float]:
     """Apply a small projected-gradient mean-variance refinement around strategic weights."""
 
@@ -232,12 +234,7 @@ def _refine_class_weights(
             [market_estimate.annual_covariance[left][right] for right in active]
             for left in active
         ])
-        if use_black_litterman:
-            anchored = black_litterman_weights(market_estimate, base_weights)
-            base_weights = {asset: anchored.get(asset, 0.0) for asset in active}
-            total = sum(base_weights.values())
-            if total > 1e-12:
-                base_weights = {asset: weight / total for asset, weight in base_weights.items()}
+        anchored = black_litterman_weights(market_estimate, base_weights, tau=bl_tau, views=bl_views) if use_black_litterman else None
     base = np.array([base_weights[asset] for asset in active], dtype=float)
     lower = np.maximum(0.0, base - 0.10)
     upper = np.minimum(1.0, base + 0.10)
@@ -245,6 +242,10 @@ def _refine_class_weights(
         lower[active.index("cash")] = max(lower[active.index("cash")], 0.05)
     if "equity" in active:
         upper[active.index("equity")] = min(upper[active.index("equity")], EQUITY_CAPS[investor_class])
+    if market_estimate is not None and anchored is not None:
+        anchored_weights = np.array([anchored.get(asset, 0.0) for asset in active])
+        anchored_weights /= anchored_weights.sum()
+        base = _project_bounds(anchored_weights, lower, upper)
     target_min, target_max = VOLATILITY_BANDS[investor_class]
 
     def score(weights: np.ndarray) -> float:
@@ -314,6 +315,8 @@ def build_allocation(
     max_tolerable_loss: float | None = None,
     market_data: object | None = None,
     use_black_litterman: bool = False,
+    bl_tau: float = 0.05,
+    bl_views: Sequence[tuple[Mapping[str, float], float, float]] = (),
 ) -> Allocation:
     """Build a suitable portfolio with non-negative weights and a 35% product cap."""
 
@@ -350,7 +353,7 @@ def build_allocation(
         from .market import estimate_market_parameters
 
         market_estimate = estimate_market_parameters(market_data)
-    strategic = _refine_class_weights(strategic, eligible_by_class, investor_class, market_estimate, use_black_litterman)
+    strategic = _refine_class_weights(strategic, eligible_by_class, investor_class, market_estimate, use_black_litterman, bl_tau, bl_views)
     if liquidity_policy:
         strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
     stress_before = _worst_stress_loss(strategic) if max_tolerable_loss is not None else None
@@ -365,6 +368,7 @@ def build_allocation(
                 amount, investor_class - 1, catalog, liquidity_days=liquidity_days,
                 exclusions=excluded, cash_rate=cash_rate, max_tolerable_loss=max_tolerable_loss,
                 market_data=market_data, use_black_litterman=use_black_litterman,
+                bl_tau=bl_tau, bl_views=bl_views,
             )
             return replace(
                 lower,

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from wealth_advisor.allocation import MAX_PRODUCT_WEIGHT, build_allocation
+from wealth_advisor.allocation import MAX_PRODUCT_WEIGHT, _redistribute_missing_weight, build_allocation
 from wealth_advisor.catalog import load_catalog
 from wealth_advisor.stress import SCENARIOS, stress_test
 
@@ -70,3 +70,35 @@ def test_cn_catalog_expected_returns_are_non_decreasing():
     cn_catalog = load_catalog(Path(__file__).parents[1] / "src" / "wealth_advisor" / "data" / "products_cn.json")
     returns = [build_allocation(100_000, investor_class, cn_catalog).expected_return for investor_class in range(1, 6)]
     assert returns == sorted(returns)
+
+
+def test_missing_asset_weight_is_redistributed_proportionally():
+    catalog = load_catalog(Path(__file__).parents[1] / "src" / "wealth_advisor" / "data" / "products_cn.json")
+    eligible = {asset: [product for product in catalog if product.asset_class == asset and product.risk_class <= 3] for asset in ("cash", "bonds", "equity")}
+    weights = _redistribute_missing_weight({"cash": .15, "bonds": .40, "equity": .45}, eligible)
+    assert weights["equity"] == 0
+    assert weights["cash"] == pytest.approx(.15 / .55)
+    assert weights["bonds"] == pytest.approx(.40 / .55)
+
+
+def test_allocation_rejects_invalid_stress_limit_and_requires_market_data_for_bl():
+    with pytest.raises(ValueError, match="max_tolerable_loss"):
+        build_allocation(100_000, 4, max_tolerable_loss=1.1)
+    with pytest.raises(ValueError, match="max_tolerable_loss"):
+        build_allocation(100_000, 4, max_tolerable_loss=-0.1)
+    with pytest.raises(ValueError, match="market_data"):
+        build_allocation(100_000, 4, use_black_litterman=True)
+
+
+def test_cn_all_cash_liquidity_sleeve_respects_special_product_cap():
+    catalog = load_catalog(Path(__file__).parents[1] / "src" / "wealth_advisor" / "data" / "products_cn.json")
+    allocation = build_allocation(100_000, 1, catalog, liquidity_days=1)
+    assert sum(holding.weight for holding in allocation.holdings) == pytest.approx(1.0)
+    assert all(holding.weight <= .50 + 1e-9 for holding in allocation.holdings)
+    assert all("LIQUIDITY_SLEEVE" in holding.reason_codes for holding in allocation.holdings)
+    assert all(holding.asset_class == "cash" for holding in allocation.holdings)
+
+
+def test_excluding_every_class_cannot_produce_an_allocation():
+    with pytest.raises(ValueError, match="no suitable products"):
+        build_allocation(100_000, 3, exclusions=("cash", "bonds", "equity", "gold", "reits"))

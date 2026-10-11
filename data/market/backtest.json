@@ -51,7 +51,7 @@
    "start": "2008-01",
    "end": "2026-08",
    "realised_volatility": 0.11604979050077883,
-   "max_drawdown": 0.3439793443763025,
+   "max_drawdown": 0.34705507682191195,
    "drawdown_tolerance": 0.28,
    "drawdown_within_tolerance": false
   }
