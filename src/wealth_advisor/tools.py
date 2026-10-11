@@ -59,7 +59,10 @@ class AllocationArgs(BaseModel):
 
 class StressArgs(BaseModel):
     allocation_id: str = "latest"
-    scenario: str = "2008_gfc"
+    scenario: Literal["2008_gfc", "2020_covid", "2022_rate_shock", "custom"] = Field(
+        default="2008_gfc",
+        description="Historical scenario: use 2008_gfc for the 2008 global financial crisis.",
+    )
     custom_shocks: dict[str, float] | None = None
     max_tolerable_loss: float | None = Field(default=None, ge=0, le=1)
 

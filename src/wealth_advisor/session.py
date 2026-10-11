@@ -132,7 +132,7 @@ class AdvisorSession:
         turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
         self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
-        guarded_output = output_guard(turn.content, self._tool_results, recommendation=recommendation)
+        guarded_output = output_guard(turn.content, [*self._tool_results, self.snapshot()], recommendation=recommendation)
         if not guarded_output.allowed:
             self.audit.append("output_guard", {"allowed": False, "reasons": guarded_output.reasons})
         turn.messages[-1]["content"] = guarded_output.message
