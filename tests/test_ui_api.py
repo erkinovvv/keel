@@ -124,3 +124,5 @@ def test_crash_rehearsal_reveals_tolerance(tmp_path, monkeypatch):
     assert any("crash rehearsal" in r["text"] for r in result["profile"]["reasons"])
     events = [r["event"] for r in client.get("/api/audit").json()["records"]]
     assert {"rehearsal_started", "rehearsal_decision"} <= set(events)
+    report = client.get("/report").text
+    assert "what you said and what you did" in report and "Risk class lowered" in report

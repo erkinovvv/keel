@@ -313,6 +313,8 @@ td.r, th.r { text-align: right; }
 .tone.ok { background: var(--jade-soft); color: var(--jade-ink); }
 .tone.mid { background: var(--warning-soft); color: var(--warning); }
 .tone.low { background: var(--critical-soft); color: var(--critical); }
+.verdict-bar.stale { align-items: center; margin: 0 0 18px; }
+.verdict-bar.stale .btn { margin-left: auto; flex: none; }
 .verdict-bar.nudge { background: var(--sunken); color: var(--ink); justify-content: space-between; align-items: center; }
 .sheet:has(.fan) { position: relative; }
 .fan { width: 100%; height: auto; display: block; overflow: visible; }

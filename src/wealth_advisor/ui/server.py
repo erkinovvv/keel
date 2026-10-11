@@ -571,6 +571,8 @@ def advice_report(response: Response, wa_sid: str | None = Cookie(default=None))
     count = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip()) if path.exists() else 0
     html, digest = render_report(
         profile=profile, client=_client(file), allocation=allocation, stress=stress_results, goal=file.goal,
+        rehearsal=file.rehearsals[-1] if file.rehearsals else None,
+        stated_reaction=_answers_from_profile(profile).get("drawdown_reaction"),
         products={p.id: p for p in load_catalog()}, audit_valid=valid, audit_records=count,
         signed=file.signed, model_mode=file.session.settings.llm_mode,
     )

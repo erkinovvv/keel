@@ -21,6 +21,10 @@ def _pct(v: float, d: int = 1) -> str:
     return f"{v * 100:.{d}f}%"
 
 
+def _month(ym: str) -> str:
+    return datetime.strptime(ym, "%Y-%m").strftime("%B %Y")
+
+
 def _money(v: float) -> str:
     return f"{v:,.0f}"
 
@@ -32,6 +36,8 @@ def render_report(
     allocation: Any | None,
     stress: list[Any],
     goal: dict[str, Any] | None,
+    rehearsal: dict[str, Any] | None = None,
+    stated_reaction: str | None = None,
     products: dict[str, Any],
     audit_valid: bool,
     audit_records: int,
@@ -42,12 +48,13 @@ def render_report(
 
     now = datetime.now(timezone.utc)
     sections: list[str] = []
+    number = iter(range(1, 20))
 
     flags = "".join(f"<li>{escape(FLAG_LABELS.get(f, f))}</li>" for f in profile.vulnerability_flags)
     reasons = "".join(f"<li>{escape(explain_reason(code))}</li>" for code in profile.reason_codes)
     sections.append(f"""
       <section>
-        <h2>1. Your risk profile</h2>
+        <h2>{next(number)}. Your risk profile</h2>
         <div class="facts">
           <div><span>Risk class</span><b>C{profile.investor_class} · {CLASS_NAMES[profile.investor_class]}</b></div>
           <div><span>Capacity for loss</span><b>C{profile.capacity_class}</b></div>
@@ -69,7 +76,7 @@ def render_report(
         )
         sections.append(f"""
       <section>
-        <h2>2. Recommended portfolio</h2>
+        <h2>{next(number)}. Recommended portfolio</h2>
         <div class="facts">
           <div><span>Amount</span><b>{_money(allocation.amount)}</b></div>
           <div><span>Expected return a year</span><b>{_pct(allocation.expected_return, 2)}</b></div>
@@ -85,7 +92,7 @@ def render_report(
         r, g = goal["result"], goal["input"]
         sections.append(f"""
       <section>
-        <h2>3. Your goal</h2>
+        <h2>{next(number)}. Your goal</h2>
         <p><b>{escape(g['name'])}</b>: {_money(r['target_nominal'])} in {g['years']} years, saving {_money(g['monthly'])} a month.</p>
         <div class="facts">
           <div><span>Chance of reaching it</span><b>{r['probability'] * 100:.0f}%</b></div>
@@ -94,6 +101,25 @@ def render_report(
           <div><span>Saving for an 80% chance</span><b>{_money(r['required_monthly']) + ' a month' if r['required_monthly'] is not None else 'n/a'}</b></div>
         </div>
         <p class="note">{escape('; '.join(r['assumptions']))}.</p>
+      </section>""")
+
+    if rehearsal:
+        r = rehearsal
+        sold = r["action"] == "sell"
+        did = f"Sold in {_month(r['month'])}, {_pct(r['drawdown_at_decision'])} below the peak" if sold else f"Held through a {_pct(r['max_drawdown'])} fall (bottom in {_month(r['trough_month'])})" + (" and bought more" if r["action"] == "buy_more" else "")
+        verdict = (f"Risk class lowered from C{r['previous_class']} to C{r['new_class']}" if r["new_class"] < r["previous_class"] else f"Risk class C{r['new_class']} confirmed")
+        sections.append(f"""
+      <section>
+        <h2>{next(number)}. Crash rehearsal: what you said and what you did</h2>
+        <p>Before investing, you replayed October 2007 to March 2013 month by month with real market returns, holding the recommended portfolio, and could sell at any point.</p>
+        <div class="facts">
+          <div><span>You said, after a 20% fall</span><b>{escape((stated_reaction or "—").replace("_", " "))}</b></div>
+          <div><span>What you did</span><b>{escape(did)}</b></div>
+          <div><span>Value by March 2013 if held</span><b>{_money(r['final_value_if_held'])}</b></div>
+          <div><span>Value after your choice</span><b>{_money(r['final_value_of_choice'])}</b></div>
+          <div><span>Result</span><b>{verdict}</b></div>
+        </div>
+        <p class="note">Revealed behaviour can only lower a risk class, never raise it. Data: Kenneth R. French Data Library, FRED GS10, World Bank commodity prices; US markets as a proxy.</p>
       </section>""")
 
     if stress:
@@ -105,7 +131,7 @@ def render_report(
         )
         sections.append(f"""
       <section>
-        <h2>{4 if goal else 3}. Stress test</h2>
+        <h2>{next(number)}. Stress test</h2>
         <p>Historical shocks replayed on the recommended portfolio, compared with the {_pct(tolerance, 0)} loss you said you could accept in a bad year.</p>
         <table><thead><tr><th>Scenario</th><th class=r>Loss</th><th class=r>Amount</th><th>Against your limit</th></tr></thead><tbody>{rows}</tbody></table>
       </section>""")

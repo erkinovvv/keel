@@ -316,8 +316,23 @@ async function loadAllocation(amount, level, narrate) {
       `For ${money(a.amount)} I suggest ${mix}.`,
       `After fees, that mix has an expected return of about <strong>${pct(a.expected_return)}</strong> a year, with typical yearly swings of ${pct(a.volatility)}. These are estimates, not promises.`,
       `Tap any underlined number to see exactly which calculation produced it.`,
+      `Before any money moves, I'd like you to live through 2008 with this exact portfolio. It takes 90 seconds and tells us both more than the questionnaire did. Open <strong>Rehearse</strong> when you're ready.`,
     ]);
   }
+}
+
+function staleBanner() {
+  const a = state.allocation, p = state.profile;
+  if (!a || !p || a.investor_class <= p.investor_class) return "";
+  return `<div class="verdict-bar bad stale"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg><div><strong>This portfolio was built for C${a.investor_class}, but your risk class is now C${p.investor_class}.</strong> Rebuild it before placing any orders.</div><button class="btn" type="button" data-rebuild>Rebuild at C${p.investor_class}</button></div>`;
+}
+
+function wireStale() {
+  panel.querySelectorAll("[data-rebuild]").forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    await loadAllocation(state.allocation.amount, state.profile.investor_class, true);
+    go("portfolio");
+  }));
 }
 
 async function renderPortfolio() {
@@ -333,6 +348,7 @@ async function renderPortfolio() {
   panel.innerHTML = `
     <h1>Your recommended portfolio</h1>
     <p class="lede">Built from your risk class with fixed allocation rules and a 35% cap per product. Only products rated R${a.investor_class} or lower are eligible.</p>
+    ${staleBanner()}
     <div class="kpis">
       <div class="kpi"><div class="k">Expected return</div><span class="v">${num(pct(a.expected_return, 2), prov, "Expected annual return, net of fees")}</span><div class="h">per year, after fees</div></div>
       <div class="kpi"><div class="k">Volatility</div><span class="v">${num(pct(a.volatility, 2), prov, "Annual portfolio volatility")}</span><div class="h">typical yearly swing</div></div>
@@ -387,6 +403,7 @@ async function renderPortfolio() {
   let t;
   $("#wiAmount").oninput = (e) => { clearTimeout(t); t = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
   $("#toRehearse").onclick = () => go("rehearse");
+  wireStale();
   $("#toGoal").onclick = () => go("goal");
   $("#toStress").onclick = () => go("stress");
   $("#toCompare").onclick = () => go("compare");
@@ -478,6 +495,9 @@ async function startRehearsal() {
   document.body.append(stage);
   stage.focus();
 
+  // ?demo plays the same months about three times faster, for recorded demos.
+  const fast = new URLSearchParams(location.search).has("demo");
+  const pace = { start: fast ? 600 : 1200, crash: fast ? 650 : 1500, recovery: fast ? 110 : 330 };
   let i = 0, done = false, boughtAt = null, timer = null;
   const tick = () => {
     if (done) return;
@@ -499,7 +519,7 @@ async function startRehearsal() {
     if (i === troughIndex) $("#thHint").textContent = "This is the moment most investors sell.";
     if (i === troughIndex + 3) $("#thHint").textContent = "Doing nothing means you hold.";
     if (i >= pts.length - 1) return finish(boughtAt === null ? "hold" : "buy_more", boughtAt ?? i);
-    timer = setTimeout(tick, i < troughIndex + 2 ? 1500 : 330);
+    timer = setTimeout(tick, i < troughIndex + 2 ? pace.crash : pace.recovery);
   };
   const finish = async (action, index) => {
     if (done) return;
@@ -522,7 +542,7 @@ async function startRehearsal() {
   $("#thBuy").onclick = (e) => { if (boughtAt === null) { boughtAt = i; e.target.textContent = "Bought more"; e.target.disabled = true; } };
   $("#thQuit").onclick = () => { done = true; clearTimeout(timer); stage.remove(); note("Rehearsal stopped. Nothing was recorded about your risk class."); };
   stage.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#thQuit").click(); });
-  timer = setTimeout(tick, 1200);
+  timer = setTimeout(tick, pace.start);
 }
 
 function resultCard(o) {
@@ -551,7 +571,7 @@ function resultCard(o) {
 
 function wireResult() {
   const b = $("#rebuildAtNew");
-  if (b) b.onclick = async () => { await loadAllocation(state.allocation.amount, state.profile.investor_class, true); go("portfolio"); };
+  if (b) b.onclick = async () => { b.disabled = true; await loadAllocation(state.allocation.amount, state.profile.investor_class, true); go("portfolio"); };
 }
 
 function narrateOutcome(o) {
@@ -897,6 +917,11 @@ function renderDisclosure(t) {
 }
 
 async function renderTicket() {
+  if (staleBanner()) {
+    panel.innerHTML = `<h1>Review and confirm</h1><p class="lede">Your risk class changed after this portfolio was built.</p>${staleBanner()}`;
+    wireStale();
+    return;
+  }
   panel.innerHTML = `<p class="empty">Preparing your order ticket…</p>`;
   if (!state.drafts) {
     try { state.drafts = await api("/api/orders/draft", { method: "POST" }); }
@@ -910,6 +935,7 @@ async function renderTicket() {
   panel.innerHTML = `
     <h1>Review and confirm</h1>
     <p class="lede">These orders match your recommended portfolio exactly. Every line passed the suitability, liquidity and limit checks on the server.</p>
+    ${state.rehearsal ? "" : `<div class="verdict-bar nudge"><div><strong>You haven't rehearsed a crash with this portfolio yet.</strong> Most people who sell at the bottom never expected to.</div><button class="btn secondary" type="button" id="goRehearse">Rehearse first</button></div>`}
     <div class="exec">
       <div class="ticket">
         <div class="ticket-head">
@@ -950,6 +976,8 @@ async function renderTicket() {
       </div>
     </div>`;
   if (now.length) wireHold($("#hold"), now);
+  const gr = $("#goRehearse");
+  if (gr) gr.onclick = () => go("rehearse");
 }
 
 function wireHold(btn, orders) {
