@@ -178,6 +178,16 @@ def test_complete_first_message_gets_no_greeting_directive(tmp_path):
     assert "do not greet or ask for the goal" in system
 
 
+def test_latest_message_language_instruction_defaults_to_english_or_chinese(tmp_path):
+    session = make_session(tmp_path)
+    english_system = session._messages_for_turn("Please explain the portfolio.")[0]["content"]
+    chinese_system = session._messages_for_turn("请解释这个投资组合。")[0]["content"]
+    assert english_system.endswith("Reply in English.")
+    assert chinese_system.endswith("请用中文回复。")
+    assert AdvisorSession._language_instruction("Hello") == "Reply in English."
+    assert AdvisorSession._language_instruction("你好") == "请用中文回复。"
+
+
 def test_complete_state_fallback_omits_empty_missing_clause():
     reply = AdvisorSession._state_fallback_message(
         {"profile": {}, "allocation": {}, "stress_results": {"stress-1": {}}},

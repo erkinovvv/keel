@@ -118,8 +118,17 @@ class AdvisorSession:
         system = self.agent.system_message(self.state.summary())
         if self._contains_complete_fact_summary(user_message):
             system["content"] += "\nThis first message contains a complete fact pattern; do not greet or ask for the goal. Save facts, score the profile, and proceed with the requested advice now."
+        system["content"] += f"\n{self._language_instruction(user_message)}"
         history = trim_complete_turns(self.messages, max_turns=4)
         return [system, *history, {"role": "user", "content": user_message}]
+
+    @staticmethod
+    def _language_instruction(message: str) -> str:
+        """Select a deterministic response language from the latest client message."""
+
+        if any("\u4e00" <= character <= "\u9fff" for character in message):
+            return "请用中文回复。"
+        return "Reply in English."
 
     @staticmethod
     def _contains_complete_fact_summary(message: str) -> bool:
