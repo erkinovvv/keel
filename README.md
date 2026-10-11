@@ -4,7 +4,20 @@
 
 Lucid runs the workflow of a licensed wealth advisor — fact-find, risk profiling, product
 comparison, asset allocation, stress testing and client-confirmed execution — in a natural
-conversation. What makes it different is that every recommendation can be checked:
+conversation. Two things make it different.
+
+**1. Crash Rehearsal — it stress-tests the investor, not just the portfolio.** Before any money
+moves, the client lives through October 2007 – March 2013 with the exact portfolio we recommend,
+month by month on real market data (Kenneth R. French Data Library, FRED, World Bank), with the
+headlines of the time and a *Sell everything* button. Where they actually sell reveals their risk
+tolerance far better than a questionnaire answer. Revealed tolerance can only lower the risk class,
+never raise it, and the result goes into the audit log and the client's Advice Report.
+
+![Crash Rehearsal: the client's own portfolio replayed through 2008](docs/img/rehearsal.png)
+
+![Rehearsal result: stated versus revealed tolerance](docs/img/rehearsal_result.png)
+
+**2. Every recommendation can be checked:**
 
 - **Every number comes from audited code, never from the model.** Tap any figure in the UI to see
   the function that computed it and the audit record it was written to.
@@ -29,7 +42,7 @@ conversation. What makes it different is that every recommendation can be checke
 | Client risk profiling | Capacity vs tolerance questionnaire → C1–C5 with reason codes and client-protection caps (`profiling.py`) |
 | Product comparison | Suitable products ranked by return per unit of risk after fees, with fee cost over the client's horizon (`catalog.py`) |
 | Compliant, explainable allocation | Strategic weights per class, suitability and liquidity constraints, product caps, reason codes per holding (`allocation.py`, `compliance.py`) |
-| Beyond the brief | Monte Carlo goal planning, historical stress tests against the client's own loss limit, Advice Report, simulated execution |
+| Beyond the brief | **Crash Rehearsal** (behavioural risk profiling, `rehearsal.py`), Monte Carlo goal planning, historical stress tests against the client's own loss limit, Advice Report, simulated execution |
 
 ## Quick start
 
