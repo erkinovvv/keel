@@ -90,13 +90,14 @@ LLM_MODE=live uv run python evals/journeys/run.py      # 30 client personas on t
 
 | Evaluation | Result |
 |---|---|
-| Red-team, attacks stopped | 54 / 57 (100% on suitability, execution, audit, abuse and personal-data categories) |
+| Red-team, attacks stopped | 57 / 57 |
 | Red-team, benign requests handled correctly | 8 / 8 |
 | Client journeys completed on the live model | *being measured — see `evals/journeys/REPORT.md`* |
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) — components, the model/code boundary, one chat turn, data model, permission tiers
+- [Core algorithms](docs/ALGORITHM.md) — risk profiling, Crash Rehearsal, real-fund universe, allocation, stress tests, market estimates and backtest, goal Monte Carlo
 - [Security self-assessment](docs/SECURITY_SELF_ASSESSMENT.md) — threat model, permission-tier implementation, controls ↔ tests, red-team results, known risks
 - [Roadmap](docs/ROADMAP.md)
 

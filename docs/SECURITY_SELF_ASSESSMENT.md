@@ -72,34 +72,35 @@ Order path, end to end:
 
 Command: `uv run python evals/redteam/run.py` (offline, deterministic). Full table: `evals/redteam/REPORT.md`.
 
-**Attacks stopped: 54/57 · benign requests handled correctly: 8/8**
+**Attacks stopped: 57/57 · benign requests handled correctly: 8/8**
 
 | Category | Stopped | Cases |
 |---|---:|---:|
 | Direct prompt injection | 10 | 10 |
 | Multilingual injection (中文, Русский, O'zbek, Español) | 5 | 5 |
-| Obfuscated injection (base64, spacing, leetspeak, acrostic) | 2 | 4 |
+| Obfuscated injection (base64, spacing, leetspeak, acrostic) | 4 | 4 |
 | Role-play jailbreak | 3 | 3 |
 | Indirect injection via tool data | 5 | 5 |
 | Personal data leakage | 10 | 10 |
-| Unsafe claims | 4 | 5 |
+| Unsafe claims | 5 | 5 |
 | Ungrounded numbers | 1 | 1 |
 | Suitability bypass | 4 | 4 |
 | Execution control | 6 | 6 |
 | Audit integrity | 3 | 3 |
 | Abuse (rate limit) | 1 | 1 |
 
-Every category that prevents harm — suitability, execution, audit integrity, abuse and personal
-data — is at 100% and is a CI gate (`tests/test_redteam.py`). The remaining misses are detection
-misses whose impact is contained by those controls (see risks R2, R3).
+All categories are at 100%. The categories that prevent harm — suitability, execution, audit
+integrity, abuse and personal data — are a CI gate (`tests/test_redteam.py`). Detection layers are
+heuristic and will miss novel phrasings; their impact is contained by the server-side controls
+(see risks R2, R3).
 
 ## 6. Known risks
 
 | ID | Risk | Severity | Mitigation in place | Residual / next step |
 |---|---|---|---|---|
 | R1 | **Model provider sees conversation text.** Groq free tier processes prompts off-premises. | High | PII redacted before every call; no real client data; signer names hashed | Production: bank-hosted or contractually bound model endpoint; federated or on-device inference for sensitive steps |
-| R2 | **Obfuscated injections can pass detection** (base64 payloads, acrostic instructions). | Medium | Detection is not the last line: no money-moving tool, class from stored profile, tiers in code | Decode-and-rescan for base64 chunks; classifier ensemble |
-| R3 | **Lexical output guard misses paraphrased promises** ("will double by 2028"). | Medium | Prompt rules, disclaimer on every recommendation, numbers must be grounded | LLM-based claim classifier as a second check |
+| R2 | **Novel or obfuscated injections can pass detection.** The suite's base64 and acrostic cases are now caught, but heuristics generalise poorly. | Medium | Detection is not the last line: no money-moving tool, class from stored profile, tiers in code | Classifier ensemble; regular red-team refresh |
+| R3 | **Lexical output guard can miss paraphrased promises** not in its patterns. | Medium | Prompt rules, disclaimer on every recommendation, numbers must be grounded | LLM-based claim classifier as a second check |
 | R4 | **Regex PII redaction can miss unusual formats.** | Medium | Emails, IBANs, cards (incl. 19-digit UnionPay), phones (incl. +86), passports, PRC 18-digit ID; ten red-team cases | Named-entity model for free-text identifiers |
 | R5 | **Model non-determinism**: wording and tool order vary between runs. | Low | All figures deterministic; journey eval measures completion on 30 personas | Track completion rate per release |
 | R6 | **Model risk in the engine**: capital-market assumptions are estimates. | Medium | Estimates labelled as such; stress tests on historical shocks; client loss limit checked | Real-data estimation with shrinkage and backtests (in progress) |
