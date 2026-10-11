@@ -1,0 +1,759 @@
+{
+ "name": "2008 global financial crisis and recovery",
+ "base_month": "2007-09",
+ "window": [
+  "2007-10",
+  "2013-03"
+ ],
+ "method": "Monthly total returns per asset class. Bonds approximated from 10-year Treasury yield changes with duration 6. US data as a proxy for global markets.",
+ "sources": [
+  {
+   "asset": "equity, cash",
+   "source": "Kenneth R. French Data Library, Fama/French 3 Factors (monthly)",
+   "url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
+  },
+  {
+   "asset": "reits",
+   "source": "Kenneth R. French Data Library, 49 Industry Portfolios, value-weighted RlEst",
+   "url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
+  },
+  {
+   "asset": "bonds",
+   "source": "FRED GS10, Board of Governors of the Federal Reserve System",
+   "url": "https://fred.stlouisfed.org/series/GS10"
+  },
+  {
+   "asset": "gold",
+   "source": "World Bank Commodity Price Data (Pink Sheet) via datasets/gold-prices, ODC-PDDL",
+   "url": "https://github.com/datasets/gold-prices"
+  }
+ ],
+ "months": [
+  {
+   "month": "2007-10",
+   "returns": {
+    "equity": 0.0211,
+    "bonds": 0.003167,
+    "cash": 0.0032,
+    "gold": 0.058906,
+    "reits": -0.0065
+   },
+   "headline": "US stocks close at an all-time high"
+  },
+  {
+   "month": "2007-11",
+   "returns": {
+    "equity": -0.0446,
+    "bonds": 0.026575,
+    "cash": 0.0034,
+    "gold": 0.06755,
+    "reits": -0.1184
+   },
+   "headline": null
+  },
+  {
+   "month": "2007-12",
+   "returns": {
+    "equity": -0.006,
+    "bonds": 0.006458,
+    "cash": 0.0027,
+    "gold": -0.003722,
+    "reits": -0.0811
+   },
+   "headline": null
+  },
+  {
+   "month": "2008-01",
+   "returns": {
+    "equity": -0.0612,
+    "bonds": 0.025017,
+    "cash": 0.0021,
+    "gold": 0.108344,
+    "reits": 0.0011
+   },
+   "headline": "Fed cuts rates in an emergency move as markets slide"
+  },
+  {
+   "month": "2008-02",
+   "returns": {
+    "equity": -0.0296,
+    "bonds": 0.003117,
+    "cash": 0.0013,
+    "gold": 0.035955,
+    "reits": -0.0604
+   },
+   "headline": null
+  },
+  {
+   "month": "2008-03",
+   "returns": {
+    "equity": -0.0077,
+    "bonds": 0.016917,
+    "cash": 0.0017,
+    "gold": 0.049892,
+    "reits": 0.0072
+   },
+   "headline": "Bear Stearns rescued in a deal with JPMorgan"
+  },
+  {
+   "month": "2008-04",
+   "returns": {
+    "equity": 0.0479,
+    "bonds": -0.007275,
+    "cash": 0.0018,
+    "gold": -0.059917,
+    "reits": -0.0024
+   },
+   "headline": null
+  },
+  {
+   "month": "2008-05",
+   "returns": {
+    "equity": 0.0205,
+    "bonds": -0.008933,
+    "cash": 0.0018,
+    "gold": -0.023077,
+    "reits": 0.0052
+   },
+   "headline": null
+  },
+  {
+   "month": "2008-06",
+   "returns": {
+    "equity": -0.0826,
+    "bonds": -0.009967,
+    "cash": 0.0017,
+    "gold": 0.0,
+    "reits": -0.1556
+   },
+   "headline": null
+  },
+  {
+   "month": "2008-07",
+   "returns": {
+    "equity": -0.006,
+    "bonds": 0.008817,
+    "cash": 0.0015,
+    "gold": 0.057368,
+    "reits": -0.06
+   },
+   "headline": "IndyMac Bank fails; mortgage lenders under pressure"
+  },
+  {
+   "month": "2008-08",
+   "returns": {
+    "equity": 0.0166,
+    "bonds": 0.010542,
+    "cash": 0.0013,
+    "gold": -0.107447,
+    "reits": 0.0605
+   },
+   "headline": null
+  },
+  {
+   "month": "2008-09",
+   "returns": {
+    "equity": -0.092,
+    "bonds": 0.015242,
+    "cash": 0.0015,
+    "gold": -0.010727,
+    "reits": -0.0647
+   },
+   "headline": "Lehman Brothers files for bankruptcy; AIG rescued"
+  },
+  {
+   "month": "2008-10",
+   "returns": {
+    "equity": -0.1712,
+    "bonds": -0.004125,
+    "cash": 0.0008,
+    "gold": -0.027711,
+    "reits": -0.3669
+   },
+   "headline": "Congress passes $700bn bank rescue; stocks suffer their worst week in decades"
+  },
+  {
+   "month": "2008-11",
+   "returns": {
+    "equity": -0.0771,
+    "bonds": 0.019975,
+    "cash": 0.0003,
+    "gold": -0.057001,
+    "reits": -0.2751
+   },
+   "headline": "Citigroup receives a government rescue"
+  },
+  {
+   "month": "2008-12",
+   "returns": {
+    "equity": 0.0177,
+    "bonds": 0.069542,
+    "cash": 0.0,
+    "gold": 0.072273,
+    "reits": 0.0898
+   },
+   "headline": "Fed cuts rates to near zero"
+  },
+  {
+   "month": "2009-01",
+   "returns": {
+    "equity": -0.0809,
+    "bonds": -0.003983,
+    "cash": 0.0,
+    "gold": 0.052696,
+    "reits": -0.0688
+   },
+   "headline": "Job losses mount as the recession deepens"
+  },
+  {
+   "month": "2009-02",
+   "returns": {
+    "equity": -0.1013,
+    "bonds": -0.0189,
+    "cash": 0.0001,
+    "gold": 0.097788,
+    "reits": -0.2465
+   },
+   "headline": "Stimulus package signed into law; stocks keep falling"
+  },
+  {
+   "month": "2009-03",
+   "returns": {
+    "equity": 0.0903,
+    "bonds": 0.005392,
+    "cash": 0.0002,
+    "gold": -0.020148,
+    "reits": 0.0019
+   },
+   "headline": "Stocks hit a 12-year low"
+  },
+  {
+   "month": "2009-04",
+   "returns": {
+    "equity": 0.1018,
+    "bonds": -0.00425,
+    "cash": 0.0001,
+    "gold": -0.036797,
+    "reits": 0.651
+   },
+   "headline": "Markets rally as bank stress tests approach"
+  },
+  {
+   "month": "2009-05",
+   "returns": {
+    "equity": 0.0521,
+    "bonds": -0.019158,
+    "cash": 0.0,
+    "gold": 0.04382,
+    "reits": 0.0015
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-06",
+   "returns": {
+    "equity": 0.0043,
+    "bonds": -0.023058,
+    "cash": 0.0001,
+    "gold": 0.018299,
+    "reits": 0.012
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-07",
+   "returns": {
+    "equity": 0.0775,
+    "bonds": 0.0127,
+    "cash": 0.0001,
+    "gold": -0.012685,
+    "reits": 0.0977
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-08",
+   "returns": {
+    "equity": 0.0334,
+    "bonds": 0.001167,
+    "cash": 0.0001,
+    "gold": 0.01606,
+    "reits": 0.1418
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-09",
+   "returns": {
+    "equity": 0.0409,
+    "bonds": 0.014392,
+    "cash": 0.0001,
+    "gold": 0.05058,
+    "reits": 0.0723
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-10",
+   "returns": {
+    "equity": -0.0253,
+    "bonds": 0.003433,
+    "cash": 0.0,
+    "gold": 0.046138,
+    "reits": -0.1025
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-11",
+   "returns": {
+    "equity": 0.0563,
+    "bonds": 0.002225,
+    "cash": 0.0,
+    "gold": 0.080537,
+    "reits": 0.1
+   },
+   "headline": null
+  },
+  {
+   "month": "2009-12",
+   "returns": {
+    "equity": 0.0281,
+    "bonds": -0.008567,
+    "cash": 0.0001,
+    "gold": 0.007098,
+    "reits": 0.1139
+   },
+   "headline": "A year after the panic, stocks are up sharply from the low"
+  },
+  {
+   "month": "2010-01",
+   "returns": {
+    "equity": -0.0335,
+    "bonds": -0.005408,
+    "cash": 0.0,
+    "gold": -0.014978,
+    "reits": -0.0368
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-02",
+   "returns": {
+    "equity": 0.0339,
+    "bonds": 0.005508,
+    "cash": 0.0,
+    "gold": -0.020572,
+    "reits": 0.0734
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-03",
+   "returns": {
+    "equity": 0.0631,
+    "bonds": 0.000675,
+    "cash": 0.0001,
+    "gold": 0.016438,
+    "reits": 0.1367
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-04",
+   "returns": {
+    "equity": 0.02,
+    "bonds": -0.004092,
+    "cash": 0.0001,
+    "gold": 0.032345,
+    "reits": 0.0581
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-05",
+   "returns": {
+    "equity": -0.0789,
+    "bonds": 0.029008,
+    "cash": 0.0001,
+    "gold": 0.048738,
+    "reits": -0.1203
+   },
+   "headline": "Euro-area debt crisis shakes markets"
+  },
+  {
+   "month": "2010-06",
+   "returns": {
+    "equity": -0.0555,
+    "bonds": 0.01605,
+    "cash": 0.0001,
+    "gold": 0.023237,
+    "reits": -0.1293
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-07",
+   "returns": {
+    "equity": 0.0693,
+    "bonds": 0.014067,
+    "cash": 0.0001,
+    "gold": -0.032441,
+    "reits": 0.1419
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-08",
+   "returns": {
+    "equity": -0.0477,
+    "bonds": 0.021108,
+    "cash": 0.0001,
+    "gold": 0.019279,
+    "reits": -0.07
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-09",
+   "returns": {
+    "equity": 0.0956,
+    "bonds": 0.00525,
+    "cash": 0.0001,
+    "gold": 0.04523,
+    "reits": 0.1264
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-10",
+   "returns": {
+    "equity": 0.0388,
+    "bonds": 0.008808,
+    "cash": 0.0001,
+    "gold": 0.055862,
+    "reits": -0.0179
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-11",
+   "returns": {
+    "equity": 0.006,
+    "bonds": -0.011083,
+    "cash": 0.0001,
+    "gold": 0.020864,
+    "reits": 0.0012
+   },
+   "headline": null
+  },
+  {
+   "month": "2010-12",
+   "returns": {
+    "equity": 0.0683,
+    "bonds": -0.0295,
+    "cash": 0.0001,
+    "gold": 0.015328,
+    "reits": 0.0772
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-01",
+   "returns": {
+    "equity": 0.0199,
+    "bonds": -0.003258,
+    "cash": 0.0001,
+    "gold": -0.022286,
+    "reits": 0.0222
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-02",
+   "returns": {
+    "equity": 0.0349,
+    "bonds": -0.008575,
+    "cash": 0.0001,
+    "gold": 0.011029,
+    "reits": 0.0862
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-03",
+   "returns": {
+    "equity": 0.0046,
+    "bonds": 0.013183,
+    "cash": 0.0001,
+    "gold": 0.034909,
+    "reits": 0.0106
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-04",
+   "returns": {
+    "equity": 0.029,
+    "bonds": -0.000158,
+    "cash": 0.0,
+    "gold": 0.040759,
+    "reits": 0.0524
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-05",
+   "returns": {
+    "equity": -0.0127,
+    "bonds": 0.020283,
+    "cash": 0.0,
+    "gold": 0.021607,
+    "reits": -0.0333
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-06",
+   "returns": {
+    "equity": -0.0174,
+    "bonds": 0.012842,
+    "cash": 0.0,
+    "gold": 0.010575,
+    "reits": -0.0346
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-07",
+   "returns": {
+    "equity": -0.0235,
+    "bonds": 0.0025,
+    "cash": 0.0,
+    "gold": 0.028777,
+    "reits": -0.0386
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-08",
+   "returns": {
+    "equity": -0.0595,
+    "bonds": 0.0445,
+    "cash": 0.0001,
+    "gold": 0.118245,
+    "reits": -0.1254
+   },
+   "headline": "US credit rating downgraded; markets swing"
+  },
+  {
+   "month": "2011-09",
+   "returns": {
+    "equity": -0.0758,
+    "bonds": 0.021117,
+    "cash": 0.0,
+    "gold": 0.007391,
+    "reits": -0.1563
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-10",
+   "returns": {
+    "equity": 0.1133,
+    "bonds": -0.00855,
+    "cash": 0.0,
+    "gold": -0.059819,
+    "reits": 0.1634
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-11",
+   "returns": {
+    "equity": -0.0027,
+    "bonds": 0.010192,
+    "cash": 0.0,
+    "gold": 0.043818,
+    "reits": 0.0037
+   },
+   "headline": null
+  },
+  {
+   "month": "2011-12",
+   "returns": {
+    "equity": 0.0075,
+    "bonds": 0.003475,
+    "cash": 0.0,
+    "gold": -0.056929,
+    "reits": 0.0146
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-01",
+   "returns": {
+    "equity": 0.0505,
+    "bonds": 0.00225,
+    "cash": 0.0,
+    "gold": 0.008537,
+    "reits": 0.1049
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-02",
+   "returns": {
+    "equity": 0.0442,
+    "bonds": 0.001642,
+    "cash": 0.0,
+    "gold": 0.055018,
+    "reits": 0.0745
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-03",
+   "returns": {
+    "equity": 0.0312,
+    "bonds": -0.010358,
+    "cash": 0.0,
+    "gold": -0.039542,
+    "reits": 0.0571
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-04",
+   "returns": {
+    "equity": -0.0085,
+    "bonds": 0.009008,
+    "cash": 0.0,
+    "gold": -0.01611,
+    "reits": 0.0284
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-05",
+   "returns": {
+    "equity": -0.0616,
+    "bonds": 0.016708,
+    "cash": 0.0001,
+    "gold": -0.036386,
+    "reits": -0.0598
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-06",
+   "returns": {
+    "equity": 0.0389,
+    "bonds": 0.0123,
+    "cash": 0.0,
+    "gold": 0.006293,
+    "reits": 0.0407
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-07",
+   "returns": {
+    "equity": 0.0079,
+    "bonds": 0.00675,
+    "cash": 0.0,
+    "gold": -0.003127,
+    "reits": -0.024
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-08",
+   "returns": {
+    "equity": 0.0255,
+    "bonds": -0.007725,
+    "cash": 0.0001,
+    "gold": 0.022585,
+    "reits": 0.0493
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-09",
+   "returns": {
+    "equity": 0.0274,
+    "bonds": -0.001,
+    "cash": 0.0001,
+    "gold": 0.070552,
+    "reits": 0.0332
+   },
+   "headline": "Central banks launch new support programmes"
+  },
+  {
+   "month": "2012-10",
+   "returns": {
+    "equity": -0.0175,
+    "bonds": -0.000367,
+    "cash": 0.0001,
+    "gold": 0.001146,
+    "reits": -0.011
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-11",
+   "returns": {
+    "equity": 0.0079,
+    "bonds": 0.007458,
+    "cash": 0.0001,
+    "gold": -0.01431,
+    "reits": 0.0073
+   },
+   "headline": null
+  },
+  {
+   "month": "2012-12",
+   "returns": {
+    "equity": 0.0119,
+    "bonds": -0.002825,
+    "cash": 0.0001,
+    "gold": -0.021487,
+    "reits": 0.0591
+   },
+   "headline": null
+  },
+  {
+   "month": "2013-01",
+   "returns": {
+    "equity": 0.0557,
+    "bonds": -0.009967,
+    "cash": 0.0,
+    "gold": -0.007715,
+    "reits": 0.0589
+   },
+   "headline": null
+  },
+  {
+   "month": "2013-02",
+   "returns": {
+    "equity": 0.0128,
+    "bonds": -0.002608,
+    "cash": 0.0,
+    "gold": -0.026316,
+    "reits": 0.0319
+   },
+   "headline": null
+  },
+  {
+   "month": "2013-03",
+   "returns": {
+    "equity": 0.0404,
+    "bonds": 0.00285,
+    "cash": 0.0,
+    "gold": -0.021499,
+    "reits": 0.0635
+   },
+   "headline": "US stocks return to their 2007 peak"
+  }
+ ]
+}
