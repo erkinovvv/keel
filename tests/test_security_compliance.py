@@ -2,7 +2,7 @@ from wealth_advisor.allocation import build_allocation
 from wealth_advisor.catalog import load_catalog
 from wealth_advisor.compliance import DISCLAIMER, output_guard, pretrade_check, suitability_check
 from wealth_advisor.profiling import profile_investor
-from wealth_advisor.security import RateLimiter, input_guard, tool_output_guard
+from wealth_advisor.security import RateLimiter, input_guard, redact_pii, tool_output_guard
 
 
 ANSWERS = {
@@ -22,6 +22,20 @@ def test_input_guard_redacts_pii_and_blocks_injection():
     assert not decision.allowed
     assert "[EMAIL_REDACTED]" in decision.text
     assert decision.pii_redacted
+
+
+def test_identity_and_mobile_redaction_never_leaks_identifier():
+    cases = (
+        ("My passport number is K1234567", "K1234567", "[PASSPORT_REDACTED]"),
+        ("passport no. E12345678", "E12345678", "[PASSPORT_REDACTED]"),
+        ("my passport: X9876543", "X9876543", "[PASSPORT_REDACTED]"),
+        ("ID number is 123456789012345678", "123456789012345678", "[NATIONAL_ID_REDACTED]"),
+        ("Chinese mobile +86 138 0013 8000", "+86 138 0013 8000", "[PHONE_REDACTED]"),
+    )
+    for text, identifier, placeholder in cases:
+        redacted, _ = redact_pii(text)
+        assert identifier not in redacted
+        assert placeholder in redacted
 
 
 def test_tool_output_guard_blocks_injected_catalog_text():

@@ -20,10 +20,10 @@ _INJECTION_PATTERNS = (
 _PII_PATTERNS = (
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")),
     ("IBAN", re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b", re.I)),
-    ("CARD", re.compile(r"\b(?:\d[ -]*?){13,19}\b")),
+    ("PASSPORT", re.compile(r"\bpassport\b(?:\s+(?:number|no\.?))?(?:\s+is\s+|\s*[:#-]\s*|\s+)(?=[A-Z0-9-]*\d)[A-Z0-9-]{5,}\b", re.I)),
+    ("NATIONAL_ID", re.compile(r"\b(?:national\s+id|id\s+number)\b(?:\s+is\s+|\s*[:#-]\s*|\s+)(?=[A-Z0-9-]*\d)[A-Z0-9-]{5,}\b", re.I)),
     ("PHONE", re.compile(r"(?<!\w)\+?\d[\d ()-]{7,}\d(?!\w)")),
-    ("PASSPORT", re.compile(r"\bpassport(?:\s*(?:number|no\.?)?)?\s*[:#-]?\s*[A-Z0-9-]{5,}\b", re.I)),
-    ("NATIONAL_ID", re.compile(r"\b(?:national\s+id|id\s+number)\s*[:#-]?\s*[A-Z0-9-]{5,}\b", re.I)),
+    ("CARD", re.compile(r"\b(?:\d[ -]*?){13,19}\b")),
 )
 
 
