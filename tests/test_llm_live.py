@@ -39,6 +39,10 @@ class FakeClient:
 class RateLimitError(Exception):
     status_code = 429
 
+    def __init__(self, retry_after="1"):
+        super().__init__("rate limited")
+        self.response = SimpleNamespace(headers={"retry-after": retry_after})
+
 
 ANSWERS = {
     "horizon": "7_10y",
@@ -84,6 +88,38 @@ def test_live_429_falls_through_to_fallback_model(tmp_path):
     assert result.model == "fallback-model"
     assert result.content == "fallback"
     assert len(fake.chat.completions.calls) == 2
+
+
+def test_live_retries_an_all_429_chain_twice(tmp_path, monkeypatch):
+    fake = FakeClient([
+        RateLimitError("31"), RateLimitError("2"),
+        RateLimitError("4"), RateLimitError("3"),
+        response("recovered", total_tokens=4),
+    ])
+    audit = AuditLogger(tmp_path / "audit.jsonl")
+    waits = []
+    monkeypatch.setattr("wealth_advisor.llm.time.sleep", waits.append)
+    client = LLMClient(live_settings(tmp_path), audit, fake)
+    result = client.chat([{"role": "user", "content": "hello"}])
+    assert result.content == "recovered"
+    assert waits == [2.0, 3.0]
+    records = [json.loads(line) for line in (tmp_path / "audit.jsonl").read_text().splitlines()]
+    assert [record["event"] for record in records].count("llm_retry_wait") == 2
+
+
+def test_session_exposes_tools_by_stage(tmp_path):
+    from wealth_advisor.permissions import PermissionTier
+    from wealth_advisor.session import AdvisorSession
+
+    session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.ADVISE)
+    assert {item["function"]["name"] for item in session._tools_for_state()} == {"record_client_facts", "profile_investor"}
+    session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "horizon_years": 5})
+    session.dispatcher.dispatch("profile_investor", {"answers": {
+        "horizon": "3_7y", "liquidity_need": "within_7d", "income_stability": "stable",
+        "emergency_fund": "over_6_months", "invested_share": "under_25", "drawdown_reaction": "hold",
+        "experience": "good", "goal": "growth",
+    }})
+    assert {item["function"]["name"] for item in session._tools_for_state()} == {"build_allocation", "compare_products"}
 
 
 def test_live_malformed_json_reaches_tool_error_recovery(tmp_path):

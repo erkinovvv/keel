@@ -78,16 +78,23 @@ def _provider_schema(model: type[BaseModel]) -> dict[str, Any]:
         if reference:
             property_schema.clear()
             property_schema.update(definitions[reference.rsplit("/", 1)[-1]])
-    return schema
+    def compact(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {key: compact(item) for key, item in value.items() if key not in {"title", "default"}}
+        if isinstance(value, list):
+            return [compact(item) for item in value]
+        return value
+
+    return compact(schema)
 
 
 TOOL_SCHEMAS = [
-    {"type": "function", "function": {"name": "record_client_facts", "description": "Store validated client KYC facts", "parameters": ClientFactsArgs.model_json_schema()}},
+    {"type": "function", "function": {"name": "record_client_facts", "description": "Store validated client KYC facts.", "parameters": _provider_schema(ClientFactsArgs)}},
     {"type": "function", "function": {"name": "profile_investor", "description": "Score enumerated investor answers", "parameters": _provider_schema(ProfileArgs)}},
-    {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalog products", "parameters": CompareArgs.model_json_schema()}},
-    {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation", "parameters": AllocationArgs.model_json_schema()}},
-    {"type": "function", "function": {"name": "stress_test", "description": "Apply a historical-style portfolio stress", "parameters": StressArgs.model_json_schema()}},
-    {"type": "function", "function": {"name": "create_draft_orders", "description": "Create proposed simulated orders from a stored allocation", "parameters": DraftOrderArgs.model_json_schema()}},
+    {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalog products.", "parameters": _provider_schema(CompareArgs)}},
+    {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation.", "parameters": _provider_schema(AllocationArgs)}},
+    {"type": "function", "function": {"name": "stress_test", "description": "Apply a historical-style portfolio stress.", "parameters": _provider_schema(StressArgs)}},
+    {"type": "function", "function": {"name": "create_draft_orders", "description": "Create proposed simulated orders from a stored allocation.", "parameters": _provider_schema(DraftOrderArgs)}},
 ]
 
 

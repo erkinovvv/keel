@@ -71,58 +71,86 @@ class LLMClient:
                 self._client = OpenAI(api_key=self.settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
             response = None
             last_error: Exception | None = None
-            retry_after_seconds = 0.0
-            for model in (self.settings.primary_model, *self.settings.fallback_models):
-                try:
-                    kwargs: dict[str, Any] = {"model": model, "messages": messages, "temperature": 0}
-                    if tools:
-                        kwargs["tools"] = tools
-                    if model.startswith("openai/gpt-oss"):
-                        kwargs["reasoning_effort"] = "low"
+            models = (self.settings.primary_model, *self.settings.fallback_models)
+            for chain_attempt in range(3):
+                retry_after_values: list[float] = []
+                all_rate_limited = True
+                for model in models:
+                    try:
+                        kwargs: dict[str, Any] = {"model": model, "messages": messages, "temperature": 0}
                         if tools:
-                            kwargs["extra_body"] = {"reasoning_format": "hidden"}
-                    raw = self._client.chat.completions.create(**kwargs)
-                    message = raw.choices[0].message
-                    parsed_calls = []
-                    for call in (message.tool_calls or []):
-                        try:
-                            arguments = json.loads(call.function.arguments or "{}")
-                            if not isinstance(arguments, dict):
-                                raise ValueError("tool arguments must be a JSON object")
-                        except (TypeError, ValueError, json.JSONDecodeError):
-                            arguments = {"_malformed_arguments": call.function.arguments}
-                        parsed_calls.append(ToolCall(call.id, call.function.name, arguments))
-                    calls = tuple(parsed_calls)
-                    usage = {
-                        "prompt_tokens": getattr(raw.usage, "prompt_tokens", 0) or 0,
-                        "completion_tokens": getattr(raw.usage, "completion_tokens", 0) or 0,
-                        "total_tokens": getattr(raw.usage, "total_tokens", 0) or 0,
-                    }
-                    response = LLMResponse(message.content or "", calls, model, usage)
+                            kwargs["tools"] = tools
+                        if model.startswith("openai/gpt-oss"):
+                            kwargs["reasoning_effort"] = "low"
+                            if tools:
+                                kwargs["extra_body"] = {"reasoning_format": "hidden"}
+                        raw = self._client.chat.completions.create(**kwargs)
+                        message = raw.choices[0].message
+                        parsed_calls = []
+                        for call in (message.tool_calls or []):
+                            try:
+                                arguments = json.loads(call.function.arguments or "{}")
+                                if not isinstance(arguments, dict):
+                                    raise ValueError("tool arguments must be a JSON object")
+                            except (TypeError, ValueError, json.JSONDecodeError):
+                                arguments = {"_malformed_arguments": call.function.arguments}
+                            parsed_calls.append(ToolCall(call.id, call.function.name, arguments))
+                        calls = tuple(parsed_calls)
+                        usage = {
+                            "prompt_tokens": getattr(raw.usage, "prompt_tokens", 0) or 0,
+                            "completion_tokens": getattr(raw.usage, "completion_tokens", 0) or 0,
+                            "total_tokens": getattr(raw.usage, "total_tokens", 0) or 0,
+                        }
+                        response = LLMResponse(message.content or "", calls, model, usage)
+                        break
+                    except Exception as exc:
+                        last_error = exc
+                        is_rate_limited = getattr(exc, "status_code", None) == 429
+                        all_rate_limited = all_rate_limited and is_rate_limited
+                        if is_rate_limited:
+                            headers = getattr(getattr(exc, "response", None), "headers", {}) or getattr(exc, "headers", {})
+                            retry_after = headers.get("retry-after") or headers.get("Retry-After")
+                            if retry_after is not None:
+                                try:
+                                    retry_after_values.append(max(0.0, float(retry_after)))
+                                except (TypeError, ValueError):
+                                    pass
+                        else:
+                            all_rate_limited = False
+                        if self.audit:
+                            body = getattr(exc, "body", None)
+                            response_body = getattr(getattr(exc, "response", None), "text", None)
+                            self.audit.append(
+                                "llm_error",
+                                {
+                                    "model": model,
+                                    "error": type(exc).__name__,
+                                    "status_code": getattr(exc, "status_code", None),
+                                    "body": body if body is not None else response_body or str(exc),
+                                },
+                            )
+                if response is not None:
                     break
-                except Exception as exc:
-                    last_error = exc
-                    if getattr(exc, "status_code", None) == 429:
-                        headers = getattr(getattr(exc, "response", None), "headers", {}) or getattr(exc, "headers", {})
-                        retry_after = headers.get("retry-after") or headers.get("Retry-After")
-                        if retry_after is not None:
-                            retry_after_seconds = max(retry_after_seconds, min(float(retry_after), 20.0))
-                    if self.audit:
-                        body = getattr(exc, "body", None)
-                        response_body = getattr(getattr(exc, "response", None), "text", None)
-                        self.audit.append(
-                            "llm_error",
-                            {
-                                "model": model,
-                                "error": type(exc).__name__,
-                                "status_code": getattr(exc, "status_code", None),
-                                "body": body if body is not None else response_body or str(exc),
-                            },
-                        )
-            if response is None and retry_after_seconds:
-                time.sleep(retry_after_seconds)
+                if not all_rate_limited or chain_attempt >= 2:
+                    break
+                wait_seconds = min(retry_after_values) if retry_after_values else 1.0
+                wait_seconds = min(wait_seconds, 30.0)
+                if self.audit:
+                    self.audit.append("llm_retry_wait", {"attempt": chain_attempt + 1, "wait_seconds": wait_seconds, "reason": "all_models_rate_limited"})
+                time.sleep(wait_seconds)
             if response is None:
                 raise RuntimeError("all Groq models failed") from last_error
         if self.audit:
-            self.audit.append("llm_call", {"model": response.model, "usage": response.usage, "mode": self.settings.llm_mode, "latency_ms": (time.perf_counter() - started) * 1000})
+            self.audit.append(
+                "llm_call",
+                {
+                    "model": response.model,
+                    "usage": response.usage,
+                    "prompt_tokens": response.usage["prompt_tokens"],
+                    "completion_tokens": response.usage["completion_tokens"],
+                    "total_tokens": response.usage["total_tokens"],
+                    "mode": self.settings.llm_mode,
+                    "latency_ms": (time.perf_counter() - started) * 1000,
+                },
+            )
         return response

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from .audit import AuditLogger
 from .llm import LLMClient
@@ -23,7 +23,7 @@ class AgentTurn:
     latency_ms: float = 0.0
 
 
-def trim_complete_turns(messages: list[dict[str, Any]], max_turns: int = 6) -> list[dict[str, Any]]:
+def trim_complete_turns(messages: list[dict[str, Any]], max_turns: int = 4) -> list[dict[str, Any]]:
     """Trim only at user-turn boundaries so assistant tool calls never orphan tools."""
 
     if not messages:
@@ -58,7 +58,11 @@ class AdvisorAgent:
         state_text = json.dumps(client_state or {}, separators=(",", ":"), sort_keys=True)
         return {"role": "system", "content": f"{SYSTEM_PROMPT}\nClient state: {state_text}"}
 
-    def run_turn(self, messages: list[dict[str, Any]]) -> AgentTurn:
+    def run_turn(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | Callable[[], list[dict[str, Any]]] | None = None,
+    ) -> AgentTurn:
         """Run at most max_steps and return both final text and complete history."""
 
         messages = list(messages)
@@ -67,7 +71,8 @@ class AdvisorAgent:
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         started = time.perf_counter()
         for _ in range(self.max_steps):
-            response = self.llm.chat(messages, TOOL_SCHEMAS)
+            available_tools = tools() if callable(tools) else (TOOL_SCHEMAS if tools is None else tools)
+            response = self.llm.chat(messages, available_tools)
             for key in usage:
                 usage[key] += int(response.usage.get(key, 0))
             if not response.tool_calls:
@@ -112,5 +117,5 @@ class AdvisorAgent:
         history_messages = list(history or [])
         if history_messages and history_messages[0].get("role") == "system":
             history_messages = history_messages[1:]
-        messages = [self.system_message(), *trim_complete_turns(history_messages, max_turns=6), {"role": "user", "content": user_message}]
+        messages = [self.system_message(), *trim_complete_turns(history_messages, max_turns=4), {"role": "user", "content": user_message}]
         return self.run_turn(messages).content

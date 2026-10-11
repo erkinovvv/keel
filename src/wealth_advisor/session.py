@@ -18,6 +18,7 @@ from .compliance import output_guard
 from .security import GuardDecision, PromptGuardClassifier, RateLimiter, input_guard
 from .stress import StressResult
 from .tools import ToolDispatcher
+from .tools import TOOL_SCHEMAS
 
 
 @dataclass
@@ -102,8 +103,19 @@ class AdvisorSession:
 
     def _messages_for_turn(self, user_message: str) -> list[dict[str, Any]]:
         system = self.agent.system_message(self.state.summary())
-        history = trim_complete_turns(self.messages, max_turns=6)
+        history = trim_complete_turns(self.messages, max_turns=4)
         return [system, *history, {"role": "user", "content": user_message}]
+
+    def _tools_for_state(self) -> list[dict[str, Any]]:
+        """Expose only tools valid for the current advisory stage."""
+
+        if not self.state.profile:
+            names = {"record_client_facts", "profile_investor"}
+        elif not self.state.allocations:
+            names = {"build_allocation", "compare_products"}
+        else:
+            names = {"stress_test", "compare_products", "build_allocation"}
+        return [tool for tool in TOOL_SCHEMAS if tool["function"]["name"] in names]
 
     def send(self, user_message: str) -> str:
         """Run one complete turn while retaining only valid, complete dialogue turns."""
@@ -117,14 +129,14 @@ class AdvisorSession:
         self.audit.append("input_guard", {"allowed": guard.allowed, "reasons": guard.reasons, "pii_redacted": guard.pii_redacted, "injection_score": guard.injection_score})
         if not guard.allowed:
             return "I cannot process instruction-like requests. Please describe your financial goal directly."
-        turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text))
+        turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
         self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
         guarded_output = output_guard(turn.content, self._tool_results, recommendation=recommendation)
         if not guarded_output.allowed:
             self.audit.append("output_guard", {"allowed": False, "reasons": guarded_output.reasons})
         turn.messages[-1]["content"] = guarded_output.message
-        self.messages = trim_complete_turns(turn.messages, max_turns=6)
+        self.messages = trim_complete_turns(turn.messages, max_turns=4)
         self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary(), "usage": turn.usage, "latency_ms": turn.latency_ms})
         return guarded_output.message
 
