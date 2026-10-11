@@ -5,6 +5,7 @@ from dataclasses import replace
 import pytest
 
 from wealth_advisor.config import Settings
+from wealth_advisor.agent import AgentTurn
 from wealth_advisor.permissions import PermissionTier
 from wealth_advisor.session import AdvisorSession
 
@@ -111,3 +112,16 @@ def test_allocation_tool_uses_revealed_class_and_client_loss_limit(tmp_path):
     assert allocation["investor_class"] <= 3
     assert allocation["stress_limit_after"] <= 0.02 + 1e-9
     assert "STRESS_LIMIT_APPLIED" in allocation["reason_codes"]
+
+
+def test_guard_fallback_does_not_claim_empty_session_is_complete(tmp_path):
+    session = make_session(tmp_path)
+    turn_messages = [
+        {"role": "system", "content": "system"},
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": "The result is 123."},
+    ]
+    session.agent.run_turn = lambda messages, tools=None: AgentTurn("The result is 123.", turn_messages.copy(), [], {})
+    reply = session.send("hello")
+    assert "No investor profile, allocation, or stress test is stored" in reply
+    assert "complete" not in reply.lower()

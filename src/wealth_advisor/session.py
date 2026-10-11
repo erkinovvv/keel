@@ -165,11 +165,7 @@ class AdvisorSession:
                 turn = regenerated
                 guarded_output = guarded_regenerated
             else:
-                fallback = (
-                    "已完成您的风险评估、资产配置和压力测试；经审计的结果已保存在本次会话中。我可以继续用中文解释结果。"
-                    if language == "Chinese"
-                    else "Your investor profile, allocation, and stress test are complete. The audited results are stored in this session; I can explain them without adding figures."
-                )
+                fallback = self._state_fallback_message(self.snapshot(), language)
                 self.audit.append(
                     "output_guard",
                     {
@@ -185,6 +181,33 @@ class AdvisorSession:
         self.messages = trim_complete_turns(turn.messages, max_turns=4)
         self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary(), "usage": turn.usage, "latency_ms": turn.latency_ms})
         return guarded_output.message
+
+    @staticmethod
+    def _state_fallback_message(snapshot: dict[str, Any], language: str) -> str:
+        """Describe only advisory artifacts actually present in a session snapshot."""
+
+        stored: list[str] = []
+        missing: list[str] = []
+        if snapshot.get("profile") is not None:
+            stored.append("investor profile")
+        else:
+            missing.append("investor profile")
+        if snapshot.get("allocation") is not None:
+            stored.append("allocation")
+        else:
+            missing.append("allocation")
+        if snapshot.get("stress_results"):
+            stored.append("stress test")
+        else:
+            missing.append("stress test")
+        if language == "Chinese":
+            stored_text = "、".join(stored) if stored else "无风险档案、资产配置或压力测试结果"
+            missing_text = "、".join(missing)
+            return f"本次会话已保存：{stored_text}。尚未保存：{missing_text}。我可以继续协助您完成下一步。"
+        if stored:
+            stored_text = ", ".join(stored)
+            return f"Stored in this session: {stored_text}. Not stored yet: {', '.join(missing)}. I can continue with the next advisory step."
+        return "No investor profile, allocation, or stress test is stored in this session yet. I can continue once you share your goal and circumstances."
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:
         """Resolve a server-side allocation identifier for non-LLM callers."""
