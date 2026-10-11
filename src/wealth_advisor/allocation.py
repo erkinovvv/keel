@@ -392,6 +392,12 @@ def build_allocation(
             )
             for holding in holdings
         ]
+    stress_applied = max_tolerable_loss is not None and stress_before is not None and stress_before > max_tolerable_loss + 1e-10
+    if stress_applied:
+        holdings = [
+            Holding(holding.product_id, holding.asset_class, holding.weight, holding.amount, holding.reason_codes + ("STRESS_LIMIT_APPLIED",))
+            for holding in holdings
+        ]
     total_weight = sum(holding.weight for holding in holdings)
     if not math.isclose(total_weight, 1.0, abs_tol=1e-9):
         raise ValueError(f"allocation weights sum to {total_weight}")
@@ -418,7 +424,7 @@ def build_allocation(
         var_95_1y_parametric=float(1.645 * portfolio_volatility * amount),
         strategic_weights={asset: float(weight) for asset, weight in zip(classes, class_weights)},
         volatility_band=VOLATILITY_BANDS[investor_class],
-        reason_codes=("STRESS_LIMIT_APPLIED",) if stress_before is not None and stress_before > max_tolerable_loss + 1e-10 else (),
-        stress_limit_before=stress_before if stress_before is not None and stress_before > max_tolerable_loss + 1e-10 else None,
-        stress_limit_after=_worst_stress_loss({asset: float(weight) for asset, weight in zip(classes, class_weights)}) if stress_before is not None and stress_before > max_tolerable_loss + 1e-10 else None,
+        reason_codes=("STRESS_LIMIT_APPLIED",) if stress_applied else (),
+        stress_limit_before=stress_before if stress_applied else None,
+        stress_limit_after=_worst_stress_loss({asset: float(weight) for asset, weight in zip(classes, class_weights)}) if stress_applied else None,
     )

@@ -55,6 +55,7 @@ def test_stress_limit_reweights_before_recommending():
     assert constrained.stress_limit_before == max(stress_test(unconstrained, scenario).loss_percent for scenario in SCENARIOS)
     assert constrained.stress_limit_after == pytest.approx(max(stress_test(constrained, scenario).loss_percent for scenario in SCENARIOS))
     assert constrained.stress_limit_after <= 0.20 + 1e-9
+    assert all("STRESS_LIMIT_APPLIED" in holding.reason_codes for holding in constrained.holdings)
     assert constrained.strategic_weights["equity"] + constrained.strategic_weights["reits"] < unconstrained.strategic_weights["equity"] + unconstrained.strategic_weights["reits"]
 
 
