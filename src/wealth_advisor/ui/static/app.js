@@ -884,6 +884,7 @@ function printReceipt(r) {
   setTimeout(() => printer.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" }), 200);
   state.drafts = null;
   state.done.add("execute");
+  anchorOnReceipt(paper);
   say([
     r.executed.length
       ? `Done. ${r.executed.length} order${r.executed.length > 1 ? "s" : ""} for <strong>${money(r.total)}</strong> ${r.executed.length > 1 ? "were" : "was"} placed on your simulated account and will settle in two business days.`
@@ -891,6 +892,22 @@ function printReceipt(r) {
     ...(later.length ? [`${later.length} higher-risk order${later.length > 1 ? "s are" : " is"} held for the cooling-off period, as the rules require.`] : []),
     "The confirmation carries the audit-record hash, so this trade can be verified later.",
   ]);
+}
+
+async function anchorOnReceipt(paper) {
+  const slot = document.createElement("div");
+  slot.className = "rc-chain";
+  slot.innerHTML = `<div class="rc-rule"></div><div class="rc-dim">On-chain proof</div><div>Anchoring on Ethereum Sepolia…</div>`;
+  paper.insertBefore(slot, paper.querySelector(".stamp"));
+  try {
+    const a = await api("/api/anchor", { method: "POST" });
+    slot.lastElementChild.innerHTML = a.sent
+      ? `Ethereum Sepolia · <a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${esc(a.tx_hash.slice(0, 10))}…${esc(a.tx_hash.slice(-6))}</a><br><span class="rc-dim">audit head after ${a.record_count} records</span>`
+      : `<span class="rc-dim">Not anchored: ${esc(a.note)}</span>`;
+    refreshAudit();
+  } catch (err) {
+    slot.lastElementChild.innerHTML = `<span class="rc-dim">Not anchored: ${esc(err.message)}</span>`;
+  }
 }
 
 // ---------------------------------------------------------------- PII scramble (chat)
@@ -941,6 +958,7 @@ async function openDrawer() {
   $("#drawerStatus").textContent = a.valid
     ? `${a.total} records. Each one includes the hash of the record before it, so editing any past entry breaks the chain.`
     : `Verification failed: ${a.reason}`;
+  renderAnchors();
   $("#chain").innerHTML = a.records.map((r) => `
     <li>
       <div class="ev">${esc(r.event.replace(/_/g, " "))}</div>
@@ -951,6 +969,40 @@ async function openDrawer() {
   scrim.hidden = false;
   $("#drawerClose").focus();
 }
+async function renderAnchors() {
+  const box = $("#anchors");
+  let list = [];
+  try { list = await api("/api/anchors"); } catch { /* drawer still works without anchors */ }
+  const sent = list.filter((x) => x.sent);
+  box.innerHTML = `
+    <div class="anchor-head">
+      <div><b>Blockchain anchors</b><div class="hint">${sent.length ? `${sent.length} on Ethereum Sepolia` : "Write the current chain head to a public blockchain."}</div></div>
+      <button class="btn secondary" type="button" id="anchorNow">Anchor now</button>
+    </div>
+    ${sent.slice().reverse().map((x) => `
+      <div class="anchor-row">
+        <a href="${esc(x.explorer_url)}" target="_blank" rel="noopener">${esc(x.tx_hash.slice(0, 12))}…</a>
+        <span class="rc-dim">${x.record_count} records</span>
+        <button class="why" type="button" data-verify="${esc(x.tx_hash)}">Verify</button>
+        <span class="verify-out"></span>
+      </div>`).join("")}
+    ${list.length && !sent.length ? `<p class="hint">Last attempt: ${esc(list[list.length - 1].note)}</p>` : ""}`;
+  $("#anchorNow").onclick = async (e) => {
+    e.target.disabled = true;
+    try { await api("/api/anchor", { method: "POST" }); } catch (err) { note(err.message, "msg-error"); }
+    await openDrawer();
+  };
+  box.querySelectorAll("[data-verify]").forEach((b) => (b.onclick = async () => {
+    const out = b.nextElementSibling;
+    out.textContent = "Checking…";
+    try {
+      const v = await api(`/api/anchor/verify?tx=${b.dataset.verify}`);
+      out.textContent = v.matches ? `✓ matches the log at record ${v.record_count}, block ${v.block}` : `✗ does not match (${v.chain_reason})`;
+      out.className = `verify-out ${v.matches ? "ok" : "bad"}`;
+    } catch (err) { out.textContent = err.message; }
+  }));
+}
+
 function closeDrawer() {
   if (drawer.hidden) return;
   drawer.hidden = true;

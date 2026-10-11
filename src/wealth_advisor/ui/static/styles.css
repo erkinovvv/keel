@@ -465,6 +465,16 @@ td.r, th.r { text-align: right; }
   .confirm-zone { position: static; }
 }
 
+/* ------------------------------------------------------------ blockchain anchors */
+.rc-chain a { color: #17695a; }
+.anchors { padding: 14px 24px; border-bottom: 1px solid var(--line); }
+.anchor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.anchor-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 10px; font-size: 13px; }
+.anchor-row a { color: var(--jade-ink); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.verify-out { width: 100%; font-size: 12.5px; color: var(--ink-2); }
+.verify-out.ok { color: var(--jade-ink); }
+.verify-out.bad { color: var(--critical); }
+
 /* ------------------------------------------------------------ audit drawer */
 .scrim { position: fixed; inset: 0; background: rgba(10, 25, 22, .3); z-index: 40; }
 .drawer {

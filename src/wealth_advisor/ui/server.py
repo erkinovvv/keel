@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from wealth_advisor.allocation import Allocation, build_allocation
+from wealth_advisor.anchor import anchor_audit_log, verify_anchor
 from wealth_advisor.audit import verify_audit_log
 from wealth_advisor.catalog import compare_products, load_catalog
 from wealth_advisor.config import Settings
@@ -53,6 +54,7 @@ class ClientFile:
     allocation_count: int = 0
     goal: dict[str, Any] | None = None
     signed: bool = False
+    anchors: list[dict[str, Any]] = field(default_factory=list)
 
 
 _FILES: dict[str, ClientFile] = {}
@@ -398,6 +400,39 @@ def confirm_orders(body: ConfirmIn, response: Response, wa_sid: str | None = Coo
         "investor_class": file.session.state.profile.investor_class if file.session.state.profile else None,
         "provenance": stamp,
     }
+
+
+@app.post("/api/anchor")
+def anchor(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Write the audit-chain head hash to Ethereum Sepolia (dry run when no wallet is configured)."""
+
+    file = _file(wa_sid, response)
+    path = Path(file.session.settings.audit_log)
+    try:
+        receipt = anchor_audit_log(path)
+    except Exception as exc:  # network and RPC failures must not break the advice flow
+        _record(file, "anchor_failed", "anchor.anchor_audit_log", {"error": type(exc).__name__, "message": str(exc)[:200]})
+        raise HTTPException(502, f"Could not anchor on Sepolia: {exc}") from exc
+    view = receipt.as_dict()
+    file.anchors.append(view)
+    _record(file, "audit_anchored" if receipt.sent else "audit_anchor_dry_run", "anchor.anchor_audit_log", view)
+    return view
+
+
+@app.get("/api/anchor/verify")
+def anchor_verify(tx: str, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    file = _file(wa_sid, response)
+    if not tx.startswith("0x") or len(tx) != 66:
+        raise HTTPException(422, "Not a transaction hash.")
+    try:
+        return verify_anchor(tx, Path(file.session.settings.audit_log))
+    except Exception as exc:
+        raise HTTPException(502, f"Could not verify: {exc}") from exc
+
+
+@app.get("/api/anchors")
+def anchors(response: Response, wa_sid: str | None = Cookie(default=None)) -> list[dict[str, Any]]:
+    return _file(wa_sid, response).anchors
 
 
 @app.get("/report", response_class=HTMLResponse)
