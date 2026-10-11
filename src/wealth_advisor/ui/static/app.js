@@ -392,6 +392,7 @@ async function renderCompare(asset = "") {
         </tbody>
       </table>` : `<p class="empty">No products in this group match your risk class.</p>`}
     </div>
+    ${data.locked?.length ? `<p class="hidden-note">Not shown because you may need the money sooner than they allow withdrawals: ${data.locked.map((h) => esc(h.name)).join(", ")}.</p>` : ""}
     ${data.hidden.length ? `<p class="hidden-note">Not shown because they exceed R${state.profile.investor_class}: ${data.hidden.map((h) => `${esc(h.name)} (R${h.risk_class})`).join(", ")}.</p>` : ""}`;
   panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare(i.value)));
 }

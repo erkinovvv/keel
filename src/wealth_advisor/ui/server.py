@@ -166,7 +166,7 @@ def allocate(body: AllocationIn, response: Response, wa_sid: str | None = Cookie
         raise HTTPException(403, f"C{requested} exceeds the assessed class C{profile.investor_class}.")
     amount = body.amount or file.client["amount"]
     try:
-        allocation = build_allocation(amount, requested, load_catalog())
+        allocation = build_allocation(amount, requested, load_catalog(), liquidity_days=profile.liquidity_days)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     file.allocation_count += 1
@@ -181,10 +181,14 @@ def compare(response: Response, asset_class: str | None = None, wa_sid: str | No
     file = _file(wa_sid, response)
     profile = _require_profile(file)
     catalog = load_catalog()
-    rows = compare_products(catalog, file.client["amount"], file.client["horizon_years"], profile.investor_class, asset_class=asset_class or None)
+    rows = compare_products(
+        catalog, file.client["amount"], file.client["horizon_years"], profile.investor_class,
+        liquidity_days=profile.liquidity_days, asset_class=asset_class or None,
+    )
     hidden = [{"name": p.name, "risk_class": p.risk_class} for p in catalog if p.risk_class > profile.investor_class]
+    locked = [{"name": p.name, "liquidity_days": p.liquidity_days} for p in catalog if p.risk_class <= profile.investor_class and p.liquidity_days > profile.liquidity_days]
     stamp = _record(file, "ui_products_compared", "catalog.compare_products", {"asset_class": asset_class, "count": len(rows)})
-    return {"rows": [row.as_dict() for row in rows], "hidden": hidden, "provenance": stamp}
+    return {"rows": [row.as_dict() for row in rows], "hidden": hidden, "locked": locked, "provenance": stamp}
 
 
 @app.get("/api/stress")
