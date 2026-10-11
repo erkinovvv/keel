@@ -20,10 +20,31 @@ from .tools import ToolDispatcher
 
 
 @dataclass
+class ClientFacts:
+    """Server-side facts collected during conversational KYC."""
+
+    amount: float | None = None
+    horizon_years: int | None = None
+    max_loss: float | None = None
+    age: int | None = None
+    borrowed_money: bool | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "amount": self.amount,
+            "horizon_years": self.horizon_years,
+            "max_loss": self.max_loss,
+            "age": self.age,
+            "borrowed_money": self.borrowed_money,
+        }
+
+
+@dataclass
 class SessionState:
     """Mutable server-side state; the model only sees the compact summary."""
 
     profile: InvestorProfile | None = None
+    client: ClientFacts = field(default_factory=ClientFacts)
     amount: float | None = None
     horizon_years: int | None = None
     allocations: dict[str, Allocation] = field(default_factory=dict)
@@ -41,8 +62,9 @@ class SessionState:
         return {
             "profile_class": self.profile.class_code if self.profile else None,
             "profile_expires_on": self.profile.expires_on.isoformat() if self.profile else None,
-            "amount": self.amount,
-            "horizon_years": self.horizon_years,
+            "client": self.client.as_dict(),
+            "amount": self.client.amount if self.client.amount is not None else self.amount,
+            "horizon_years": self.client.horizon_years if self.client.horizon_years is not None else self.horizon_years,
             "latest_allocation_id": self.latest_allocation_id,
             "allocation_ids": list(self.allocations),
             "stress_result_ids": list(self.stress_results),
@@ -110,6 +132,28 @@ class AdvisorSession:
         if not resolved or resolved not in self.state.allocations:
             raise ValueError("allocation not found; build an allocation first")
         return self.state.allocations[resolved]
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return a JSON-serializable projection for UI synchronization."""
+
+        account = self.state.account
+        latest_id = self.state.latest_allocation_id
+        return {
+            "profile": self.state.profile.as_dict() if self.state.profile else None,
+            "client": self.state.client.as_dict(),
+            "latest_allocation_id": latest_id,
+            "allocation": self.state.allocations[latest_id].as_dict() if latest_id else None,
+            "allocations": {key: value.as_dict() for key, value in self.state.allocations.items()},
+            "stress_results": {key: value.as_dict() for key, value in self.state.stress_results.items()},
+            "draft_orders": {key: value.as_dict() if hasattr(value, "as_dict") else value for key, value in self.state.draft_orders.items()},
+            "account": {
+                "cash": account.cash if account else None,
+                "holdings": dict(account.holdings) if account else {},
+                "orders": {key: value.as_dict() for key, value in account.orders.items()} if account else {},
+            },
+            "tier": self.tier.name if hasattr(self.tier, "name") else str(self.tier),
+            "tier_value": int(self.tier),
+        }
 
     def _require_profile(self) -> InvestorProfile:
         from datetime import date

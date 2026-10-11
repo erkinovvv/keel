@@ -17,19 +17,27 @@ from .permissions import PermissionTier, require_tier
 class ProfileArgs(BaseModel):
     answers: dict[str, str]
     age: int | None = Field(default=None, ge=18, le=120)
-    borrowed_money: bool = False
+    borrowed_money: bool | None = None
+
+
+class ClientFactsArgs(BaseModel):
+    amount: float | None = Field(default=None, gt=0, le=100_000_000)
+    horizon_years: int | None = Field(default=None, ge=1, le=100)
+    max_loss: float | None = Field(default=None, ge=0, le=1)
+    age: int | None = Field(default=None, ge=18, le=120)
+    borrowed_money: bool | None = None
 
 
 class CompareArgs(BaseModel):
-    amount: float = Field(gt=0)
-    horizon_years: int = Field(gt=0, le=100)
+    amount: float | None = Field(default=None, gt=0)
+    horizon_years: int | None = Field(default=None, gt=0, le=100)
     liquidity_days: int | None = Field(default=None, ge=0)
     asset_class: str | None = None
     exclusions: list[str] = Field(default_factory=list)
 
 
 class AllocationArgs(BaseModel):
-    amount: float = Field(gt=0)
+    amount: float | None = Field(default=None, gt=0)
     liquidity_days: int | None = Field(default=None, ge=0)
     exclusions: list[str] = Field(default_factory=list)
 
@@ -38,7 +46,7 @@ class StressArgs(BaseModel):
     allocation_id: str = "latest"
     scenario: str = "2008_gfc"
     custom_shocks: dict[str, float] | None = None
-    max_tolerable_loss: float = Field(default=0.20, ge=0)
+    max_tolerable_loss: float | None = Field(default=None, ge=0, le=1)
 
 
 class DraftOrderArgs(BaseModel):
@@ -46,6 +54,7 @@ class DraftOrderArgs(BaseModel):
 
 
 TOOL_SCHEMAS = [
+    {"type": "function", "function": {"name": "record_client_facts", "description": "Store validated client KYC facts", "parameters": ClientFactsArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "profile_investor", "description": "Score enumerated investor answers", "parameters": ProfileArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalog products", "parameters": CompareArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation", "parameters": AllocationArgs.model_json_schema()}},
@@ -72,10 +81,32 @@ class ToolDispatcher:
         return self.session.state.profile.investor_class
 
     def dispatch(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        if name == "profile_investor":
+        if name == "record_client_facts":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
-            profile = profile_investor(**ProfileArgs.model_validate(arguments).model_dump())
+            facts = ClientFactsArgs.model_validate(arguments).model_dump(exclude_unset=True)
+            if not facts:
+                raise ValueError("at least one client fact is required")
+            if self.session:
+                for key, value in facts.items():
+                    setattr(self.session.state.client, key, value)
+                result = {"client": self.session.state.client.as_dict()}
+            else:
+                result = {"client": facts}
+        elif name == "profile_investor":
+            if self.session:
+                require_tier(self.session.tier, PermissionTier.ADVISE)
+            profile_args = ProfileArgs.model_validate(arguments).model_dump()
+            if self.session:
+                if profile_args["age"] is None:
+                    profile_args["age"] = self.session.state.client.age
+                if profile_args["borrowed_money"] is None:
+                    profile_args["borrowed_money"] = bool(self.session.state.client.borrowed_money)
+                if profile_args["age"] is not None:
+                    self.session.state.client.age = profile_args["age"]
+                if profile_args["borrowed_money"] is not None:
+                    self.session.state.client.borrowed_money = profile_args["borrowed_money"]
+            profile = profile_investor(**profile_args)
             if self.session:
                 self.session.state.profile = profile
             result = profile.as_dict()
@@ -84,23 +115,36 @@ class ToolDispatcher:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
             args = CompareArgs.model_validate(arguments)
             args_data = args.model_dump()
+            if self.session and args_data["amount"] is None:
+                args_data["amount"] = self.session.state.client.amount
+            if self.session and args_data["horizon_years"] is None:
+                args_data["horizon_years"] = self.session.state.client.horizon_years
+            if args_data["amount"] is None or args_data["horizon_years"] is None:
+                raise ValueError("record amount and horizon_years before comparing products")
             args_data["investor_class"] = self._profile_class()
             if args_data["liquidity_days"] is None and self.session:
                 args_data["liquidity_days"] = self.session.state.profile.liquidity_days
             if self.session:
-                self.session.state.amount = args.amount
-                self.session.state.horizon_years = args.horizon_years
+                self.session.state.amount = args_data["amount"]
+                self.session.state.horizon_years = args_data["horizon_years"]
+                self.session.state.client.amount = args_data["amount"]
+                self.session.state.client.horizon_years = args_data["horizon_years"]
             result = {"comparisons": [item.as_dict() for item in compare_products(self.catalog, **args_data)]}
         elif name == "build_allocation":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
             args = AllocationArgs.model_validate(arguments)
             args_data = args.model_dump()
+            if self.session and args_data["amount"] is None:
+                args_data["amount"] = self.session.state.client.amount
+            if args_data["amount"] is None:
+                raise ValueError("record amount before building an allocation")
             args_data["investor_class"] = self._profile_class()
             if args_data["liquidity_days"] is None and self.session:
                 args_data["liquidity_days"] = self.session.state.profile.liquidity_days
             if self.session:
-                self.session.state.amount = args.amount
+                self.session.state.amount = args_data["amount"]
+                self.session.state.client.amount = args_data["amount"]
             allocation = build_allocation(products=self.catalog, **args_data)
             if self.session:
                 allocation_id = f"allocation-{len(self.session.state.allocations) + 1}"
@@ -115,7 +159,10 @@ class ToolDispatcher:
             if not self.session:
                 raise ValueError("stress_test requires a server-side AdvisorSession")
             allocation = self.session.stored_allocation(args.allocation_id)
-            stress_result = stress_test(allocation, scenario=args.scenario, custom_shocks=args.custom_shocks, max_tolerable_loss=args.max_tolerable_loss)
+            max_loss = args.max_tolerable_loss
+            if max_loss is None and self.session:
+                max_loss = self.session.state.client.max_loss
+            stress_result = stress_test(allocation, scenario=args.scenario, custom_shocks=args.custom_shocks, max_tolerable_loss=max_loss if max_loss is not None else 0.20)
             stress_id = f"stress-{len(self.session.state.stress_results) + 1}"
             self.session.state.stress_results[stress_id] = stress_result
             result = {"stress_id": stress_id, "allocation_id": args.allocation_id, **stress_result.as_dict()}

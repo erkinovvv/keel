@@ -65,6 +65,36 @@ def test_session_state_summary_keeps_financial_context(tmp_path):
     assert summary["horizon_years"] == 8
 
 
+def test_record_client_facts_is_validated_and_merged(tmp_path):
+    session = make_session(tmp_path)
+    session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "horizon_years": 8})
+    session.dispatcher.dispatch("record_client_facts", {"age": 35, "borrowed_money": False, "max_loss": 0.2})
+    assert session.state.client.as_dict() == {
+        "amount": 100_000.0,
+        "horizon_years": 8,
+        "max_loss": 0.2,
+        "age": 35,
+        "borrowed_money": False,
+    }
+    with pytest.raises(ValueError):
+        session.dispatcher.dispatch("record_client_facts", {"max_loss": 1.5})
+
+
+def test_snapshot_is_json_serializable_and_contains_latest_artifacts(tmp_path):
+    session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.PROPOSE)
+    session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "horizon_years": 8, "max_loss": 0.2, "age": 35, "borrowed_money": False})
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+    session.dispatcher.dispatch("build_allocation", {})
+    session.dispatcher.dispatch("stress_test", {})
+    snapshot = session.snapshot()
+    json.dumps(snapshot)
+    assert snapshot["client"]["amount"] == 100_000.0
+    assert snapshot["latest_allocation_id"] == "allocation-1"
+    assert snapshot["allocation"]["amount"] == 100_000
+    assert snapshot["stress_results"]["stress-1"]["scenario"] == "2008_gfc"
+    assert snapshot["tier"] == "PROPOSE"
+
+
 def test_session_liquidity_need_excludes_long_lockup(tmp_path):
     session = make_session(tmp_path)
     session.dispatcher.dispatch("profile_investor", {"answers": dict(ANSWERS, liquidity_need="within_7d")})
