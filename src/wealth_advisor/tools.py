@@ -16,6 +16,7 @@ from .permissions import PermissionTier, require_tier
 
 _QUESTION_DESCRIPTIONS = {
     "horizon": "Time until the money is needed: under_1y is less than one year; 1_3y is one to three years; 3_7y is three to seven; 7_10y is seven to ten; over_10y is more than ten.",
+    "liquidity_need": "within_1d = may need some money any day; within_7d = may need some within a week; within_30d = may need some within the next month; over_30d = will not need it for at least a month or longer. Example: 'won't touch it for at least a month' maps to over_30d.",
     "invested_share": "Share of total savings in this investment: over_75, 50_75, 25_50, or under_25; two thirds maps to 50_75.",
     "drawdown_reaction": "Reaction to a 20% fall: sell_all means sell everything; reduce means sell some; hold means stay invested; buy_more means add money.",
 }

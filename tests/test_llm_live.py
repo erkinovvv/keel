@@ -203,3 +203,16 @@ def test_profile_schema_inlines_all_enumerated_questionnaire_fields():
     assert "two thirds" in answers["properties"]["invested_share"]["description"]
     assert "sell some" in answers["properties"]["drawdown_reaction"]["description"]
     assert "under_1y is less than one year" in answers["properties"]["horizon"]["description"]
+
+
+def test_profile_schema_makes_liquidity_mapping_unmistakable():
+    from wealth_advisor.tools import TOOL_SCHEMAS
+
+    schema = next(item for item in TOOL_SCHEMAS if item["function"]["name"] == "profile_investor")["function"]["parameters"]
+    description = schema["properties"]["answers"]["properties"]["liquidity_need"]["description"]
+    assert "within_1d = may need some money any day" in description
+    assert "within_7d = may need some within a week" in description
+    assert "within_30d = may need some within the next month" in description
+    assert "over_30d = will not need it for at least a month or longer" in description
+    assert "won't touch it for at least a month" in description
+    assert "maps to over_30d" in description
