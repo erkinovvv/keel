@@ -9,6 +9,30 @@ confirmation, and a custom web UI with provenance, hold-to-confirm and printed r
 
 ---
 
+## 0. Status — 2026-10-11, evening
+
+**Done (MUST list complete on day 1):** M1 live Groq with provider + key failover · M2 conversational KYC and live
+client-file sync · M3 security pass · M4 red-team 65 cases, 57/57 attacks stopped · M5 journey harness (30 personas)
+· M6 goal Monte Carlo · M7 real-data estimates + backtest + client loss limit · M8 Advice Report · M9 anchoring on
+**WeBank FISCO BCOS** (instead of Sepolia; S5 done) · M10 English / 简体中文 · **Crash Rehearsal** (killer feature) ·
+**24 real Chinese public funds** · execution evidence pack · ARCHITECTURE, ALGORITHM, SECURITY docs, README · mobile layout.
+
+**In progress:** live-agent fixes from the first live test (key cooldown per org, % normalisation in tools,
+Unicode digits in the output guard) → then the full 30-persona live run, the headline task-completion number.
+
+**Next (until feature freeze, Fri 10-16):**
+
+| Priority | Item | Why |
+|---|---|---|
+| 1 | Full 30-persona live run, fix failures until ≥ 25/30 | Task completion is 40% of the score |
+| 2 | **Proactive advisor (S1)**: simulated market shock → the advisor reaches out first, shows the client's own rehearsal result and stress facts, proposes a rebalance that the client must confirm | Competition theme is *AI as a Financial Participant* |
+| 3 | **Unsuitable-request flow (S2)**: client insists on an R4/R5 fund above their class → warning, explicit acknowledgement, never recommended, logged | Textbook anti-mis-selling demo |
+| 4 | **Session replay (S4)**: replay any past advice session from the audit chain | Compliance moment for the demo |
+| 5 | Clean-clone test on another laptop; bug bash | Judges must be able to run it |
+
+**After the freeze:** deck (draft in `deck/`) · demo video (≤5 min) · GitHub repository · registration form and
+passport scans · submit by 2026-10-20 12:00 UTC+8.
+
 ## 1. The product (one sentence)
 
 **An AI wealth advisor that proves every recommendation it makes.**
@@ -51,16 +75,16 @@ Scoring: Task completion 40 · Security & compliance 30 · Innovation & interact
 
 | # | Feature | Score | Owner | Notes |
 |---|---|---|---|---|
-| M1 | **Live Groq end-to-end** | Task | Codex | Real key, full journey through chat, fallback verified, token budget logged |
-| M2 | **Conversational KYC + panel sync** | Task, Interaction | Codex (agent tools + `/api/state`) · Claude (UI sync) | The agent can run the whole journey in chat; the client file updates live (and vice versa) |
-| M3 | **Finish security pass** | Security | Codex | PII regex fix, injection classifier (prompt-guard model), output grounding, rate limits |
-| M4 | **Red-team suite (50+ attacks) with pass rate** | Security | Claude (attacks + runner) · Codex (fixes) | Direct/indirect injection, suitability bypass, tool-arg tampering, PII exfiltration, token forgery. Publish the table |
-| M5 | **Journey eval harness (30 client personas)** | Task | Claude | Scripted conversations vs live model; report completion rate, tool-error rate, tokens/journey |
-| M6 | **Goal planning with Monte Carlo** | Task, Interaction | Claude (`goals.py` + UI) | "Will I reach 500k for a flat in 8 years?" → probability + fan chart; contribution what-ifs |
-| M7 | **Real-data allocation** | Task (Xiu) | Codex | Kenneth French data library + FRED (free, licensed for research); Ledoit-Wolf covariance; Black-Litterman; 2008–2025 backtest of C1–C5 model portfolios |
-| M8 | **Client Advice Report** | Task, Compliance | Claude | One-click HTML/PDF suitability report (profile, reasons, allocation, stress, fees, disclosures, audit hashes) |
-| M9 | **On-chain audit anchoring** | Bonus 0–5 | Claude (`anchor.py` + UI) | Merkle root of the audit log → Ethereum Sepolia; receipt and audit drawer show the tx hash with explorer link |
-| M10 | **Bilingual EN / 中文** | Interaction | Claude | UI + advisor narration; judges are Shenzhen-based |
+| M1 ✅ | **Live Groq end-to-end** | Task | Codex | Real key, full journey through chat, fallback verified, token budget logged |
+| M2 ✅ | **Conversational KYC + panel sync** | Task, Interaction | Codex (agent tools + `/api/state`) · Claude (UI sync) | The agent can run the whole journey in chat; the client file updates live (and vice versa) |
+| M3 ✅ | **Finish security pass** | Security | Codex | PII regex fix, injection classifier (prompt-guard model), output grounding, rate limits |
+| M4 ✅ | **Red-team suite (50+ attacks) with pass rate** | Security | Claude (attacks + runner) · Codex (fixes) | Direct/indirect injection, suitability bypass, tool-arg tampering, PII exfiltration, token forgery. Publish the table |
+| M5 ✅ | **Journey eval harness (30 client personas)** | Task | Claude | Scripted conversations vs live model; report completion rate, tool-error rate, tokens/journey |
+| M6 ✅ | **Goal planning with Monte Carlo** | Task, Interaction | Claude (`goals.py` + UI) | "Will I reach 500k for a flat in 8 years?" → probability + fan chart; contribution what-ifs |
+| M7 ✅ | **Real-data allocation** | Task (Xiu) | Codex | Kenneth French data library + FRED (free, licensed for research); Ledoit-Wolf covariance; Black-Litterman; 2008–2025 backtest of C1–C5 model portfolios |
+| M8 ✅ | **Client Advice Report** | Task, Compliance | Claude | One-click HTML/PDF suitability report (profile, reasons, allocation, stress, fees, disclosures, audit hashes) |
+| M9 ✅ | **On-chain audit anchoring** | Bonus 0–5 | Claude (`anchor.py` + UI) | Audit-chain head → `AuditAnchor` contract on FISCO BCOS (Sepolia as an alternative); receipt and audit drawer show block and tx, Verify recomputes |
+| M10 ✅ | **Bilingual EN / 中文** | Interaction | Claude | UI + advisor narration; judges are Shenzhen-based |
 
 ### SHOULD (if M-items land early)
 
@@ -70,7 +94,7 @@ Scoring: Task completion 40 · Security & compliance 30 · Innovation & interact
 | S2 | **Unsuitable-request flow**: client insists on an R5 product → mismatch warning, explicit acknowledgement, never *recommended*, logged | Textbook anti-mis-selling scenario |
 | S3 | **"Explain like…" toggle**: plain / analyst depth on every recommendation | Interaction score |
 | S4 | **Session replay** (the 双录 analogue): replay any past advice session from the audit chain | Compliance wow moment in the demo |
-| S5 | **FISCO BCOS anchoring** alongside Sepolia | WeBank built FISCO BCOS; strong signal, but heavy to run |
+| S5 ✅ | **FISCO BCOS anchoring** (done, now the default) | WeBank built FISCO BCOS; strong signal, but heavy to run |
 
 ### WON'T (for this round)
 Real broker APIs, real client data, mobile app, voice, federated learning implementation
