@@ -14,12 +14,12 @@ dependencies = [
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.4",
     "rich>=15.0.0",
-    "streamlit>=1.65.0",
     "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
 wealth-advisor = "wealth_advisor.cli:main"
+wealth-advisor-ui = "wealth_advisor.ui.server:main"
 
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13.0"]

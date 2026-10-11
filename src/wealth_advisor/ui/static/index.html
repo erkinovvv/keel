@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wealth Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='24' rx='7' fill='%2317695A'/><path d='M10 20l5-5 3 3 5-6' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24" rx="7"/><path d="M10 20l5-5 3 3 5-6"/></svg>
+      <span>Wealth Advisor</span>
+    </div>
+    <div class="topbar-meta">
+      <span class="tier" title="Permission tier: the advisor can explain and recommend, but cannot place orders.">Advice only</span>
+      <button class="audit-pill" id="auditPill" type="button" aria-haspopup="dialog">
+        <span class="dot" aria-hidden="true"></span><span id="auditText">Audit log</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="advisor" aria-label="Conversation with your advisor">
+      <div class="advisor-head">
+        <h2>Your advisor</h2>
+        <p>Explains every recommendation. Never invents a number.</p>
+      </div>
+      <ol class="thread" id="thread" aria-live="polite"></ol>
+      <form class="composer" id="composer">
+        <label class="sr-only" for="chatInput">Message your advisor</label>
+        <textarea id="chatInput" rows="1" placeholder="Ask your advisor…"></textarea>
+        <button type="submit" class="send" aria-label="Send message">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <section class="file" aria-label="Client file">
+      <nav class="steps" id="steps" aria-label="Advice steps">
+        <button data-step="profile" class="active"><span class="n">1</span>Risk profile</button>
+        <button data-step="portfolio" disabled><span class="n">2</span>Portfolio</button>
+        <button data-step="compare" disabled><span class="n">3</span>Compare</button>
+        <button data-step="stress" disabled><span class="n">4</span>Stress test</button>
+        <button data-step="execute" disabled><span class="n">5</span>Execute</button>
+      </nav>
+      <div class="panel" id="panel"></div>
+    </section>
+  </main>
+
+  <div class="popover" id="popover" role="dialog" aria-label="Where this number comes from" hidden></div>
+
+  <aside class="drawer" id="drawer" role="dialog" aria-label="Audit log" aria-modal="true" hidden>
+    <div class="drawer-head">
+      <div>
+        <h2>Audit log</h2>
+        <p id="drawerStatus"></p>
+      </div>
+      <button class="icon-btn" id="drawerClose" aria-label="Close audit log">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <ol class="chain" id="chain"></ol>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
