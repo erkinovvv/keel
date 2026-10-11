@@ -219,11 +219,12 @@ class AdvisorSession:
             missing.append("stress test")
         if language == "Chinese":
             stored_text = "、".join(stored) if stored else "无风险档案、资产配置或压力测试结果"
-            missing_text = "、".join(missing)
-            return f"本次会话已保存：{stored_text}。尚未保存：{missing_text}。我可以继续协助您完成下一步。"
+            missing_clause = f"尚未保存：{'、'.join(missing)}。" if missing else ""
+            return f"本次会话已保存：{stored_text}。{missing_clause}我可以继续协助您完成下一步。"
         if stored:
             stored_text = ", ".join(stored)
-            return f"Stored in this session: {stored_text}. Not stored yet: {', '.join(missing)}. I can continue with the next advisory step."
+            missing_clause = f"Not stored yet: {', '.join(missing)}. " if missing else ""
+            return f"Stored in this session: {stored_text}. {missing_clause}I can continue with the next advisory step."
         return "No investor profile, allocation, or stress test is stored in this session yet. I can continue once you share your goal and circumstances."
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:

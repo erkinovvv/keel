@@ -160,3 +160,12 @@ def test_complete_first_message_gets_no_greeting_directive(tmp_path):
     )
     system = session._messages_for_turn(message)[0]["content"]
     assert "do not greet or ask for the goal" in system
+
+
+def test_complete_state_fallback_omits_empty_missing_clause():
+    reply = AdvisorSession._state_fallback_message(
+        {"profile": {}, "allocation": {}, "stress_results": {"stress-1": {}}},
+        "the client's language",
+    )
+    assert reply == "Stored in this session: investor profile, allocation, stress test. I can continue with the next advisory step."
+    assert "Not stored yet" not in reply
