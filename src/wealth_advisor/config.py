@@ -21,6 +21,8 @@ class Settings:
     replay_file: Path = Path("tests/fixtures/replay.json")
     max_tool_steps: int = 8
     cash_rate: float = 0.035
+    kill_switch: bool = False
+    max_session_turns: int = 30
 
     @classmethod
     def from_env(cls, env_file: str | Path | None = ".env") -> "Settings":
@@ -42,5 +44,6 @@ class Settings:
             replay_file=Path(os.getenv("REPLAY_FILE", "tests/fixtures/replay.json")),
             max_tool_steps=int(os.getenv("MAX_TOOL_STEPS", "8")),
             cash_rate=float(os.getenv("CASH_RATE", "0.035")),
+            kill_switch=os.getenv("WEALTH_ADVISOR_KILL_SWITCH", "false").lower() in {"1", "true", "yes"},
+            max_session_turns=int(os.getenv("MAX_SESSION_TURNS", "30")),
         )
-

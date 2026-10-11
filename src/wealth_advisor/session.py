@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -12,6 +11,8 @@ from .audit import AuditLogger
 from .config import Settings
 from .permissions import PermissionTier
 from .profiling import InvestorProfile
+from .compliance import output_guard
+from .security import GuardDecision, RateLimiter, input_guard
 from .stress import StressResult
 from .tools import ToolDispatcher
 
@@ -56,6 +57,8 @@ class AdvisorSession:
     ):
         self.settings = settings or Settings.from_env()
         self.tier = tier
+        if self.settings.kill_switch and self.tier > PermissionTier.ADVISE:
+            self.tier = PermissionTier.ADVISE
         self.state = SessionState()
         self.audit = AuditLogger(self.settings.audit_log)
         self.dispatcher = ToolDispatcher(audit=self.audit, session=self)
@@ -66,6 +69,7 @@ class AdvisorSession:
             max_steps=self.settings.max_tool_steps,
         )
         self.messages: list[dict[str, Any]] = []
+        self.rate_limiter = RateLimiter(max_calls=self.settings.max_session_turns)
 
     def _messages_for_turn(self, user_message: str) -> list[dict[str, Any]]:
         system = self.agent.system_message(self.state.summary())
@@ -77,10 +81,22 @@ class AdvisorSession:
 
         if not user_message.strip():
             raise ValueError("user_message must not be empty")
-        turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(user_message))
+        if not self.rate_limiter.allow():
+            self.audit.append("guard_blocked", {"guard": "rate_limit"})
+            return "This session has reached its request limit. Please try again later."
+        guard: GuardDecision = input_guard(user_message)
+        self.audit.append("input_guard", {"allowed": guard.allowed, "reasons": guard.reasons, "pii_redacted": guard.pii_redacted, "injection_score": guard.injection_score})
+        if not guard.allowed:
+            return "I cannot process instruction-like requests. Please describe your financial goal directly."
+        turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text))
+        recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
+        guarded_output = output_guard(turn.content, turn.tool_results, recommendation=recommendation)
+        if not guarded_output.allowed:
+            self.audit.append("output_guard", {"allowed": False, "reasons": guarded_output.reasons})
+        turn.messages[-1]["content"] = guarded_output.message
         self.messages = trim_complete_turns(turn.messages, max_turns=6)
         self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary()})
-        return turn.content
+        return guarded_output.message
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:
         """Resolve a server-side allocation identifier for non-LLM callers."""

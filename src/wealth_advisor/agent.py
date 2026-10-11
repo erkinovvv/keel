@@ -9,6 +9,7 @@ from typing import Any
 from .audit import AuditLogger
 from .llm import LLMClient
 from .prompts import SYSTEM_PROMPT
+from .security import tool_output_guard
 from .tools import TOOL_SCHEMAS, ToolDispatcher
 
 
@@ -16,6 +17,7 @@ from .tools import TOOL_SCHEMAS, ToolDispatcher
 class AgentTurn:
     content: str
     messages: list[dict[str, Any]]
+    tool_results: list[dict[str, Any]]
 
 
 def trim_complete_turns(messages: list[dict[str, Any]], max_turns: int = 6) -> list[dict[str, Any]]:
@@ -57,11 +59,12 @@ class AdvisorAgent:
         """Run at most max_steps and return both final text and complete history."""
 
         messages = list(messages)
+        tool_results: list[dict[str, Any]] = []
         for _ in range(self.max_steps):
             response = self.llm.chat(messages, TOOL_SCHEMAS)
             if not response.tool_calls:
                 messages.append({"role": "assistant", "content": response.content})
-                return AgentTurn(response.content, messages)
+                return AgentTurn(response.content, messages, tool_results)
             messages.append({"role": "assistant", "content": response.content, "tool_calls": [
                 {"id": call.id, "type": "function", "function": {"name": call.name, "arguments": json.dumps(call.arguments)}}
                 for call in response.tool_calls
@@ -77,6 +80,12 @@ class AdvisorAgent:
                     }
                     if self.audit:
                         self.audit.append("tool_error", {"tool": call.name, "error": type(exc).__name__, "message": str(exc)})
+                tool_text = json.dumps(result, separators=(",", ":"))
+                if not tool_output_guard(tool_text).allowed:
+                    result = {"error": "Unsafe tool output blocked", "hint": "The tool result contained instruction-like text."}
+                    if self.audit:
+                        self.audit.append("tool_output_blocked", {"tool": call.name})
+                tool_results.append(result)
                 messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result, separators=(",", ":"))})
         raise RuntimeError("maximum tool steps exceeded")
 
