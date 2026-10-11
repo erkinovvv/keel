@@ -203,29 +203,38 @@ class AdvisorSession:
     def _state_fallback_message(snapshot: dict[str, Any], language: str) -> str:
         """Describe only advisory artifacts actually present in a session snapshot."""
 
-        stored: list[str] = []
-        missing: list[str] = []
-        if snapshot.get("profile") is not None:
-            stored.append("investor profile")
-        else:
-            missing.append("investor profile")
-        if snapshot.get("allocation") is not None:
-            stored.append("allocation")
-        else:
-            missing.append("allocation")
-        if snapshot.get("stress_results"):
-            stored.append("stress test")
-        else:
-            missing.append("stress test")
+        profile = snapshot.get("profile")
+        allocation = snapshot.get("allocation")
+        stress_results = snapshot.get("stress_results")
+        client = snapshot.get("client") or {}
         if language == "Chinese":
-            stored_text = "、".join(stored) if stored else "无风险档案、资产配置或压力测试结果"
-            missing_clause = f"尚未保存：{'、'.join(missing)}。" if missing else ""
-            return f"本次会话已保存：{stored_text}。{missing_clause}我可以继续协助您完成下一步。"
-        if stored:
-            stored_text = ", ".join(stored)
-            missing_clause = f"Not stored yet: {', '.join(missing)}. " if missing else ""
-            return f"Stored in this session: {stored_text}. {missing_clause}I can continue with the next advisory step."
-        return "No investor profile, allocation, or stress test is stored in this session yet. I can continue once you share your goal and circumstances."
+            if profile is None:
+                return "请先告诉我您计划投资的金额，以及这笔钱何时可能需要使用。"
+            if allocation is None:
+                return "您的投资者画像已经记录。下一步我可以为您建立合适的资产配置。"
+            if not stress_results:
+                return "您的资产配置已经保存。下一步我可以运行历史压力测试。"
+            return "您的资产配置和压力测试已经保存。下一步可以先查看结果，或在下单前进行崩溃演练。"
+
+        if profile is None:
+            if client.get("amount") is None:
+                return "What amount are you considering investing?"
+            if client.get("horizon_years") is None:
+                return "How long can this money remain invested?"
+            if client.get("max_loss") is None:
+                return "When might you need access to the money, and what percentage loss could you accept in a bad year?"
+            if client.get("age") is None:
+                return "Please share your age, income stability, emergency cash buffer, and main investment goal."
+            if client.get("borrowed_money") is None:
+                return "Is any of this money borrowed, and how would you react to a 20% fall?"
+            return "Please share your investment experience, share of savings invested, and main goal."
+        class_code = profile.get("class_code") if isinstance(profile, dict) else None
+        class_text = f" ({class_code})" if class_code else ""
+        if allocation is None:
+            return f"Your investor profile{class_text} is recorded. Next I can build a suitable allocation."
+        if not stress_results:
+            return f"Your investor profile{class_text} and allocation are recorded. Next I can run a historical stress test."
+        return f"Your investor profile{class_text}, allocation, and stress test are recorded. Next, review the result or try the Crash Rehearsal before any orders."
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:
         """Resolve a server-side allocation identifier for non-LLM callers."""

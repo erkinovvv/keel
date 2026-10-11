@@ -133,7 +133,7 @@ def test_guard_fallback_does_not_claim_empty_session_is_complete(tmp_path):
     ]
     session.agent.run_turn = lambda messages, tools=None: AgentTurn("The result is 123.", turn_messages.copy(), [], {})
     reply = session.send("hello")
-    assert "No investor profile, allocation, or stress test is stored" in reply
+    assert reply == "What amount are you considering investing?"
     assert "complete" not in reply.lower()
 
 
@@ -167,5 +167,5 @@ def test_complete_state_fallback_omits_empty_missing_clause():
         {"profile": {}, "allocation": {}, "stress_results": {"stress-1": {}}},
         "the client's language",
     )
-    assert reply == "Stored in this session: investor profile, allocation, stress test. I can continue with the next advisory step."
-    assert "Not stored yet" not in reply
+    assert reply == "Your investor profile, allocation, and stress test are recorded. Next, review the result or try the Crash Rehearsal before any orders."
+    assert "Stored in this session" not in reply
