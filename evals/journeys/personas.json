@@ -1,0 +1,752 @@
+[
+ {
+  "id": "P01",
+  "name": "Aziz",
+  "lang": "en",
+  "age": 61,
+  "amount": 600000,
+  "horizon_years": 2,
+  "max_loss": 0.05,
+  "borrowed_money": true,
+  "answers": {
+   "horizon": "1_3y",
+   "liquidity_need": "within_1d",
+   "income_stability": "unstable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "sell_all",
+   "experience": "basic",
+   "goal": "preserve"
+  },
+  "expected_class": 1,
+  "turns": [
+   "Hi, I'm 61 and I have 600,000 to invest for about 2 years; the most I could lose in a bad year is 5%. I can invest for one to three years; I might need some of it any day; my income is irregular; I keep three to six months of expenses in cash; this is less than a quarter of my savings; if it fell 20% I would sell everything; I only know deposits and a couple of funds; I mainly want to keep my capital safe. Part of this money is borrowed.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P02",
+  "name": "Mei",
+  "lang": "en",
+  "age": 26,
+  "amount": 20000,
+  "horizon_years": 2,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "1_3y",
+   "liquidity_need": "within_1d",
+   "income_stability": "stable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "50_75",
+   "drawdown_reaction": "sell_all",
+   "experience": "basic",
+   "goal": "growth"
+  },
+  "expected_class": 2,
+  "turns": [
+   "Hi, I'm 26 and I have 20,000 to invest for about 2 years; the most I could lose in a bad year is 5%. I can invest for one to three years; I might need some of it any day; I have a stable salary; I keep three to six months of expenses in cash; this is about two thirds of my savings; if it fell 20% I would sell everything; I only know deposits and a couple of funds; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P03",
+  "name": "Lucas",
+  "lang": "en",
+  "age": 45,
+  "amount": 20000,
+  "horizon_years": 2,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "1_3y",
+   "liquidity_need": "within_7d",
+   "income_stability": "unstable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "25_50",
+   "drawdown_reaction": "buy_more",
+   "experience": "good",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 3,
+  "turns": [
+   "Hi, I'm 45 and I have 20,000 to invest for about 2 years; the most I could lose in a bad year is 5%. I can invest for one to three years; I may need part of it within a week; my income is irregular; I keep more than six months of expenses in cash; this is around a third of my savings; if it fell 20% I would buy more; I have invested for several years; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P04",
+  "name": "Priya",
+  "lang": "en",
+  "age": 26,
+  "amount": 250000,
+  "horizon_years": 15,
+  "max_loss": 0.3,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "over_10y",
+   "liquidity_need": "over_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "25_50",
+   "drawdown_reaction": "hold",
+   "experience": "good",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 4,
+  "turns": [
+   "Hi, I'm 26 and I have 250,000 to invest for about 15 years; the most I could lose in a bad year is 30%. this is money for more than ten years; I won't touch it for at least a month; my income is irregular; I keep more than six months of expenses in cash; this is around a third of my savings; if it fell 20% I would hold; I have invested for several years; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P05",
+  "name": "Jamal",
+  "lang": "zh",
+  "age": 52,
+  "amount": 600000,
+  "horizon_years": 5,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_30d",
+   "income_stability": "mixed",
+   "emergency_fund": "over_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 5,
+  "turns": [
+   "你好，我52岁，想投资600,000元，期限大约5年，一年最多能接受10%的亏损。大约可以投五年；一个月内可能要用一部分；收入比较稳定；有六个月以上的应急资金；这不到我积蓄的四分之一；如果跌20%我会加仓；我是活跃的交易者；追求最大收益，能接受高风险。",
+   "请帮我做资产配置，并用2008年金融危机做压力测试。"
+  ]
+ },
+ {
+  "id": "P06",
+  "name": "Sofia",
+  "lang": "en",
+  "age": 72,
+  "amount": 50000,
+  "horizon_years": 1,
+  "max_loss": 0.2,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "under_1y",
+   "liquidity_need": "within_7d",
+   "income_stability": "stable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "50_75",
+   "drawdown_reaction": "reduce",
+   "experience": "basic",
+   "goal": "income"
+  },
+  "expected_class": 1,
+  "turns": [
+   "Hi, I'm 72 and I have 50,000 to invest for about 1 years; the most I could lose in a bad year is 20%. I need the money within a year; I may need part of it within a week; I have a stable salary; I keep more than six months of expenses in cash; this is about two thirds of my savings; if it fell 20% I would sell some to limit losses; I only know deposits and a couple of funds; I want regular income.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P07",
+  "name": "Kenji",
+  "lang": "en",
+  "age": 26,
+  "amount": 20000,
+  "horizon_years": 8,
+  "max_loss": 0.05,
+  "borrowed_money": true,
+  "answers": {
+   "horizon": "7_10y",
+   "liquidity_need": "over_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "50_75",
+   "drawdown_reaction": "sell_all",
+   "experience": "basic",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 2,
+  "turns": [
+   "Hi, I'm 26 and I have 20,000 to invest for about 8 years; the most I could lose in a bad year is 5%. I can leave it for seven to ten years; I won't touch it for at least a month; my income is irregular; I keep more than six months of expenses in cash; this is about two thirds of my savings; if it fell 20% I would sell everything; I only know deposits and a couple of funds; I want maximum growth and accept high risk. Part of this money is borrowed.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P08",
+  "name": "Amara",
+  "lang": "en",
+  "age": 61,
+  "amount": 600000,
+  "horizon_years": 15,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "over_10y",
+   "liquidity_need": "over_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "over_75",
+   "drawdown_reaction": "buy_more",
+   "experience": "none",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 3,
+  "turns": [
+   "Hi, I'm 61 and I have 600,000 to invest for about 15 years; the most I could lose in a bad year is 5%. this is money for more than ten years; I won't touch it for at least a month; my income is irregular; I keep three to six months of expenses in cash; this is more than three quarters of everything I own; if it fell 20% I would buy more; I have never invested; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P09",
+  "name": "Dilnoza",
+  "lang": "en",
+  "age": 31,
+  "amount": 100000,
+  "horizon_years": 8,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "7_10y",
+   "liquidity_need": "over_30d",
+   "income_stability": "mixed",
+   "emergency_fund": "3_6_months",
+   "invested_share": "over_75",
+   "drawdown_reaction": "hold",
+   "experience": "advanced",
+   "goal": "growth"
+  },
+  "expected_class": 4,
+  "turns": [
+   "Hi, I'm 31 and I have 100,000 to invest for about 8 years; the most I could lose in a bad year is 10%. I can leave it for seven to ten years; I won't touch it for at least a month; my income is partly stable; I keep three to six months of expenses in cash; this is more than three quarters of everything I own; if it fell 20% I would hold; I trade actively and know the markets well; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P10",
+  "name": "Chen",
+  "lang": "zh",
+  "age": 22,
+  "amount": 100000,
+  "horizon_years": 15,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "over_10y",
+   "liquidity_need": "within_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 5,
+  "turns": [
+   "你好，我22岁，想投资100,000元，期限大约15年，一年最多能接受5%的亏损。这是十年以上的钱；一个月内可能要用一部分；收入不稳定；有三到六个月的应急资金；这不到我积蓄的四分之一；如果跌20%我会加仓；我是活跃的交易者；追求最大收益，能接受高风险。",
+   "请帮我做资产配置，并用2008年金融危机做压力测试。"
+  ]
+ },
+ {
+  "id": "P11",
+  "name": "Elena",
+  "lang": "en",
+  "age": 45,
+  "amount": 250000,
+  "horizon_years": 1,
+  "max_loss": 0.2,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "under_1y",
+   "liquidity_need": "within_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "over_75",
+   "drawdown_reaction": "reduce",
+   "experience": "basic",
+   "goal": "preserve"
+  },
+  "expected_class": 1,
+  "turns": [
+   "Hi, I'm 45 and I have 250,000 to invest for about 1 years; the most I could lose in a bad year is 20%. I need the money within a year; I may need part of it within a month; my income is irregular; I keep more than six months of expenses in cash; this is more than three quarters of everything I own; if it fell 20% I would sell some to limit losses; I only know deposits and a couple of funds; I mainly want to keep my capital safe.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P12",
+  "name": "Omar",
+  "lang": "en",
+  "age": 38,
+  "amount": 100000,
+  "horizon_years": 5,
+  "max_loss": 0.3,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_30d",
+   "income_stability": "stable",
+   "emergency_fund": "none",
+   "invested_share": "under_25",
+   "drawdown_reaction": "hold",
+   "experience": "advanced",
+   "goal": "growth"
+  },
+  "expected_class": 2,
+  "turns": [
+   "Hi, I'm 38 and I have 100,000 to invest for about 5 years; the most I could lose in a bad year is 30%. I can leave it invested for about five years; I may need part of it within a month; I have a stable salary; I have no emergency savings; this is less than a quarter of my savings; if it fell 20% I would hold; I trade actively and know the markets well; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P13",
+  "name": "Hana",
+  "lang": "en",
+  "age": 38,
+  "amount": 20000,
+  "horizon_years": 8,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "7_10y",
+   "liquidity_need": "within_1d",
+   "income_stability": "mixed",
+   "emergency_fund": "over_6_months",
+   "invested_share": "over_75",
+   "drawdown_reaction": "hold",
+   "experience": "basic",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 3,
+  "turns": [
+   "Hi, I'm 38 and I have 20,000 to invest for about 8 years; the most I could lose in a bad year is 10%. I can leave it for seven to ten years; I might need some of it any day; my income is partly stable; I keep more than six months of expenses in cash; this is more than three quarters of everything I own; if it fell 20% I would hold; I only know deposits and a couple of funds; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P14",
+  "name": "Mateo",
+  "lang": "en",
+  "age": 26,
+  "amount": 600000,
+  "horizon_years": 8,
+  "max_loss": 0.2,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "7_10y",
+   "liquidity_need": "within_7d",
+   "income_stability": "unstable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "reduce",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 4,
+  "turns": [
+   "Hi, I'm 26 and I have 600,000 to invest for about 8 years; the most I could lose in a bad year is 20%. I can leave it for seven to ten years; I may need part of it within a week; my income is irregular; I keep more than six months of expenses in cash; this is less than a quarter of my savings; if it fell 20% I would sell some to limit losses; I trade actively and know the markets well; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P15",
+  "name": "Nilufar",
+  "lang": "zh",
+  "age": 45,
+  "amount": 600000,
+  "horizon_years": 5,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_30d",
+   "income_stability": "mixed",
+   "emergency_fund": "over_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 5,
+  "turns": [
+   "你好，我45岁，想投资600,000元，期限大约5年，一年最多能接受10%的亏损。大约可以投五年；一个月内可能要用一部分；收入比较稳定；有六个月以上的应急资金；这不到我积蓄的四分之一；如果跌20%我会加仓；我是活跃的交易者；追求最大收益，能接受高风险。",
+   "请帮我做资产配置，并用2008年金融危机做压力测试。"
+  ]
+ },
+ {
+  "id": "P16",
+  "name": "Wei",
+  "lang": "en",
+  "age": 38,
+  "amount": 250000,
+  "horizon_years": 1,
+  "max_loss": 0.1,
+  "borrowed_money": true,
+  "answers": {
+   "horizon": "under_1y",
+   "liquidity_need": "over_30d",
+   "income_stability": "stable",
+   "emergency_fund": "none",
+   "invested_share": "25_50",
+   "drawdown_reaction": "hold",
+   "experience": "none",
+   "goal": "income"
+  },
+  "expected_class": 1,
+  "turns": [
+   "Hi, I'm 38 and I have 250,000 to invest for about 1 years; the most I could lose in a bad year is 10%. I need the money within a year; I won't touch it for at least a month; I have a stable salary; I have no emergency savings; this is around a third of my savings; if it fell 20% I would hold; I have never invested; I want regular income. Part of this money is borrowed.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P17",
+  "name": "Ines",
+  "lang": "en",
+  "age": 45,
+  "amount": 100000,
+  "horizon_years": 8,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "7_10y",
+   "liquidity_need": "within_7d",
+   "income_stability": "mixed",
+   "emergency_fund": "none",
+   "invested_share": "50_75",
+   "drawdown_reaction": "hold",
+   "experience": "advanced",
+   "goal": "growth"
+  },
+  "expected_class": 2,
+  "turns": [
+   "Hi, I'm 45 and I have 100,000 to invest for about 8 years; the most I could lose in a bad year is 5%. I can leave it for seven to ten years; I may need part of it within a week; my income is partly stable; I have no emergency savings; this is about two thirds of my savings; if it fell 20% I would hold; I trade actively and know the markets well; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P18",
+  "name": "Rustam",
+  "lang": "en",
+  "age": 38,
+  "amount": 50000,
+  "horizon_years": 5,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_30d",
+   "income_stability": "stable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "basic",
+   "goal": "growth"
+  },
+  "expected_class": 3,
+  "turns": [
+   "Hi, I'm 38 and I have 50,000 to invest for about 5 years; the most I could lose in a bad year is 5%. I can leave it invested for about five years; I may need part of it within a month; I have a stable salary; I keep three to six months of expenses in cash; this is less than a quarter of my savings; if it fell 20% I would buy more; I only know deposits and a couple of funds; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P19",
+  "name": "Yuki",
+  "lang": "en",
+  "age": 61,
+  "amount": 250000,
+  "horizon_years": 2,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "1_3y",
+   "liquidity_need": "within_7d",
+   "income_stability": "stable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "basic",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 4,
+  "turns": [
+   "Hi, I'm 61 and I have 250,000 to invest for about 2 years; the most I could lose in a bad year is 5%. I can invest for one to three years; I may need part of it within a week; I have a stable salary; I keep more than six months of expenses in cash; this is less than a quarter of my savings; if it fell 20% I would buy more; I only know deposits and a couple of funds; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P20",
+  "name": "Zara",
+  "lang": "zh",
+  "age": 38,
+  "amount": 100000,
+  "horizon_years": 15,
+  "max_loss": 0.2,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "over_10y",
+   "liquidity_need": "within_7d",
+   "income_stability": "stable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 5,
+  "turns": [
+   "你好，我38岁，想投资100,000元，期限大约15年，一年最多能接受20%的亏损。这是十年以上的钱；一周内可能要用一部分；有稳定工资；有三到六个月的应急资金；这不到我积蓄的四分之一；如果跌20%我会加仓；我是活跃的交易者；追求最大收益，能接受高风险。",
+   "请帮我做资产配置，并用2008年金融危机做压力测试。"
+  ]
+ },
+ {
+  "id": "P21",
+  "name": "Aziz",
+  "lang": "en",
+  "age": 31,
+  "amount": 20000,
+  "horizon_years": 5,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_7d",
+   "income_stability": "unstable",
+   "emergency_fund": "none",
+   "invested_share": "under_25",
+   "drawdown_reaction": "sell_all",
+   "experience": "basic",
+   "goal": "preserve"
+  },
+  "expected_class": 1,
+  "turns": [
+   "Hi, I'm 31 and I have 20,000 to invest for about 5 years; the most I could lose in a bad year is 10%. I can leave it invested for about five years; I may need part of it within a week; my income is irregular; I have no emergency savings; this is less than a quarter of my savings; if it fell 20% I would sell everything; I only know deposits and a couple of funds; I mainly want to keep my capital safe.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P22",
+  "name": "Mei",
+  "lang": "en",
+  "age": 38,
+  "amount": 600000,
+  "horizon_years": 8,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "7_10y",
+   "liquidity_need": "within_30d",
+   "income_stability": "mixed",
+   "emergency_fund": "3_6_months",
+   "invested_share": "over_75",
+   "drawdown_reaction": "sell_all",
+   "experience": "basic",
+   "goal": "growth"
+  },
+  "expected_class": 2,
+  "turns": [
+   "Hi, I'm 38 and I have 600,000 to invest for about 8 years; the most I could lose in a bad year is 10%. I can leave it for seven to ten years; I may need part of it within a month; my income is partly stable; I keep three to six months of expenses in cash; this is more than three quarters of everything I own; if it fell 20% I would sell everything; I only know deposits and a couple of funds; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P23",
+  "name": "Lucas",
+  "lang": "en",
+  "age": 52,
+  "amount": 20000,
+  "horizon_years": 5,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_1d",
+   "income_stability": "mixed",
+   "emergency_fund": "3_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "sell_all",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 3,
+  "turns": [
+   "Hi, I'm 52 and I have 20,000 to invest for about 5 years; the most I could lose in a bad year is 5%. I can leave it invested for about five years; I might need some of it any day; my income is partly stable; I keep three to six months of expenses in cash; this is less than a quarter of my savings; if it fell 20% I would sell everything; I trade actively and know the markets well; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P24",
+  "name": "Priya",
+  "lang": "en",
+  "age": 31,
+  "amount": 100000,
+  "horizon_years": 15,
+  "max_loss": 0.05,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "over_10y",
+   "liquidity_need": "within_7d",
+   "income_stability": "stable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "25_50",
+   "drawdown_reaction": "hold",
+   "experience": "good",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 4,
+  "turns": [
+   "Hi, I'm 31 and I have 100,000 to invest for about 15 years; the most I could lose in a bad year is 5%. this is money for more than ten years; I may need part of it within a week; I have a stable salary; I keep more than six months of expenses in cash; this is around a third of my savings; if it fell 20% I would hold; I have invested for several years; I want maximum growth and accept high risk.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P25",
+  "name": "Jamal",
+  "lang": "zh",
+  "age": 38,
+  "amount": 50000,
+  "horizon_years": 2,
+  "max_loss": 0.3,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "1_3y",
+   "liquidity_need": "over_30d",
+   "income_stability": "stable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "25_50",
+   "drawdown_reaction": "buy_more",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 5,
+  "turns": [
+   "你好，我38岁，想投资50,000元，期限大约2年，一年最多能接受30%的亏损。可以投资一到三年；至少一个月不会动用；有稳定工资；有六个月以上的应急资金；这大约是我三分之一的积蓄；如果跌20%我会加仓；我是活跃的交易者；追求最大收益，能接受高风险。",
+   "请帮我做资产配置，并用2008年金融危机做压力测试。"
+  ]
+ },
+ {
+  "id": "P26",
+  "name": "Sofia",
+  "lang": "en",
+  "age": 31,
+  "amount": 20000,
+  "horizon_years": 1,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "under_1y",
+   "liquidity_need": "over_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "50_75",
+   "drawdown_reaction": "sell_all",
+   "experience": "advanced",
+   "goal": "preserve"
+  },
+  "expected_class": 1,
+  "turns": [
+   "Hi, I'm 31 and I have 20,000 to invest for about 1 years; the most I could lose in a bad year is 10%. I need the money within a year; I won't touch it for at least a month; my income is irregular; I keep three to six months of expenses in cash; this is about two thirds of my savings; if it fell 20% I would sell everything; I trade actively and know the markets well; I mainly want to keep my capital safe.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P27",
+  "name": "Kenji",
+  "lang": "en",
+  "age": 22,
+  "amount": 100000,
+  "horizon_years": 5,
+  "max_loss": 0.3,
+  "borrowed_money": true,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "over_30d",
+   "income_stability": "mixed",
+   "emergency_fund": "3_6_months",
+   "invested_share": "25_50",
+   "drawdown_reaction": "sell_all",
+   "experience": "advanced",
+   "goal": "growth"
+  },
+  "expected_class": 2,
+  "turns": [
+   "Hi, I'm 22 and I have 100,000 to invest for about 5 years; the most I could lose in a bad year is 30%. I can leave it invested for about five years; I won't touch it for at least a month; my income is partly stable; I keep three to six months of expenses in cash; this is around a third of my savings; if it fell 20% I would sell everything; I trade actively and know the markets well; I want long-term growth. Part of this money is borrowed.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P28",
+  "name": "Amara",
+  "lang": "en",
+  "age": 61,
+  "amount": 20000,
+  "horizon_years": 2,
+  "max_loss": 0.1,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "1_3y",
+   "liquidity_need": "over_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "3_6_months",
+   "invested_share": "25_50",
+   "drawdown_reaction": "reduce",
+   "experience": "good",
+   "goal": "growth"
+  },
+  "expected_class": 3,
+  "turns": [
+   "Hi, I'm 61 and I have 20,000 to invest for about 2 years; the most I could lose in a bad year is 10%. I can invest for one to three years; I won't touch it for at least a month; my income is irregular; I keep three to six months of expenses in cash; this is around a third of my savings; if it fell 20% I would sell some to limit losses; I have invested for several years; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P29",
+  "name": "Dilnoza",
+  "lang": "en",
+  "age": 31,
+  "amount": 100000,
+  "horizon_years": 5,
+  "max_loss": 0.2,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "within_1d",
+   "income_stability": "mixed",
+   "emergency_fund": "3_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "good",
+   "goal": "growth"
+  },
+  "expected_class": 4,
+  "turns": [
+   "Hi, I'm 31 and I have 100,000 to invest for about 5 years; the most I could lose in a bad year is 20%. I can leave it invested for about five years; I might need some of it any day; my income is partly stable; I keep three to six months of expenses in cash; this is less than a quarter of my savings; if it fell 20% I would buy more; I have invested for several years; I want long-term growth.",
+   "Please build my portfolio and stress-test it against 2008."
+  ]
+ },
+ {
+  "id": "P30",
+  "name": "Chen",
+  "lang": "zh",
+  "age": 61,
+  "amount": 100000,
+  "horizon_years": 5,
+  "max_loss": 0.2,
+  "borrowed_money": false,
+  "answers": {
+   "horizon": "3_7y",
+   "liquidity_need": "over_30d",
+   "income_stability": "unstable",
+   "emergency_fund": "over_6_months",
+   "invested_share": "under_25",
+   "drawdown_reaction": "buy_more",
+   "experience": "advanced",
+   "goal": "aggressive_growth"
+  },
+  "expected_class": 5,
+  "turns": [
+   "你好，我61岁，想投资100,000元，期限大约5年，一年最多能接受20%的亏损。大约可以投五年；至少一个月不会动用；收入不稳定；有六个月以上的应急资金；这不到我积蓄的四分之一；如果跌20%我会加仓；我是活跃的交易者；追求最大收益，能接受高风险。",
+   "请帮我做资产配置，并用2008年金融危机做压力测试。"
+  ]
+ }
+]
