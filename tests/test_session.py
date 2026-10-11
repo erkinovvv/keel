@@ -69,7 +69,7 @@ def test_session_state_summary_keeps_financial_context(tmp_path):
 def test_record_client_facts_is_validated_and_merged(tmp_path):
     session = make_session(tmp_path)
     session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "horizon_years": 8})
-    session.dispatcher.dispatch("record_client_facts", {"age": 35, "borrowed_money": False, "max_loss": 0.2})
+    session.dispatcher.dispatch("record_client_facts", {"age": 35, "borrowed_money": False, "max_loss": 20})
     assert session.state.client.as_dict() == {
         "amount": 100_000.0,
         "horizon_years": 8,
@@ -78,7 +78,17 @@ def test_record_client_facts_is_validated_and_merged(tmp_path):
         "borrowed_money": False,
     }
     with pytest.raises(ValueError):
-        session.dispatcher.dispatch("record_client_facts", {"max_loss": 1.5})
+        session.dispatcher.dispatch("record_client_facts", {"max_loss": 101})
+
+
+def test_percentage_tool_arguments_are_normalised(tmp_path):
+    session = make_session(tmp_path)
+    result = session.dispatcher.dispatch("record_client_facts", {"max_loss": 20})
+    assert result["client"]["max_loss"] == 0.2
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+    session.dispatcher.dispatch("record_client_facts", {"amount": 100_000})
+    allocation = session.dispatcher.dispatch("build_allocation", {"max_tolerable_loss": 20})
+    assert allocation["stress_limit_after"] is None or allocation["stress_limit_after"] <= 0.2 + 1e-9
 
 
 def test_snapshot_is_json_serializable_and_contains_latest_artifacts(tmp_path):

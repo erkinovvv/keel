@@ -48,7 +48,7 @@ class ProfileArgs(BaseModel):
 class ClientFactsArgs(BaseModel):
     amount: float | None = Field(default=None, gt=0, le=100_000_000)
     horizon_years: int | None = Field(default=None, ge=1, le=100)
-    max_loss: float | None = Field(default=None, ge=0, le=1)
+    max_loss: float | None = Field(default=None, ge=0, le=100)
     age: int | None = Field(default=None, ge=18, le=120)
     borrowed_money: bool | None = None
 
@@ -64,7 +64,7 @@ class CompareArgs(BaseModel):
 class AllocationArgs(BaseModel):
     amount: float | None = Field(default=None, gt=0)
     liquidity_days: int | None = Field(default=None, ge=0)
-    max_tolerable_loss: float | None = Field(default=None, ge=0, le=1)
+    max_tolerable_loss: float | None = Field(default=None, ge=0, le=100)
     exclusions: list[str] = Field(default_factory=list)
 
 
@@ -75,11 +75,19 @@ class StressArgs(BaseModel):
         description="Historical scenario: use 2008_gfc for the 2008 global financial crisis.",
     )
     custom_shocks: dict[str, float] | None = None
-    max_tolerable_loss: float | None = Field(default=None, ge=0, le=1)
+    max_tolerable_loss: float | None = Field(default=None, ge=0, le=100)
 
 
 class DraftOrderArgs(BaseModel):
     allocation_id: str = "latest"
+
+
+def _normalise_percentage(value: float | None) -> float | None:
+    """Accept either a fraction or a human percentage and store a fraction."""
+
+    if value is None:
+        return None
+    return value / 100 if value > 1 else value
 
 
 def _provider_schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -134,6 +142,8 @@ class ToolDispatcher:
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
             facts = ClientFactsArgs.model_validate(arguments).model_dump(exclude_unset=True)
+            if "max_loss" in facts:
+                facts["max_loss"] = _normalise_percentage(facts["max_loss"])
             if not facts:
                 raise ValueError("at least one client fact is required")
             if self.session:
@@ -184,6 +194,7 @@ class ToolDispatcher:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
             args = AllocationArgs.model_validate(arguments)
             args_data = args.model_dump()
+            args_data["max_tolerable_loss"] = _normalise_percentage(args_data["max_tolerable_loss"])
             if self.session and args_data["amount"] is None:
                 args_data["amount"] = self.session.state.client.amount
             if args_data["amount"] is None:
@@ -211,6 +222,7 @@ class ToolDispatcher:
                 raise ValueError("stress_test requires a server-side AdvisorSession")
             allocation = self.session.stored_allocation(args.allocation_id)
             max_loss = args.max_tolerable_loss
+            max_loss = _normalise_percentage(max_loss)
             if max_loss is None and self.session:
                 max_loss = self.session.state.client.max_loss
             stress_result = stress_test(allocation, scenario=args.scenario, custom_shocks=args.custom_shocks, max_tolerable_loss=max_loss if max_loss is not None else 0.20)
