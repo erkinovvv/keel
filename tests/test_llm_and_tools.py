@@ -11,11 +11,20 @@ from wealth_advisor.tools import ToolDispatcher
 def test_replay_is_offline_and_agent_is_bounded(tmp_path):
     audit = AuditLogger(tmp_path / "audit.jsonl")
     settings = Settings(llm_mode="replay", replay_file=tmp_path / "missing.json")
-    response = LLMClient(settings, audit).chat([{"role": "user", "content": "hello"}])
+    client = LLMClient(settings, audit)
+    response = client.chat([{"role": "user", "content": "hello"}])
     assert response.model == "replay"
     assert response.usage["total_tokens"] == 0
-    assert "deterministic" in response.content
-    assert AdvisorAgent(LLMClient(settings, audit), ToolDispatcher(audit), audit, 1).run("hello")
+    assert "GROQ_API_KEY" in response.content
+    assert "works offline" in response.content
+    assert AdvisorAgent(client, ToolDispatcher(audit), audit, 1).run("hello")
+
+
+def test_replay_unavailable_message_uses_client_language(tmp_path):
+    settings = Settings(llm_mode="replay", replay_file=tmp_path / "missing.json")
+    response = LLMClient(settings).chat([{"role": "user", "content": "请帮我建立投资组合"}])
+    assert "GROQ_API_KEY" in response.content
+    assert "离线运行" in response.content
 
 
 def test_tool_dispatcher_validates_and_returns_json_ready_values(tmp_path):

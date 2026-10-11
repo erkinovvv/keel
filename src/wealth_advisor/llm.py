@@ -171,10 +171,18 @@ class LLMClient:
                 records = raw.get("responses", [])
             elif isinstance(raw, list):
                 records = raw
-        record = records[min(self._replay_index, len(records) - 1)] if records else {
-            "content": "I will use the deterministic advisory tools for this request.",
-            "tool_calls": [],
-        }
+        if self._replay_index < len(records):
+            record = records[self._replay_index]
+        else:
+            client_text = next(
+                (str(message.get("content", "")) for message in reversed(messages) if message.get("role") == "user"),
+                "",
+            )
+            if any("\u4e00" <= character <= "\u9fff" for character in client_text):
+                content = "实时对话需要在 .env 中设置 GROQ_API_KEY，并将 LLM_MODE=live。问卷、投资组合、崩溃演练、目标、比较、压力测试、执行和报告等其他步骤都可以离线运行。"
+            else:
+                content = "Live conversation needs a GROQ_API_KEY in .env and LLM_MODE=live. Every other step (questionnaire, portfolio, rehearsal, goal, comparison, stress test, execution, report) works offline."
+            record = {"content": content, "tool_calls": []}
         self._replay_index += 1
         calls = tuple(
             ToolCall(call.get("id", f"replay-{index}"), call["name"], call.get("arguments", {}) if isinstance(call.get("arguments", {}), dict) else {"_malformed_arguments": call.get("arguments")})
