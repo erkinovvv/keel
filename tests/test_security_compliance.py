@@ -71,6 +71,20 @@ def test_output_guard_normalizes_percentages_amounts_and_years():
     assert output_guard("The loss is 15\u00a0% and amount is 23\u2009400.", [{"loss": 0.15, "amount": 23400}]).allowed
 
 
+def test_output_guard_allows_questionnaire_numbers_and_small_integers():
+    questionnaire = (
+        "The questionnaire covers 3-6 months, a 20% fall, 25/50/75%, "
+        "1/3/7/10 years, 7 days, and 30 days. Step 4 is next."
+    )
+    assert output_guard(questionnaire).allowed
+    assert output_guard("There are 12 steps and 3 months in this process.").allowed
+
+
+def test_output_guard_allows_rounded_tool_percentages():
+    assert output_guard("The allocation weight is 23 %.", [{"weight": 0.2344}]).allowed
+    assert output_guard("The allocation weight is 23.4%.", [{"weight": 0.2344}]).allowed
+
+
 def test_pretrade_suitability_checks_risk_liquidity_and_allocation():
     profile = profile_investor(ANSWERS)
     products = load_catalog()

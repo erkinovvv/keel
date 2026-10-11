@@ -89,10 +89,21 @@ def _is_year(value: float, is_percent: bool) -> bool:
 def _numbers_match(left: tuple[float, bool], right: tuple[float, bool]) -> bool:
     left_values = _equivalents(*left)
     right_values = _equivalents(*right)
-    return any(abs(a - b) <= max(0.001, abs(b) * 0.006) for a in left_values for b in right_values)
+    if any(abs(a - b) <= max(0.001, abs(b) * 0.006) for a in left_values for b in right_values):
+        return True
+    left_percent = left[0] if left[1] else left[0] * 100 if abs(left[0]) <= 1 else None
+    right_percent = right[0] if right[1] else right[0] * 100 if abs(right[0]) <= 1 else None
+    return left_percent is not None and right_percent is not None and abs(left_percent - right_percent) <= 0.5 + 1e-9
 
 
-_QUESTIONNAIRE_NUMBER_CONTEXT = re.compile(r"(?:option\s*|under_1y|1_3y|3_7y|7_10y|over_10y|within_1d|within_7d|within_30d|over_30d|3_6_months|over_6_months|over_75|50_75|25_50|under_25)", re.I)
+_QUESTIONNAIRE_NUMBER_CONTEXT = re.compile(
+    r"(?:option\s*|under_1y|1_3y|3_7y|7_10y|over_10y|within_1d|within_7d|within_30d|over_30d|"
+    r"3_6_months|over_6_months|over_75|50_75|25_50|under_25|"
+    r"3\s*[-–]\s*6\s*months?|20\s*%?\s*(?:fall|drop|loss)|"
+    r"25\s*/\s*50\s*/\s*75\s*%?|1\s*/\s*3\s*/\s*7\s*/\s*10\s*years?|"
+    r"(?:7|30)\s*days?)",
+    re.I,
+)
 
 
 def _is_list_number(message: str, start: int, end: int) -> bool:
@@ -102,8 +113,12 @@ def _is_list_number(message: str, start: int, end: int) -> bool:
 
 
 def _is_questionnaire_number(message: str, start: int, end: int) -> bool:
-    context = message[max(0, start - 24):min(len(message), end + 24)]
+    context = message[max(0, start - 64):min(len(message), end + 64)]
     return bool(_QUESTIONNAIRE_NUMBER_CONTEXT.search(context))
+
+
+def _is_plain_small_integer(token: str, value: float, is_percent: bool) -> bool:
+    return not is_percent and 1 <= value <= 12 and bool(re.fullmatch(r"\d{1,2}", token.strip()))
 
 
 def output_guard(
@@ -123,6 +138,8 @@ def output_guard(
     for match in _NUMBER.finditer(message):
         number = _numeric_values(match.group(0))[0]
         if _is_year(*number):
+            continue
+        if _is_plain_small_integer(match.group(0), *number):
             continue
         if _is_list_number(message, match.start(), match.end()) or _is_questionnaire_number(message, match.start(), match.end()):
             continue
