@@ -66,6 +66,9 @@ def test_output_guard_normalizes_percentages_amounts_and_years():
     assert output_guard("1. Cash\n2. Bonds\nOption 3: growth", []).allowed
     assert output_guard("Your horizon is 1_3y and liquidity is within_7d.", []).allowed
     assert output_guard("You said 600,000 for 5 years.", [], client_messages=["I have 600,000 for 5 years."]).allowed
+    assert output_guard("The expected return is 15\u202f%.", [{"expected_return": 0.15}]).allowed
+    assert output_guard("The investment amount is 23\u202f400.", [{"amount": 23400}]).allowed
+    assert output_guard("The loss is 15\u00a0% and amount is 23\u2009400.", [{"loss": 0.15, "amount": 23400}]).allowed
 
 
 def test_pretrade_suitability_checks_risk_liquidity_and_allocation():
