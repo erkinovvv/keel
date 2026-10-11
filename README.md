@@ -21,12 +21,15 @@ never raise it, and the result goes into the audit log and the client's Advice R
 
 - **Every number comes from audited code, never from the model.** Tap any figure in the UI to see
   the function that computed it and the audit record it was written to.
+- **Real products.** 24 real Chinese public mutual funds (money market, bond, index, QDII, gold)
+  built from open East Money data, with distributor risk levels R1–R5, real fees and NAV history.
 - **Suitability is enforced by the server.** Risk class C1–C5 against product risk R1–R5, modelled
   on CSRC investor-suitability rules. The model can neither raise a client's class nor recommend a product above it.
 - **Only the client can move money.** Orders need a signed risk disclosure and a hold-to-confirm
   with a one-time token the model can never obtain.
 - **Every decision is on a tamper-evident record.** A hash-chained audit log, a fingerprinted
-  Advice Report, and the chain head anchored on Ethereum Sepolia.
+  Advice Report, and the chain head written to an `AuditAnchor` smart contract on
+  **FISCO BCOS**, the open-source consortium blockchain led by WeBank.
 
 ![Recommended portfolio with provenance popovers](docs/img/portfolio.png)
 
@@ -68,8 +71,14 @@ uv run wealth-advisor --verify-audit         # recompute the audit hash chain
 uv run python scripts/smoke_live.py          # one short live journey
 ```
 
-Optional blockchain anchoring: add `SEPOLIA_PRIVATE_KEY` for a testnet-only wallet funded from a
-Sepolia faucet. Without it, anchoring runs as a dry run.
+Blockchain anchoring on FISCO BCOS (local 4-node consortium chain, macOS or Linux):
+
+```bash
+scripts/fisco_chain.sh start      # downloads FISCO BCOS 3.17 once, starts 4 nodes, Web3 RPC on :8545
+```
+
+The web app anchors there by default. `ANCHOR_NETWORK=sepolia` plus a `SEPOLIA_PRIVATE_KEY`
+uses the public Ethereum testnet instead.
 
 ## Tests and evaluations
 
@@ -93,11 +102,11 @@ LLM_MODE=live uv run python evals/journeys/run.py      # 30 client personas on t
 
 ## Stack
 
-Python 3.12 · FastAPI · NumPy · Groq (OpenAI-compatible API: `openai/gpt-oss-120b`, fallbacks
+Python 3.12 · FastAPI · NumPy · FISCO BCOS 3.17 + Solidity · Groq (OpenAI-compatible API: `openai/gpt-oss-120b`, fallbacks
 `qwen/qwen3.8-27b`, `openai/gpt-oss-20b`; `llama-prompt-guard-2-86m` for injection scoring) ·
-web3.py for Sepolia anchoring · plain HTML/CSS/JS front end, no build step.
+web3.py · plain HTML/CSS/JS front end with English and 简体中文, no build step.
 
 ## Disclaimer
 
-A competition prototype. It uses a mock product catalog and a simulated brokerage account, and it
-is not investment advice.
+A competition prototype. Fund data is public information on real funds and may be out of date;
+orders run on a simulated brokerage account. It is not investment advice.

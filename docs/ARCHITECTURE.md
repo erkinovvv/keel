@@ -13,7 +13,7 @@ language model.
 | Risk class, weights, returns, volatility, fees, VaR, stress losses, goal probabilities | Deterministic Python, unit-tested | Reproducible, auditable, no hallucinated figures |
 | Suitability (Cn ≤ Rn), liquidity, limits, cooling-off | Server-side code | Cannot be talked around |
 | Placing orders | Human only, via one-time tokens | The model has no tool that can execute or confirm |
-| Record of what happened | Hash-chained audit log, optionally anchored on Ethereum Sepolia | Tamper-evident |
+| Record of what happened | Hash-chained audit log, anchored on WeBank's FISCO BCOS consortium chain | Tamper-evident, independently verifiable |
 
 ## Components
 
@@ -44,7 +44,7 @@ flowchart LR
   end
   subgraph Evidence
     AUD["Audit log<br/>hash chain"]
-    ANC["anchor.py<br/>Sepolia"]
+    ANC["anchor.py<br/>FISCO BCOS · AuditAnchor.sol"]
   end
   LLM[("Groq<br/>gpt-oss-120b<br/>+ fallbacks")]
   PG[("Prompt Guard 2")]
@@ -138,8 +138,12 @@ A kill switch (`WEALTH_ADVISOR_KILL_SWITCH`) caps every session at T1.
    to `logs/audit.jsonl`; each record includes the previous record's hash.
 2. `verify_audit_log()` recomputes the chain; any edit, deletion or reordering breaks it.
 3. The Advice Report's SHA-256 fingerprint is written into the chain.
-4. `anchor.py` writes the chain head and record count into a zero-value Ethereum Sepolia transaction
-   (40-byte payload), so anyone can check that the log was not rewritten after that block.
+4. `anchor.py` writes the chain head and record count to the `AuditAnchor` smart contract
+   (`contracts/AuditAnchor.sol`) on a FISCO BCOS 3.x consortium chain — the open-source chain led by
+   WeBank — through its Web3-compatible RPC. `verify_anchor()` decodes the call, checks the contract
+   state and recomputes the local chain; any rewrite before the anchored block is detected.
+   `scripts/fisco_chain.sh` starts a local 4-node chain; `ANCHOR_NETWORK=sepolia` switches to the
+   public Ethereum testnet instead.
 
 ## Deployment
 
@@ -149,7 +153,8 @@ A kill switch (`WEALTH_ADVISOR_KILL_SWITCH`) caps every session at T1.
 | LLM | Groq free tier through the OpenAI-compatible API; primary `openai/gpt-oss-120b`, fallbacks `qwen/qwen3.8-27b`, `openai/gpt-oss-20b`; injection classifier `meta-llama/llama-prompt-guard-2-86m` |
 | Offline mode | `LLM_MODE=replay` serves recorded responses; the full test suite runs without a key |
 | Secrets | `.env` only (git-ignored) |
-| Data | Mock product catalog; no real client data, no real broker |
+| Data | 24 real Chinese public mutual funds from open East Money data (`scripts/build_cn_catalog.py`); historical markets from Kenneth R. French, FRED and World Bank; no real client data, no real broker |
+| Blockchain | Local FISCO BCOS 3.17 consortium chain (4 nodes), `scripts/fisco_chain.sh start` |
 
 ## Repository map
 
@@ -170,7 +175,8 @@ src/wealth_advisor/
   permissions.py  tiers and one-time confirmation tokens
   account.py      simulated brokerage account
   audit.py        hash-chained audit log
-  anchor.py       Sepolia anchoring and verification
+  anchor.py       audit anchoring on FISCO BCOS (or Sepolia) and verification
+  rehearsal.py    Crash Rehearsal: 2007-2013 replay and revealed risk tolerance
   ui/             web server, static front end, Advice Report
 evals/redteam/    attack suite, runner, report
 evals/journeys/   client personas, live journey runner, report

@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from wealth_advisor.allocation import Allocation, build_allocation
-from wealth_advisor.anchor import anchor_audit_log, verify_anchor
+from wealth_advisor.anchor import anchor_audit_log, network as anchor_network, verify_anchor
 from wealth_advisor.audit import verify_audit_log
 from wealth_advisor.catalog import compare_products, load_catalog
 from wealth_advisor.config import Settings
@@ -466,7 +466,7 @@ def _order_view(order: dict[str, Any], products: dict[str, Any]) -> dict[str, An
 def catalog_info() -> dict[str, Any]:
     meta = _fund_meta()
     real = bool(meta["funds"]) and os.getenv("WEALTH_ADVISOR_CATALOG", "").lower() == "cn"
-    return {"real": real, "as_of": meta.get("as_of"), "source": meta.get("source"), "currency": meta.get("currency") if real else None, "count": len(load_catalog())}
+    return {"real": real, "as_of": meta.get("as_of"), "source": meta.get("source"), "currency": meta.get("currency") if real else None, "count": len(load_catalog()), "anchor_network": anchor_network()}
 
 
 @app.get("/api/tier")
@@ -635,5 +635,7 @@ def main() -> None:
     # The web app advises on real Chinese public funds by default; tests keep the mock catalog.
     os.environ.setdefault("WEALTH_ADVISOR_CATALOG", "cn")
     os.environ.setdefault("CASH_RATE", "0.015")
+    # Audit anchors go to the local WeBank FISCO BCOS consortium chain (scripts/fisco_chain.sh start).
+    os.environ.setdefault("ANCHOR_NETWORK", "fisco")
 
     uvicorn.run("wealth_advisor.ui.server:app", host="127.0.0.1", port=8600, reload=False)

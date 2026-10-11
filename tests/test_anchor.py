@@ -41,3 +41,28 @@ def test_dry_run_without_key_never_sends(tmp_path, monkeypatch):
 def test_empty_log_cannot_be_anchored(tmp_path):
     with pytest.raises(ValueError):
         head_of(tmp_path / "missing.jsonl")
+
+
+def _fisco_running() -> bool:
+    import urllib.request
+
+    try:
+        request = urllib.request.Request("http://127.0.0.1:8545", data=b'{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}', headers={"content-type": "application/json"})
+        return b"result" in urllib.request.urlopen(request, timeout=2).read()
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(not _fisco_running(), reason="local FISCO BCOS chain not running (scripts/fisco_chain.sh start)")
+def test_fisco_bcos_anchor_round_trip_and_tamper_detection(tmp_path, monkeypatch):
+    from wealth_advisor.anchor import verify_anchor
+
+    monkeypatch.setenv("ANCHOR_NETWORK", "fisco")
+    path = _log(tmp_path, 4)
+    receipt = anchor_audit_log(path)
+    assert receipt.sent and receipt.network == "fisco" and receipt.block
+    assert verify_anchor(receipt.tx_hash, path)["matches"]
+    lines = path.read_text().splitlines()
+    lines[1] = lines[1].replace('"index":1', '"index":7')
+    path.write_text("\n".join(lines) + "\n")
+    assert not verify_anchor(receipt.tx_hash, path)["matches"]

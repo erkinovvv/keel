@@ -1,0 +1,76 @@
+{
+ "contract": "AuditAnchor",
+ "solc": "0.8.19",
+ "evm_version": "london",
+ "abi": [
+  {
+   "anonymous": false,
+   "inputs": [
+    {
+     "indexed": true,
+     "internalType": "bytes32",
+     "name": "head",
+     "type": "bytes32"
+    },
+    {
+     "indexed": false,
+     "internalType": "uint32",
+     "name": "recordCount",
+     "type": "uint32"
+    },
+    {
+     "indexed": true,
+     "internalType": "address",
+     "name": "by",
+     "type": "address"
+    },
+    {
+     "indexed": false,
+     "internalType": "uint256",
+     "name": "timestamp",
+     "type": "uint256"
+    }
+   ],
+   "name": "Anchored",
+   "type": "event"
+  },
+  {
+   "inputs": [
+    {
+     "internalType": "bytes32",
+     "name": "head",
+     "type": "bytes32"
+    },
+    {
+     "internalType": "uint32",
+     "name": "recordCount",
+     "type": "uint32"
+    }
+   ],
+   "name": "anchor",
+   "outputs": [],
+   "stateMutability": "nonpayable",
+   "type": "function"
+  },
+  {
+   "inputs": [
+    {
+     "internalType": "bytes32",
+     "name": "",
+     "type": "bytes32"
+    }
+   ],
+   "name": "anchoredAtBlock",
+   "outputs": [
+    {
+     "internalType": "uint256",
+     "name": "",
+     "type": "uint256"
+    }
+   ],
+   "stateMutability": "view",
+   "type": "function"
+  }
+ ],
+ "bytecode": "0x608060405234801561001057600080fd5b50610177806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80630cbeeb9e1461003b57806347489de41461006d575b600080fd5b61005b6100493660046100ef565b60006020819052908152604090205481565b60405190815260200160405180910390f35b61008061007b366004610108565b610082565b005b60008281526020819052604081205490036100a95760008281526020819052604090204390555b6040805163ffffffff83168152426020820152339184917f2d906b15c487081b920b8af8f977238e87a2929983eb7f2d4f30cd7390a618bf910160405180910390a35050565b60006020828403121561010157600080fd5b5035919050565b6000806040838503121561011b57600080fd5b82359150602083013563ffffffff8116811461013657600080fd5b80915050925092905056fea2646970667358221220539285a4460d4aa664f8d27809571d9a62ff9847f2cf1c1f8045aef18327a16d64736f6c63430008130033"
+}

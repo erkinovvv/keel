@@ -520,7 +520,7 @@ td.r, th.r { text-align: right; }
 .rc-hash { font-weight: 600; letter-spacing: .04em; }
 .barcode { width: 100%; height: 34px; margin-top: 10px; fill: #1d1d1b; }
 .stamp {
-  position: absolute; right: 16px; bottom: 74px;
+  position: absolute; right: 14px; top: 58px;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 8px 12px; border: 2.5px double #17695a; border-radius: 8px; color: #17695a;
   font: 600 11px/1.2 var(--sans); text-align: center; transform: rotate(-9deg); opacity: .88;
@@ -540,6 +540,7 @@ td.r, th.r { text-align: right; }
 .anchors { padding: 14px 24px; border-bottom: 1px solid var(--line); }
 .anchor-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .anchor-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 10px; font-size: 13px; }
+.anchor-row code { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--jade-ink); }
 .anchor-row a { color: var(--jade-ink); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 .verify-out { width: 100%; font-size: 12.5px; color: var(--ink-2); }
 .verify-out.ok { color: var(--jade-ink); }

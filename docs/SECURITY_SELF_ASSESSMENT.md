@@ -21,7 +21,7 @@ the server-side controls make sure that being misled cannot cause harm.
 | **Mis-selling** (suitability bypass) | Model passes `investor_class=5` for a C3 client; UI request for C5 | Investor class read only from the stored profile; a model-supplied class is ignored or rejected by the dispatcher; API returns 403 above the assessed class; pre-trade suitability check |
 | **Hallucinated or unsafe advice** | Invented return figure; "guaranteed", "risk-free" | All figures from tools; output guard checks every number against this session's tool results and blocks unsafe claims; disclaimer on recommendations |
 | **Spoofing** of client approval | Forged or replayed confirmation token | Tokens: random 192-bit, stored hashed, bound to the exact order summary, 5-minute TTL, single use |
-| **Tampering** with records | Editing, deleting or reordering audit entries | SHA-256 hash chain verified end to end; chain head anchored on Ethereum Sepolia |
+| **Tampering** with records | Editing, deleting or reordering audit entries | SHA-256 hash chain verified end to end; chain head anchored in a smart contract on a FISCO BCOS consortium chain |
 | **Repudiation** | "I never agreed to that" | Signed risk disclosure (signer stored as hash), hold-to-confirm, audit records for every token issue/consume, fingerprinted Advice Report |
 | **Information disclosure** | Passport or card number sent to the model provider | PII redaction before any model call (email, IBAN, cards, phones incl. +86, passports, 18-digit PRC ID); placeholders only reach the model |
 | **Denial of service / cost** | Flooding the agent; exhausting free-tier quota | Per-session turn limit (30), max 8 tool steps per turn, retry caps, token pacing, model fallback chain, offline replay mode |
@@ -65,7 +65,7 @@ Order path, end to end:
 | Robust agent loop | `agent.AdvisorAgent.run_turn` | `test_agent_robustness.py` |
 | Rate limiting | `security.RateLimiter` | `::test_rate_limiter_is_deterministic`; red-team SYS-14 |
 | Audit chain | `audit.AuditLogger`, `audit.verify_audit_log` | `test_audit.py`; red-team SYS-11…13 |
-| Blockchain anchoring | `anchor.anchor_audit_log`, `anchor.verify_anchor` | `test_anchor.py` |
+| Blockchain anchoring | `anchor.anchor_audit_log`, `anchor.verify_anchor`, `contracts/AuditAnchor.sol` | `test_anchor.py` (incl. live FISCO BCOS round trip and tamper detection) |
 | Server-side UI limits | `ui/server.py` (`/api/allocation` 403 above class, consent, tokens) | `test_ui_api.py` |
 
 ## 5. Red-team results
@@ -104,8 +104,8 @@ misses whose impact is contained by those controls (see risks R2, R3).
 | R5 | **Model non-determinism**: wording and tool order vary between runs. | Low | All figures deterministic; journey eval measures completion on 30 personas | Track completion rate per release |
 | R6 | **Model risk in the engine**: capital-market assumptions are estimates. | Medium | Estimates labelled as such; stress tests on historical shocks; client loss limit checked | Real-data estimation with shrinkage and backtests (in progress) |
 | R7 | **Prototype session handling**: in-memory sessions and tokens, no user authentication, single process. | Medium (prototype) | HttpOnly SameSite=Strict cookie; tokens hashed and single-use | Production: bank SSO/eKYC, persistent store, CSRF tokens, TLS |
-| R8 | **Audit log is tamper-evident, not tamper-proof**: someone with write access could rebuild the whole chain. | Medium | Chain head anchored on a public blockchain; any rewrite before an anchor is detectable | Anchor on a schedule; write-once storage |
-| R9 | **Anchoring key in `.env`**; testnet only. | Low | Dedicated testnet wallet with no real funds | HSM-held key on a production chain |
+| R8 | **Audit log is tamper-evident, not tamper-proof**: someone with write access could rebuild the whole chain. | Medium | Chain head anchored in a FISCO BCOS smart contract after each trade or on demand; any rewrite before an anchor is detectable | Anchor on a schedule; nodes run by independent consortium members (bank, auditor, regulator) |
+| R9 | **Single-operator demo chain and local keys**: the 4 demo nodes run on one machine; the anchoring key sits in the user's home directory. | Low (prototype) | Dedicated account used only for anchoring; no value on chain | Multi-party consortium nodes; HSM-held keys |
 | R10 | **Free-tier availability**: rate limits (8K tokens/min) and daily quotas. | Low | Fallback chain, retry-after waits, pacing, offline replay for demos | Paid tier or self-hosted model |
 | R11 | **Simplified regulation**: suitability modelled on CSRC rules but not the full regime (professional investors, special products, dual recording). | Low (prototype) | Documented scope; conservative defaults | Legal review before any real use |
 

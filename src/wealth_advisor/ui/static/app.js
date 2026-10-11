@@ -329,6 +329,11 @@ function dataNote() {
   return `<p class="data-note"><span class="dot-live"></span>${t("{n} real Chinese public funds · public data as of {date} · amounts in {cur}", { n: c.count, date: longDate(c.as_of), cur: c.currency })}</p>`;
 }
 
+function chainName(net = state.catalog?.anchor_network, short = false) {
+  if (net !== "fisco") return "Ethereum Sepolia";
+  return short ? "FISCO BCOS (WeBank)" : t("WeBank FISCO BCOS consortium chain");
+}
+
 function staleBanner() {
   const a = state.allocation, p = state.profile;
   if (!a || !p || a.investor_class <= p.investor_class) return "";
@@ -1135,12 +1140,13 @@ function printReceipt(r) {
 async function anchorOnReceipt(paper) {
   const slot = document.createElement("div");
   slot.className = "rc-chain";
-  slot.innerHTML = `<div class="rc-rule"></div><div class="rc-dim">${t("On-chain proof")}</div><div>${t("Anchoring on Ethereum Sepolia…")}</div>`;
+  slot.innerHTML = `<div class="rc-rule"></div><div class="rc-dim">${t("On-chain proof")}</div><div>${t("Anchoring on {net}…", { net: chainName() })}</div>`;
   paper.insertBefore(slot, paper.querySelector(".stamp"));
   try {
     const a = await api("/api/anchor", { method: "POST" });
+    const txText = `${esc(a.tx_hash?.slice(0, 10) || "")}…${esc(a.tx_hash?.slice(-6) || "")}`;
     slot.lastElementChild.innerHTML = a.sent
-      ? `Ethereum Sepolia · <a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${esc(a.tx_hash.slice(0, 10))}…${esc(a.tx_hash.slice(-6))}</a><br><span class="rc-dim">${t("audit head after {n} records", { n: a.record_count })}</span>`
+      ? `${esc(chainName(a.network, true))}${a.block ? ` · ${t("block {n}", { n: a.block })}` : ""}<br>tx ${a.explorer_url ? `<a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${txText}</a>` : txText}<br><span class="rc-dim">${t("audit head after {n} records", { n: a.record_count })}</span>`
       : `<span class="rc-dim">${t("Not anchored: {why}", { why: esc(a.note) })}</span>`;
     refreshAudit();
   } catch (err) {
@@ -1214,13 +1220,13 @@ async function renderAnchors() {
   const sent = list.filter((x) => x.sent);
   box.innerHTML = `
     <div class="anchor-head">
-      <div><b>${t("Blockchain anchors")}</b><div class="hint">${sent.length ? t("{n} on Ethereum Sepolia", { n: sent.length }) : t("Write the current chain head to a public blockchain.")}</div></div>
+      <div><b>${t("Blockchain anchors")}</b><div class="hint">${sent.length ? t("{n} on {net}", { n: sent.length, net: chainName(sent[0].network) }) : t("Write the current chain head to {net}.", { net: chainName() })}</div></div>
       <button class="btn secondary" type="button" id="anchorNow">${t("Anchor now")}</button>
     </div>
     ${sent.slice().reverse().map((x) => `
       <div class="anchor-row">
-        <a href="${esc(x.explorer_url)}" target="_blank" rel="noopener">${esc(x.tx_hash.slice(0, 12))}…</a>
-        <span class="rc-dim">${t("{n} records", { n: x.record_count })}</span>
+        ${x.explorer_url ? `<a href="${esc(x.explorer_url)}" target="_blank" rel="noopener">${esc(x.tx_hash.slice(0, 12))}…</a>` : `<code>${esc(x.tx_hash.slice(0, 12))}…</code>`}
+        <span class="rc-dim">${x.block ? `${t("block {n}", { n: x.block })} · ` : ""}${t("{n} records", { n: x.record_count })}</span>
         <button class="why" type="button" data-verify="${esc(x.tx_hash)}">${t("Verify")}</button>
         <span class="verify-out"></span>
       </div>`).join("")}
