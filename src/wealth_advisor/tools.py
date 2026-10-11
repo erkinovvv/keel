@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, ValidationError, create_model
 
 from .allocation import Allocation, Holding, build_allocation
 from .audit import AuditLogger
@@ -46,15 +46,15 @@ class ProfileArgs(BaseModel):
 
 
 class ClientFactsArgs(BaseModel):
-    amount: float | None = Field(default=None, gt=0, le=100_000_000)
+    amount_cny: float | None = Field(default=None, gt=0, le=100_000_000, description="Positive investment amount in the client's currency units.")
     horizon_years: int | None = Field(default=None, ge=1, le=100)
-    max_loss: float | None = Field(default=None, ge=0, le=100)
+    max_loss_fraction: float | None = Field(default=None, ge=0, le=1, description="Acceptable loss as a fraction from 0 to 1; 0.20 means 20%.")
     age: int | None = Field(default=None, ge=18, le=120)
     borrowed_money: bool | None = None
 
 
 class CompareArgs(BaseModel):
-    amount: float | None = Field(default=None, gt=0)
+    amount_cny: float | None = Field(default=None, gt=0, description="Positive comparison amount in the client's currency units.")
     horizon_years: int | None = Field(default=None, gt=0, le=100)
     liquidity_days: int | None = Field(default=None, ge=0)
     asset_class: str | None = None
@@ -62,9 +62,9 @@ class CompareArgs(BaseModel):
 
 
 class AllocationArgs(BaseModel):
-    amount: float | None = Field(default=None, gt=0)
+    amount_cny: float | None = Field(default=None, gt=0, description="Positive allocation amount in the client's currency units.")
     liquidity_days: int | None = Field(default=None, ge=0)
-    max_tolerable_loss: float | None = Field(default=None, ge=0, le=100)
+    max_tolerable_loss_fraction: float | None = Field(default=None, ge=0, le=1, description="Maximum loss as a fraction from 0 to 1; 0.20 means 20%.")
     exclusions: list[str] = Field(default_factory=list)
 
 
@@ -75,19 +75,55 @@ class StressArgs(BaseModel):
         description="Historical scenario: use 2008_gfc for the 2008 global financial crisis.",
     )
     custom_shocks: dict[str, float] | None = None
-    max_tolerable_loss: float | None = Field(default=None, ge=0, le=100)
+    max_tolerable_loss_fraction: float | None = Field(default=None, ge=0, le=1, description="Maximum loss as a fraction from 0 to 1; 0.20 means 20%.")
 
 
 class DraftOrderArgs(BaseModel):
     allocation_id: str = "latest"
 
 
-def _normalise_percentage(value: float | None) -> float | None:
-    """Accept either a fraction or a human percentage and store a fraction."""
+_LEGACY_FIELD_NAMES = {
+    "amount": "amount_cny",
+    "max_loss": "max_loss_fraction",
+    "max_tolerable_loss": "max_tolerable_loss_fraction",
+}
 
-    if value is None:
-        return None
-    return value / 100 if value > 1 else value
+
+def _canonical_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Translate pre-unit-explicit callers without exposing ambiguous fields to the model."""
+
+    values = dict(arguments)
+    for old_name, new_name in _LEGACY_FIELD_NAMES.items():
+        if new_name in values:
+            values.pop(old_name, None)
+            continue
+        if old_name not in values:
+            continue
+        value = values.pop(old_name)
+        if old_name in {"max_loss", "max_tolerable_loss"} and isinstance(value, (int, float)) and value > 1:
+            value /= 100
+        values[new_name] = value
+    return values
+
+
+def _validated(model: type[BaseModel], arguments: dict[str, Any]) -> BaseModel:
+    values = _canonical_arguments(arguments)
+    try:
+        return model.model_validate(values)
+    except ValidationError as exc:
+        messages: list[str] = []
+        for error in exc.errors():
+            field = str(error["loc"][-1])
+            value = values.get(field)
+            if field in {"max_loss_fraction", "max_tolerable_loss_fraction"} and isinstance(value, (int, float)) and value > 1:
+                messages.append(f"{field}={value} looks like a percent; pass {value / 100:.2f} as a fraction from 0 to 1")
+            elif field == "amount_cny":
+                messages.append(f"amount_cny={value!r} must be a positive amount in the client's currency units")
+            elif field == "horizon_years":
+                messages.append(f"horizon_years={value!r} must be a whole number from 1 to 100")
+            else:
+                messages.append(f"{field}={value!r} is invalid; provide a value satisfying the tool range")
+        raise ValueError("; ".join(messages)) from exc
 
 
 def _provider_schema(model: type[BaseModel]) -> dict[str, Any]:
@@ -111,11 +147,11 @@ def _provider_schema(model: type[BaseModel]) -> dict[str, Any]:
 
 
 TOOL_SCHEMAS = [
-    {"type": "function", "function": {"name": "record_client_facts", "description": "Store validated client KYC facts.", "parameters": _provider_schema(ClientFactsArgs)}},
-    {"type": "function", "function": {"name": "profile_investor", "description": "Score enumerated investor answers", "parameters": _provider_schema(ProfileArgs)}},
-    {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalog products.", "parameters": _provider_schema(CompareArgs)}},
+    {"type": "function", "function": {"name": "record_client_facts", "description": "Store validated client facts; amounts use currency units and losses use fractions.", "parameters": _provider_schema(ClientFactsArgs)}},
+    {"type": "function", "function": {"name": "profile_investor", "description": "Score the enumerated investor answers.", "parameters": _provider_schema(ProfileArgs)}},
+    {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalogue products for the stored profile.", "parameters": _provider_schema(CompareArgs)}},
     {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation.", "parameters": _provider_schema(AllocationArgs)}},
-    {"type": "function", "function": {"name": "stress_test", "description": "Apply a historical-style portfolio stress.", "parameters": _provider_schema(StressArgs)}},
+    {"type": "function", "function": {"name": "stress_test", "description": "Apply a deterministic historical portfolio stress.", "parameters": _provider_schema(StressArgs)}},
     {"type": "function", "function": {"name": "create_draft_orders", "description": "Create proposed simulated orders from a stored allocation.", "parameters": _provider_schema(DraftOrderArgs)}},
 ]
 
@@ -141,9 +177,11 @@ class ToolDispatcher:
         if name == "record_client_facts":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
-            facts = ClientFactsArgs.model_validate(arguments).model_dump(exclude_unset=True)
-            if "max_loss" in facts:
-                facts["max_loss"] = _normalise_percentage(facts["max_loss"])
+            facts = _validated(ClientFactsArgs, arguments).model_dump(exclude_unset=True)
+            if "amount_cny" in facts:
+                facts["amount"] = facts.pop("amount_cny")
+            if "max_loss_fraction" in facts:
+                facts["max_loss"] = facts.pop("max_loss_fraction")
             if not facts:
                 raise ValueError("at least one client fact is required")
             if self.session:
@@ -172,8 +210,9 @@ class ToolDispatcher:
         elif name == "compare_products":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
-            args = CompareArgs.model_validate(arguments)
+            args = _validated(CompareArgs, arguments)
             args_data = args.model_dump()
+            args_data["amount"] = args_data.pop("amount_cny")
             if self.session and args_data["amount"] is None:
                 args_data["amount"] = self.session.state.client.amount
             if self.session and args_data["horizon_years"] is None:
@@ -192,9 +231,10 @@ class ToolDispatcher:
         elif name == "build_allocation":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
-            args = AllocationArgs.model_validate(arguments)
+            args = _validated(AllocationArgs, arguments)
             args_data = args.model_dump()
-            args_data["max_tolerable_loss"] = _normalise_percentage(args_data["max_tolerable_loss"])
+            args_data["amount"] = args_data.pop("amount_cny")
+            args_data["max_tolerable_loss"] = args_data.pop("max_tolerable_loss_fraction")
             if self.session and args_data["amount"] is None:
                 args_data["amount"] = self.session.state.client.amount
             if args_data["amount"] is None:
@@ -217,12 +257,11 @@ class ToolDispatcher:
         elif name == "stress_test":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
-            args = StressArgs.model_validate(arguments)
+            args = _validated(StressArgs, arguments)
             if not self.session:
                 raise ValueError("stress_test requires a server-side AdvisorSession")
             allocation = self.session.stored_allocation(args.allocation_id)
-            max_loss = args.max_tolerable_loss
-            max_loss = _normalise_percentage(max_loss)
+            max_loss = args.max_tolerable_loss_fraction
             if max_loss is None and self.session:
                 max_loss = self.session.state.client.max_loss
             stress_result = stress_test(allocation, scenario=args.scenario, custom_shocks=args.custom_shocks, max_tolerable_loss=max_loss if max_loss is not None else 0.20)

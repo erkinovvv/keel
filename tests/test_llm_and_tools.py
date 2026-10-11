@@ -37,6 +37,23 @@ def test_tool_dispatcher_validates_and_returns_json_ready_values(tmp_path):
     json.dumps(result)
 
 
+def test_tool_schemas_use_explicit_units_and_errors_are_actionable(tmp_path):
+    from wealth_advisor.tools import TOOL_SCHEMAS
+
+    facts_schema = next(item for item in TOOL_SCHEMAS if item["function"]["name"] == "record_client_facts")["function"]["parameters"]
+    assert "amount_cny" in facts_schema["properties"]
+    assert "max_loss_fraction" in facts_schema["properties"]
+    assert "amount" not in facts_schema["properties"]
+    dispatcher = ToolDispatcher(AuditLogger(tmp_path / "audit.jsonl"))
+    try:
+        dispatcher.dispatch("record_client_facts", {"max_loss_fraction": 20})
+    except ValueError as exc:
+        assert "looks like a percent" in str(exc)
+        assert "0.20" in str(exc)
+    else:
+        raise AssertionError("percent-like fraction should be rejected")
+
+
 def test_tool_dispatcher_exposes_stress_test(tmp_path):
     from wealth_advisor.permissions import PermissionTier
     from wealth_advisor.session import AdvisorSession
