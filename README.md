@@ -1,25 +1,90 @@
-# Wealth Advisory Agent
+# Lucid — the AI wealth advisor that proves its advice
 
-FinTechathon 2026 Topic B prototype: a deterministic, explainable wealth-advisory workflow with an LLM conversation layer.
+**FinTechathon 2026 · International Track · Topic B: Wealth Advisory Agent**
 
-## M1 quickstart
+Lucid runs the workflow of a licensed wealth advisor — fact-find, risk profiling, product
+comparison, asset allocation, stress testing and client-confirmed execution — in a natural
+conversation. What makes it different is that every recommendation can be checked:
+
+- **Every number comes from audited code, never from the model.** Tap any figure in the UI to see
+  the function that computed it and the audit record it was written to.
+- **Suitability is enforced by the server.** Risk class C1–C5 against product risk R1–R5, modelled
+  on CSRC investor-suitability rules. The model can neither raise a client's class nor recommend a product above it.
+- **Only the client can move money.** Orders need a signed risk disclosure and a hold-to-confirm
+  with a one-time token the model can never obtain.
+- **Every decision is on a tamper-evident record.** A hash-chained audit log, a fingerprinted
+  Advice Report, and the chain head anchored on Ethereum Sepolia.
+
+![Recommended portfolio with provenance popovers](docs/img/portfolio.png)
+
+| Goal planning | Execution with printed confirmation |
+|---|---|
+| ![Goal planning](docs/img/goal.png) | ![Execution](docs/img/execute.png) |
+
+## Topic B requirements
+
+| Requirement | Where |
+|---|---|
+| Professional advisory workflow and dialogue | Agent loop with stage-aware tools and an advisor workflow prompt (`agent.py`, `prompts.py`, `session.py`); chat and client file stay in sync |
+| Client risk profiling | Capacity vs tolerance questionnaire → C1–C5 with reason codes and client-protection caps (`profiling.py`) |
+| Product comparison | Suitable products ranked by return per unit of risk after fees, with fee cost over the client's horizon (`catalog.py`) |
+| Compliant, explainable allocation | Strategic weights per class, suitability and liquidity constraints, product caps, reason codes per holding (`allocation.py`, `compliance.py`) |
+| Beyond the brief | Monte Carlo goal planning, historical stress tests against the client's own loss limit, Advice Report, simulated execution |
+
+## Quick start
+
+Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
-cp .env.example .env
-uv run pytest
-uv run wealth-advisor
+cp .env.example .env          # add GROQ_API_KEY (free at console.groq.com) for the live advisor
+LLM_MODE=live uv run wealth-advisor-ui
+# open http://127.0.0.1:8600
 ```
 
-The default `LLM_MODE=replay` requires no API key. Set `LLM_MODE=live` and `GROQ_API_KEY` to use the OpenAI-compatible Groq endpoint. All portfolio numbers come from Python tools; the LLM only orchestrates and explains tool results.
+Without a key everything except free-form chat works offline: `uv run wealth-advisor-ui` uses
+replay mode, and the questionnaire, portfolio, goal, comparison, stress test, execution and report
+steps are all deterministic.
 
-## M1 components
+Other entry points:
 
-- `profiling.py`: capacity and tolerance scores, C1–C5 suitability class, reason codes, vulnerability caps, and 12-month expiry.
-- `catalog.py`: validated mock catalog, suitability filtering, net-return comparison, Sharpe-like score, and fee drag.
-- `allocation.py`: strategic weights, suitable product ranking, 35% product cap, cash buffer, correlation-based volatility, and 95% one-year VaR.
-- `stress.py`: 2008 GFC, 2020 COVID, 2022 rate shock, and custom scenarios.
-- `llm.py` and `agent.py`: Groq fallback chain plus offline replay and bounded explicit tool loop.
-- `audit.py`: append-only JSONL records with a tamper-evident hash chain.
+```bash
+LLM_MODE=live uv run wealth-advisor chat     # terminal conversation
+uv run wealth-advisor demo                   # scripted end-to-end run
+uv run wealth-advisor --verify-audit         # recompute the audit hash chain
+uv run python scripts/smoke_live.py          # one short live journey
+```
 
-Run `uv run wealth-advisor --verify-audit` to verify the configured audit log.
+Optional blockchain anchoring: add `SEPOLIA_PRIVATE_KEY` for a testnet-only wallet funded from a
+Sepolia faucet. Without it, anchoring runs as a dry run.
+
+## Tests and evaluations
+
+```bash
+uv run pytest                                          # unit, API and red-team regression tests (offline)
+uv run python evals/redteam/run.py                     # 65-case red-team suite → evals/redteam/REPORT.md
+LLM_MODE=live uv run python evals/journeys/run.py      # 30 client personas on the live model → evals/journeys/REPORT.md
+```
+
+| Evaluation | Result |
+|---|---|
+| Red-team, attacks stopped | 54 / 57 (100% on suitability, execution, audit, abuse and personal-data categories) |
+| Red-team, benign requests handled correctly | 8 / 8 |
+| Client journeys completed on the live model | *being measured — see `evals/journeys/REPORT.md`* |
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — components, the model/code boundary, one chat turn, data model, permission tiers
+- [Security self-assessment](docs/SECURITY_SELF_ASSESSMENT.md) — threat model, permission-tier implementation, controls ↔ tests, red-team results, known risks
+- [Roadmap](docs/ROADMAP.md)
+
+## Stack
+
+Python 3.12 · FastAPI · NumPy · Groq (OpenAI-compatible API: `openai/gpt-oss-120b`, fallbacks
+`qwen/qwen3.8-27b`, `openai/gpt-oss-20b`; `llama-prompt-guard-2-86m` for injection scoring) ·
+web3.py for Sepolia anchoring · plain HTML/CSS/JS front end, no build step.
+
+## Disclaimer
+
+A competition prototype. It uses a mock product catalog and a simulated brokerage account, and it
+is not investment advice.
