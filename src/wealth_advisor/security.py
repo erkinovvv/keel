@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import time
 import unicodedata
+from base64 import b64decode
 from dataclasses import dataclass
 from threading import Lock
 from typing import Callable
@@ -13,10 +14,51 @@ from .audit import AuditLogger
 from .config import Settings
 
 
+_LEETSPEAK = str.maketrans({"0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b", "9": "g", "@": "a", "$": "s"})
+_BASE64_CHUNK = re.compile(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{20,}={0,2}(?![A-Za-z0-9+/])")
+_SPACED_LETTERS = re.compile(r"(?<!\w)(?:[A-Za-z]\s+){3,}[A-Za-z](?!\w)")
+
+
+def _collapse_spaced_letters(text: str) -> str:
+    def collapse(match: re.Match[str]) -> str:
+        words = re.split(r"\s{2,}", match.group(0))
+        return " ".join("".join(re.findall(r"[A-Za-z]", word)) for word in words)
+
+    return _SPACED_LETTERS.sub(collapse, text)
+
+
+def _decoded_base64(text: str) -> list[str]:
+    decoded: list[str] = []
+    for match in _BASE64_CHUNK.finditer(text):
+        try:
+            candidate = b64decode(match.group(0), validate=True).decode("utf-8")
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if candidate.strip():
+            decoded.append(candidate)
+    return decoded
+
+
+def _normalised_candidates(text: str) -> tuple[str, ...]:
+    normalized = unicodedata.normalize("NFKC", text).casefold()
+    candidates = [normalized, normalized.translate(_LEETSPEAK), _collapse_spaced_letters(normalized)]
+    for decoded in _decoded_base64(normalized):
+        candidates.extend((decoded.casefold(), decoded.casefold().translate(_LEETSPEAK)))
+    return tuple(candidates)
+
+
 _INJECTION_PATTERNS = (
-    re.compile(r"ignore\s+(all\s+)?previous|disregard\s+(the\s+)?system", re.I),
-    re.compile(r"reveal\s+(the\s+)?system\s+prompt|show\s+hidden\s+instructions", re.I),
-    re.compile(r"call\s+the\s+tool|use\s+function|buy\s+.+all\s+cash", re.I),
+    re.compile(r"ignore\s+(?:all\s+)?previous|disregard\s+(?:the\s+)?system|forget\s+everything\s+(?:above|before)", re.I),
+    re.compile(r"reveal\s+(?:the\s+)?system\s+prompt|show\s+(?:the\s+)?hidden\s+instructions|(?:display|show).{0,20}(?:system|prompt)", re.I),
+    re.compile(r"call\s+the\s+tool|use\s+function|buy\s+.+all\s+cash|tool\s+calls?\s+that\s+create\s+orders", re.I),
+    re.compile(r"(?:suitability|compliance|risk)\s+(?:checks?\s+)?(?:are\s+)?(?:disabled|off|turned\s+off)|(?:skip|bypass)\s+(?:the\s+)?(?:risk|suitability|compliance)", re.I),
+    re.compile(r"(?:^|[\n<])\s*(?:/?(?:system|developer|assistant|user))(?:\s*>|\s*:)", re.I),
+    re.compile(r"pretend\s+.+(?:previous\s+instructions|real\s+instruction|skip\s+(?:the\s+)?risk)|role[- ]?play\b.+(?:regulation|borrowed\s+money|buy)|(?:novel|story)\b.+(?:bypass|suitability).+(?:step\s+by\s+step|explain)|act\s+as\s+(?:the\s+)?developer\s+mode|developer\s+mode.+(?:off|no\s+rules)|\bdan\b.+(?:no\s+rules|whatever\s+the\s+user)", re.I),
+    re.compile(r"忽略.*(?:之前|所有).*(?:指令|说明)|(?:显示|透露|告诉).*(?:系统|提示词|指令)|(?:所有|全部).*(?:钱|资金).*(?:买|投入)", re.I),
+    re.compile(r"игнорируй.*предыдущ|системн.*(?:промпт|инструкц)|купи.*все.*деньги", re.I),
+    re.compile(r"oldingi.*(?:e['’]?tiborsiz|etiborsiz).*ko['’]?rsatmalar|barcha.*pul.*(?:fond|texnologiya)", re.I),
+    re.compile(r"ignora.*instrucciones.*(?:anteriores|sistema)|muestra.*(?:prompt|sistema)", re.I),
+    re.compile(r"(?:assistant|system|model).*(?:must|should|tell|recommend).*(?:guaranteed|return|fund|product)|(?:guaranteed|certain)\s+to\s+(?:return|profit)", re.I),
 )
 _PII_PATTERNS = (
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")),
@@ -50,7 +92,12 @@ def redact_pii(text: str) -> tuple[str, tuple[str, ...]]:
 
 
 def _injection_score(text: str) -> tuple[float, tuple[str, ...]]:
-    reasons = tuple(f"INJECTION_HEURISTIC_{index}" for index, pattern in enumerate(_INJECTION_PATTERNS, start=1) if pattern.search(text))
+    candidates = _normalised_candidates(text)
+    reasons = tuple(
+        f"INJECTION_HEURISTIC_{index}"
+        for index, pattern in enumerate(_INJECTION_PATTERNS, start=1)
+        if any(pattern.search(candidate) for candidate in candidates)
+    )
     return min(1.0, 0.45 * len(reasons)), reasons
 
 
