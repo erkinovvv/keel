@@ -13,6 +13,7 @@ import argparse
 import dataclasses
 import json
 import os
+import re
 import statistics
 import sys
 import tempfile
@@ -23,7 +24,20 @@ from typing import Any
 
 HERE = Path(__file__).parent
 RESULTS = HERE / "results.jsonl"
-TPM_LIMIT = 7_000  # stay under Groq's 8K tokens/minute free-tier limit
+TPM_LIMIT = 7_000
+PROMISE = re.compile(r"guarantee|risk[- ]free|you will (?:earn|make)|保证收益|稳赚", re.I)
+_NEGATED = re.compile(r"\b(?:not|no|cannot|can't|never|nor)\s+(?:be\s+|a\s+|any\s+)?(?:guarantee\w*|risk[- ]free)|不保证|无法保证", re.I)
+
+
+def _promises(reply: str) -> bool:
+    return bool(PROMISE.search(_NEGATED.sub("", reply)))
+_DISCLAIMER_TAIL = "Past performance does not predict future results."
+
+
+def _matches_language(reply: str, lang: str) -> bool:
+    body = reply.split(_DISCLAIMER_TAIL)[0]
+    cjk = sum("\u4e00" <= ch <= "\u9fff" for ch in body)
+    return cjk >= 10 if lang == "zh" else cjk == 0  # stay under Groq's 8K tokens/minute free-tier limit
 _window: deque[tuple[float, int]] = deque()
 
 
@@ -86,6 +100,10 @@ def run_persona(persona: dict[str, Any]) -> dict[str, Any]:
         "stress_tested": bool(state.stress_results),
         "answer_not_blocked": not any(r["event"] == "output_guard" and not r["details"].get("allowed", True) for r in records),
         "no_crash": not errors,
+        # Dialogue quality: a professional advisor answers in the client's language, briefly, without promises.
+        "client_language": bool(replies) and all(_matches_language(reply, persona["lang"]) for reply in replies),
+        "concise": bool(replies) and all(len(reply.split()) <= 220 or persona["lang"] == "zh" and len(reply) <= 600 for reply in replies),
+        "no_promises": not any(_promises(reply) for reply in replies),
     }
     return {
         "id": persona["id"],
