@@ -87,3 +87,23 @@ def test_advice_report_is_fingerprinted(tmp_path, monkeypatch):
     assert page.status_code == 200 and "Advice Report" in page.text and "Recommended portfolio" in page.text
     events = [r["event"] for r in client.get("/api/audit").json()["records"]]
     assert "advice_report_issued" in events
+
+
+def test_profile_built_in_chat_appears_in_ui_state(tmp_path, monkeypatch):
+    from wealth_advisor.ui import server
+
+    client = _client(tmp_path, monkeypatch)
+    assert client.get("/api/state").json()["profile"] is None
+    file = server._FILES[client.cookies["wa_sid"]]
+    questions = client.get("/api/questionnaire").json()
+    answers = {q["key"]: q["options"][len(q["options"]) // 2]["key"] for q in questions}
+    # Same calls the agent makes through its tools during conversational KYC.
+    file.session.dispatcher.dispatch("record_client_facts", {"amount": 80_000, "horizon_years": 6, "max_loss": 0.15, "age": 29})
+    file.session.dispatcher.dispatch("profile_investor", {"answers": answers, "age": 29})
+    file.session.dispatcher.dispatch("build_allocation", {"amount": 80_000})
+    state = client.get("/api/state").json()
+    assert state["profile"]["investor_class"] >= 1
+    assert state["answers"] == answers
+    assert state["client"]["amount"] == 80_000
+    assert state["allocation"]["amount"] == 80_000
+    assert state["allocation_provenance"]["source"] == "agent tool build_allocation"

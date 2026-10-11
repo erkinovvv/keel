@@ -94,6 +94,36 @@ function note(text, cls = "msg-note") {
   thread.scrollTop = thread.scrollHeight;
 }
 
+// ---------------------------------------------------------------- chat ↔ client file sync
+
+function applyServerState(s, { fromChat = false } = {}) {
+  if (!s) return;
+  const changes = [];
+  if (s.profile && (!state.profile || state.profile.investor_class !== s.profile.investor_class || state.profile.expires_on !== s.profile.expires_on || JSON.stringify(state.answers) !== JSON.stringify(s.answers))) {
+    Object.assign(state, { profile: s.profile, answers: s.answers, allocationLevel: s.profile.investor_class });
+    state.profileProv = state.profileProv || { source: "profiling.profile_investor", audit_hash: "0".repeat(64), timestamp: new Date().toISOString() };
+    state.done.add("profile");
+    $("#reportLink").setAttribute("aria-disabled", "false");
+    changes.push(`risk profile C${s.profile.investor_class}`);
+  }
+  if (s.client && JSON.stringify(s.client) !== JSON.stringify(state.client)) {
+    if (state.client && fromChat) changes.push("your details");
+    state.client = { amount: 100000, horizon_years: 10, max_loss: 0.2, age: 35, ...Object.fromEntries(Object.entries(s.client).filter(([, v]) => v !== null)) };
+  }
+  if (s.allocation_id && s.allocation_id !== state.allocationId) {
+    Object.assign(state, { allocation: s.allocation, allocationId: s.allocation_id, allocationProv: s.allocation_provenance, allocationLevel: s.allocation.investor_class, drafts: null });
+    state.done.add("portfolio");
+    changes.push("portfolio");
+  }
+  if (s.tier) setTier(s.tier);
+  if (fromChat && changes.length) {
+    note(`Client file updated from the conversation: ${changes.join(", ")}.`, "msg-sync");
+    for (const b of steps.querySelectorAll("button")) b.disabled = b.dataset.step !== "profile" && !state.profile;
+    const affected = { profile: changes.some((c) => c.startsWith("risk")), portfolio: changes.includes("portfolio") };
+    if (affected[state.step] || (state.step === "profile" && state.profile)) go(state.step);
+  }
+}
+
 $("#composer").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = $("#chatInput");
@@ -120,9 +150,10 @@ $("#composer").addEventListener("submit", async (e) => {
   thread.append(typing);
   thread.scrollTop = thread.scrollHeight;
   try {
-    const { reply } = await api("/api/chat", { method: "POST", body: { message: text } });
+    const res = await api("/api/chat", { method: "POST", body: { message: text } });
     typing.remove();
-    say(esc(reply).split(/\n{2,}/).map((p) => p.replace(/\n/g, "<br>")));
+    say(esc(res.reply).split(/\n{2,}/).map((p) => p.replace(/\n/g, "<br>")));
+    applyServerState(res.state, { fromChat: true });
   } catch (err) {
     typing.remove();
     note(err.message, "msg-error");
@@ -275,7 +306,7 @@ function showProfile(narrate) {
 
 async function loadAllocation(amount, level, narrate) {
   const data = await api("/api/allocation", { method: "POST", body: { amount, investor_class: level } });
-  Object.assign(state, { allocation: data.allocation, allocationProv: data.provenance, allocationLevel: level, drafts: null });
+  Object.assign(state, { allocation: data.allocation, allocationId: data.allocation_id, allocationProv: data.provenance, allocationLevel: level, drafts: null });
   state.done.add("portfolio");
   refreshAudit();
   if (narrate) {
@@ -1027,7 +1058,11 @@ scrim.onclick = closeDrawer;
     panel.innerHTML = `<p class="err">Could not load the questionnaire: ${esc(err.message)}</p>`;
     return;
   }
-  go("profile");
+  try {
+    const restored = await api("/api/state");
+    applyServerState(restored);
+    if (restored.profile) note("Welcome back. Your client file from this session is restored.");
+  } catch { /* a fresh session simply starts at step 1 */ }
+  go(state.profile ? (state.allocation ? "portfolio" : "profile") : "profile");
   refreshAudit();
-  api("/api/tier").then(setTier).catch(() => {});
 })();

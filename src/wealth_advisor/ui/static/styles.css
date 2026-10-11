@@ -123,6 +123,7 @@ svg { display: block; }
   font-size: 15px;
 }
 .msg-note { font-size: 13px; color: var(--ink-3); }
+.msg-sync { font-size: 13px; color: var(--jade-ink); background: var(--jade-soft); padding: 8px 12px; border-radius: var(--r-md); }
 .msg-error { font-size: 14px; color: var(--critical); }
 .typing { display: inline-flex; gap: 4px; }
 .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); animation: blink 1.2s infinite; }

@@ -8,6 +8,7 @@ and the hash of the audit record written for that computation.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import secrets
@@ -50,8 +51,8 @@ class ClientFile:
     """Per-browser state: the shared AdvisorSession plus UI-only client inputs."""
 
     session: AdvisorSession
-    client: dict[str, Any] = field(default_factory=dict)
     allocation_count: int = 0
+    allocation_provenance: dict[str, dict[str, str]] = field(default_factory=dict)
     goal: dict[str, Any] | None = None
     signed: bool = False
     anchors: list[dict[str, Any]] = field(default_factory=list)
@@ -67,6 +68,59 @@ def _file(sid: str | None, response: Response) -> ClientFile:
     _FILES[sid] = ClientFile(session=AdvisorSession(Settings.from_env()))
     response.set_cookie("wa_sid", sid, httponly=True, samesite="strict")
     return _FILES[sid]
+
+
+def _client(file: ClientFile) -> dict[str, Any]:
+    """Client facts live in the shared session state, so chat and UI always agree."""
+
+    return file.session.state.client.as_dict()
+
+
+def _require_client(file: ClientFile, *keys: str) -> dict[str, Any]:
+    client = _client(file)
+    missing = [key for key in keys if client.get(key) is None]
+    if missing:
+        raise HTTPException(409, f"Tell the advisor your {', '.join(k.replace('_', ' ') for k in missing)} first.")
+    return client
+
+
+def _answers_from_profile(profile: InvestorProfile) -> dict[str, str]:
+    """Recover questionnaire answers from reason codes so the form mirrors a chat-built profile."""
+
+    answers: dict[str, str] = {}
+    for question in sorted(QUESTIONNAIRE, key=len, reverse=True):
+        prefix = question.upper() + "_"
+        for code in profile.reason_codes:
+            if code.startswith(prefix) and question not in answers:
+                option = code[len(prefix):].lower()
+                if option in QUESTIONNAIRE[question]["options"]:
+                    answers[question] = option
+    return answers
+
+
+def _allocation_provenance(file: ClientFile, allocation_id: str) -> dict[str, str]:
+    if allocation_id in file.allocation_provenance:
+        return file.allocation_provenance[allocation_id]
+    path = Path(file.session.settings.audit_log)
+    records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()] if path.exists() else []
+    for record in reversed(records):  # built by the agent in chat: cite the tool call record
+        if record.get("event") == "tool_call" and record.get("details", {}).get("tool") == "build_allocation":
+            return {"source": "agent tool build_allocation", "audit_hash": record["hash"], "timestamp": record["timestamp"]}
+    return {"source": "allocation.build_allocation", "audit_hash": "0" * 64, "timestamp": ""}
+
+
+def _ui_state(file: ClientFile) -> dict[str, Any]:
+    state = file.session.state
+    allocation_id = state.latest_allocation_id
+    return {
+        "profile": _profile_view(state.profile) if state.profile else None,
+        "answers": _answers_from_profile(state.profile) if state.profile else {},
+        "client": _client(file),
+        "allocation_id": allocation_id,
+        "allocation": _allocation_view(state.allocations[allocation_id]) if allocation_id else None,
+        "allocation_provenance": _allocation_provenance(file, allocation_id) if allocation_id else None,
+        "tier": _tier_view(file),
+    }
 
 
 def _record(file: ClientFile, event: str, source: str, details: dict[str, Any]) -> dict[str, str]:
@@ -155,9 +209,12 @@ def assess_profile(body: ProfileIn, response: Response, wa_sid: str | None = Coo
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     file.session.state.profile = profile
-    file.client = {"amount": body.amount, "horizon_years": body.horizon_years, "max_loss": body.max_loss, "age": body.age}
+    file.session.state.client = dataclasses.replace(
+        file.session.state.client, amount=body.amount, horizon_years=body.horizon_years,
+        max_loss=body.max_loss, age=body.age, borrowed_money=body.borrowed_money,
+    )
     stamp = _record(file, "ui_profile_assessed", "profiling.profile_investor", {"profile": profile.as_dict()})
-    return {"profile": _profile_view(profile), "client": file.client, "provenance": stamp}
+    return {"profile": _profile_view(profile), "client": _client(file), "provenance": stamp}
 
 
 class AllocationIn(BaseModel):
@@ -174,7 +231,7 @@ def allocate(body: AllocationIn, response: Response, wa_sid: str | None = Cookie
         # Suitability is enforced on the server: the UI can only ever step risk down.
         _record(file, "suitability_block", "ui.server.allocate", {"requested": requested, "allowed": profile.investor_class})
         raise HTTPException(403, f"C{requested} exceeds the assessed class C{profile.investor_class}.")
-    amount = body.amount or file.client["amount"]
+    amount = body.amount or _require_client(file, "amount")["amount"]
     try:
         allocation = build_allocation(amount, requested, load_catalog(), liquidity_days=profile.liquidity_days)
     except ValueError as exc:
@@ -183,6 +240,7 @@ def allocate(body: AllocationIn, response: Response, wa_sid: str | None = Cookie
     allocation_id = f"ui-{file.allocation_count}"
     file.session.state.allocations[allocation_id] = allocation
     stamp = _record(file, "ui_allocation_built", "allocation.build_allocation", {"allocation_id": allocation_id, "allocation": allocation.as_dict()})
+    file.allocation_provenance[allocation_id] = stamp
     return {"allocation_id": allocation_id, "allocation": _allocation_view(allocation), "provenance": stamp}
 
 
@@ -191,8 +249,9 @@ def compare(response: Response, asset_class: str | None = None, wa_sid: str | No
     file = _file(wa_sid, response)
     profile = _require_profile(file)
     catalog = load_catalog()
+    client = _require_client(file, "amount", "horizon_years")
     rows = compare_products(
-        catalog, file.client["amount"], file.client["horizon_years"], profile.investor_class,
+        catalog, client["amount"], client["horizon_years"], profile.investor_class,
         liquidity_days=profile.liquidity_days, asset_class=asset_class or None,
     )
     hidden = [{"name": p.name, "risk_class": p.risk_class} for p in catalog if p.risk_class > profile.investor_class]
@@ -209,10 +268,11 @@ def stress(response: Response, wa_sid: str | None = Cookie(default=None)) -> dic
         allocation = file.session.stored_allocation("latest")
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
-    results = [stress_test(allocation, key, max_tolerable_loss=file.client["max_loss"]) for key in SCENARIOS]
+    max_loss = _client(file).get("max_loss") or 0.2
+    results = [stress_test(allocation, key, max_tolerable_loss=max_loss) for key in SCENARIOS]
     stamp = _record(file, "ui_stress_tested", "stress.stress_test", {"results": [r.as_dict() for r in results]})
     return {
-        "max_loss": file.client["max_loss"],
+        "max_loss": max_loss,
         "scenarios": [
             {"key": r.scenario, "name": SCENARIO_NAMES.get(r.scenario, r.scenario), "loss": r.loss_percent, "loss_amount": r.loss_amount, "breach": r.mismatch}
             for r in results
@@ -262,7 +322,14 @@ def chat(body: ChatIn, response: Response, wa_sid: str | None = Cookie(default=N
         raise HTTPException(502, f"The advisor could not answer: {exc}") from exc
     # Shown to the client so they can see what actually reached the model.
     redacted, pii_types = redact_pii(body.message)
-    return {"reply": reply, "mode": file.session.settings.llm_mode, "redacted": redacted, "pii_types": list(pii_types)}
+    return {"reply": reply, "mode": file.session.settings.llm_mode, "redacted": redacted, "pii_types": list(pii_types), "state": _ui_state(file)}
+
+
+@app.get("/api/state")
+def ui_state(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Everything the UI needs to restore itself after a reload or a chat turn."""
+
+    return _ui_state(_file(wa_sid, response))
 
 
 @app.post("/api/redact")
@@ -447,12 +514,12 @@ def advice_report(response: Response, wa_sid: str | None = Cookie(default=None))
         allocation = file.session.stored_allocation("latest")
     except ValueError:
         allocation = None
-    stress_results = [stress_test(allocation, key, max_tolerable_loss=file.client.get("max_loss", 0.2)) for key in SCENARIOS] if allocation else []
+    stress_results = [stress_test(allocation, key, max_tolerable_loss=_client(file).get("max_loss") or 0.2) for key in SCENARIOS] if allocation else []
     path = Path(file.session.settings.audit_log)
     valid, _ = verify_audit_log(path)
     count = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip()) if path.exists() else 0
     html, digest = render_report(
-        profile=profile, client=file.client, allocation=allocation, stress=stress_results, goal=file.goal,
+        profile=profile, client=_client(file), allocation=allocation, stress=stress_results, goal=file.goal,
         products={p.id: p for p in load_catalog()}, audit_valid=valid, audit_records=count,
         signed=file.signed, model_mode=file.session.settings.llm_mode,
     )
