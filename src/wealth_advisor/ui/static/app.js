@@ -176,6 +176,15 @@ steps.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-step]");
   if (b && !b.disabled) go(b.dataset.step);
 });
+// One obvious next action per step; Compare and Stress test are optional tools off the main path.
+function nextBar(step, label, { back = false } = {}) {
+  return `<div class="actions next-bar">${back ? `<button class="btn secondary" type="button" data-go="portfolio">${t("Back to my portfolio")}</button>` : ""}${step ? `<button class="btn" type="button" data-go="${step}">${label}</button>` : ""}</div>`;
+}
+panel.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-go]");
+  if (b) go(b.dataset.go);
+});
+
 function go(step) {
   state.step = step;
   for (const b of steps.querySelectorAll("button")) {
@@ -190,6 +199,9 @@ function go(step) {
 
 // ---------------------------------------------------------------- 1. profile
 
+// Years used for goal planning, from the horizon answer (the goal step lets the client adjust it).
+const HORIZON_YEARS = { under_1y: 1, "1_3y": 2, "3_7y": 5, "7_10y": 8, over_10y: 15 };
+
 function renderProfile() {
   const c = state.client || { amount: 100000, horizon_years: 10, max_loss: 0.2, age: 35 };
   const prev = state.answers || {};
@@ -201,7 +213,6 @@ function renderProfile() {
         <div class="facts">
           <div class="field"><label for="age">${t("Age")}</label><input id="age" type="number" min="18" max="100" value="${c.age}" required></div>
           <div class="field"><label for="amount">${t("Amount to invest")}</label><input id="amount" type="number" min="1000" step="1000" value="${c.amount}" required></div>
-          <div class="field"><label for="horizon">${t("Horizon")} <span class="range-value" id="horizonV">${t("{n} yrs", { n: c.horizon_years })}</span></label><input id="horizon" type="range" min="1" max="30" value="${c.horizon_years}"></div>
           <div class="field"><label for="maxloss">${t("Loss you could accept in a bad year")} <span class="range-value" id="maxlossV">${Math.round(c.max_loss * 100)}%</span></label><input id="maxloss" type="range" min="5" max="50" value="${Math.round(c.max_loss * 100)}"></div>
           <label class="check"><input id="borrowed" type="checkbox"> ${t("Part of this money is borrowed")}</label>
         </div>
@@ -210,22 +221,31 @@ function renderProfile() {
         <div class="questions">
           ${state.questionnaire.map((q) => `
             <fieldset class="q">
-              <legend>${esc(q.question)}<span class="domain">${t(q.domain === "capacity" ? "capacity" : "tolerance")}</span></legend>
+              <legend data-missing="${t("Answer this question")}">${esc(q.question)}</legend>
               <div class="chips">
                 ${q.options.map((o, i) => `
-                  <label class="chip"><input type="radio" name="${q.key}" value="${o.key}" ${(prev[q.key] ? prev[q.key] === o.key : i === Math.floor(q.options.length / 2)) ? "checked" : ""}><span>${esc(o.label)}</span></label>`).join("")}
+                  <label class="chip"><input type="radio" name="${q.key}" value="${o.key}" ${prev[q.key] === o.key ? "checked" : ""}><span>${esc(o.label)}</span></label>`).join("")}
               </div>
             </fieldset>`).join("")}
         </div>
       </div>
       <div class="actions">
         <button class="btn" type="submit" id="assess">${t("Assess my risk profile")}</button>
-        <span class="hint">${t("Scored by fixed rules, not by AI.")}</span>
+        <span class="hint" id="answered"></span>
       </div>
       <div id="kycErr"></div>
     </form>
     <div id="profileResult"></div>`;
-  $("#horizon").oninput = (e) => ($("#horizonV").textContent = t("{n} yrs", { n: e.target.value }));
+  const progress = () => {
+    const left = state.questionnaire.filter((q) => !$(`input[name="${q.key}"]:checked`)).length;
+    $("#answered").textContent = left ? tn("1 question left", "{n} questions left", left) : t("Scored by fixed rules, not by AI.");
+  };
+  $("#kyc").addEventListener("change", (e) => {
+    progress();
+    const q = e.target.closest(".q");
+    if (q) q.classList.remove("missing");
+  });
+  progress();
   $("#maxloss").oninput = (e) => ($("#maxlossV").textContent = `${e.target.value}%`);
   $("#kyc").onsubmit = submitProfile;
   if (state.profile) showProfile(false);
@@ -233,6 +253,12 @@ function renderProfile() {
 
 async function submitProfile(e) {
   e.preventDefault();
+  const missing = state.questionnaire.filter((q) => !$(`input[name="${q.key}"]:checked`));
+  if (missing.length) {
+    missing.forEach((q) => $(`input[name="${q.key}"]`).closest(".q").classList.add("missing"));
+    $(`input[name="${missing[0].key}"]`).closest(".q").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   const answers = Object.fromEntries(state.questionnaire.map((q) => [q.key, $(`input[name="${q.key}"]:checked`).value]));
   const btn = $("#assess");
   btn.disabled = true;
@@ -244,7 +270,7 @@ async function submitProfile(e) {
         answers,
         age: +$("#age").value,
         amount: +$("#amount").value,
-        horizon_years: +$("#horizon").value,
+        horizon_years: HORIZON_YEARS[answers.horizon],
         max_loss: +$("#maxloss").value / 100,
         borrowed_money: $("#borrowed").checked,
       },
@@ -373,29 +399,18 @@ async function renderPortfolio() {
     ${staleBanner()}
     ${limitNote(a)}
     <div id="alertSlot">${state.alert ? alertCard(state.alert) : ""}</div>
-    <div class="kpis">
-      <div class="kpi"><div class="k">${t("Expected return")}</div><span class="v">${num(pct(a.expected_return, 2), prov, t("Expected annual return, net of fees"))}</span><div class="h">${t("per year, after fees")}</div></div>
-      <div class="kpi"><div class="k">${t("Volatility")}</div><span class="v">${num(pct(a.volatility, 2), prov, t("Annual portfolio volatility"))}</span><div class="h">${t("typical yearly swing")}</div></div>
-      <div class="kpi"><div class="k">${t("Average fee")}</div><span class="v">${num(pct(a.fee, 2), prov, t("Weighted annual product fee"))}</span><div class="h">${t("per year")}</div></div>
-      <div class="kpi"><div class="k">${t("Value at risk")}</div><span class="v">${num(money(a.var_95_1y), prov, t("1-year 95% parametric value at risk"))}</span><div class="h">${t("1 year, 95% confidence")}</div></div>
-    </div>
-
-    <div class="whatif">
-      <div class="field"><label for="wiAmount">${t("What if I invest")}</label><input id="wiAmount" type="number" min="1000" step="1000" value="${a.amount}"></div>
-      <div class="field">
-        <span class="label">${t("What if I take less risk")}</span>
-        <div class="seg" role="group" aria-label="${t("Risk level")}">
-          ${[1, 2, 3, 4, 5].map((i) => `<button type="button" data-level="${i}" class="${i === a.investor_class ? "on" : ""}" ${i > p.investor_class ? `disabled title="${t("Above your assessed class C{n}", { n: p.investor_class })}"` : ""}>C${i}</button>`).join("")}
-        </div>
-        <div class="hint">${t("Levels above C{n} are locked by the suitability rule.", { n: p.investor_class })}</div>
-      </div>
-    </div>
-
     <div class="sheet">
       <div class="mixbar" role="img" aria-label="${mix.map((k) => `${ASSET_NAMES[k]} ${pct(a.by_asset_class[k], 0)}`).join(", ")}">
         ${mix.map((k) => `<div style="flex-grow:${a.by_asset_class[k]};background:var(--${k})" title="${ASSET_NAMES[k]} ${pct(a.by_asset_class[k])}"></div>`).join("")}
       </div>
       <div class="legend">${mix.map((k) => `<span><i style="background:var(--${k})"></i>${ASSET_NAMES[k]} <b>${pct(a.by_asset_class[k], 0)}</b></span>`).join("")}</div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="k">${t("Expected return")}</div><span class="v">${num(pct(a.expected_return, 2), prov, t("Expected annual return, net of fees"))}</span><div class="h">${t("per year after fees, not guaranteed")}</div></div>
+      <div class="kpi"><div class="k">${t("Typical swing")}</div><span class="v">${num(pct(a.volatility, 2), prov, t("Annual portfolio volatility"))}</span><div class="h">${t("up or down in a normal year")}</div></div>
+      <div class="kpi"><div class="k">${t("Fees")}</div><span class="v">${num(pct(a.fee, 2), prov, t("Weighted annual product fee"))}</span><div class="h">${t("per year")}</div></div>
+      <div class="kpi"><div class="k">${t("Bad-year loss")}</div><span class="v">${num(money(a.var_95_1y), prov, t("1-year 95% parametric value at risk"))}</span><div class="h">${t("1 year in 20 could be worse")}</div></div>
     </div>
 
     <h3>${t("Holdings")}</h3>
@@ -415,12 +430,23 @@ async function renderPortfolio() {
         </tbody>
       </table>
     </div>
-    <h3>${t("Monitoring")}</h3>
+    <h3>${t("Adjust")}</h3>
+    <div class="whatif">
+      <div class="field"><label for="wiAmount">${t("What if I invest")}</label><input id="wiAmount" type="number" min="1000" step="1000" value="${a.amount}"></div>
+      <div class="field">
+        <span class="label">${t("What if I take less risk")}</span>
+        <div class="seg" role="group" aria-label="${t("Risk level")}">
+          ${[1, 2, 3, 4, 5].map((i) => `<button type="button" data-level="${i}" class="${i === a.investor_class ? "on" : ""}" ${i > p.investor_class ? `disabled title="${t("Above your assessed class C{n}", { n: p.investor_class })}"` : ""}>C${i}</button>`).join("")}
+        </div>
+        <div class="hint">${t("Levels above C{n} are locked by the suitability rule.", { n: p.investor_class })}</div>
+      </div>
+    </div>
+    ${nextBar("rehearse", t("Next: live through 2008 with this portfolio"))}
+    <h3>${t("After you invest")}</h3>
     <div class="sheet monitor">
       <p class="hint" style="margin-top:0">${t("After you invest, the advisor watches the markets and reaches out first. Simulate next month:")}</p>
       <div class="filters">${Object.entries(MARKET_EVENTS).map(([k, label]) => `<button class="btn secondary" type="button" data-event="${k}">${t(label)}</button>`).join("")}</div>
     </div>
-    <div class="actions"><button class="btn" type="button" id="toRehearse">${t("Live through 2008 with this portfolio")}</button><button class="btn secondary" type="button" id="toGoal">${t("Check my goal")}</button><button class="btn secondary" type="button" id="toStress">${t("Stress-test this portfolio")}</button><button class="btn secondary" type="button" id="toCompare">${t("Compare products")}</button></div>
     <div id="allocErr"></div>`;
 
   panel.querySelectorAll("[data-why]").forEach((b) => (b.onclick = () => {
@@ -433,11 +459,7 @@ async function renderPortfolio() {
   $("#wiAmount").oninput = (e) => { clearTimeout(debounce); debounce = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
   panel.querySelectorAll("[data-event]").forEach((b) => (b.onclick = () => triggerMarket(b.dataset.event)));
   wireAlert();
-  $("#toRehearse").onclick = () => go("rehearse");
   wireStale();
-  $("#toGoal").onclick = () => go("goal");
-  $("#toStress").onclick = () => go("stress");
-  $("#toCompare").onclick = () => go("compare");
 }
 
 async function rebuild(amount, level) {
@@ -577,7 +599,8 @@ async function renderRehearse() {
       <p class="hint">${t("Takes about 90 seconds. What you do can only lower your risk class, never raise it. Data: Kenneth R. French Data Library, FRED, World Bank.")}</p>
       <div class="actions"><button class="btn" id="startRehearsal" type="button">${last ? t("Rehearse again") : t("Start the rehearsal")}</button></div>
     </div>
-    <div id="rehearsalResult">${last ? resultCard(last) : ""}</div>`;
+    <div id="rehearsalResult">${last ? resultCard(last) : ""}</div>
+    ${last && !(last.new_class < last.previous_class && state.allocation.investor_class > state.profile.investor_class) ? nextBar("goal", t("Next: check your goal")) : ""}`;
   $("#startRehearsal").onclick = startRehearsal;
   wireResult();
 }
@@ -777,7 +800,8 @@ async function renderGoal() {
         <label class="check"><input id="gInfl" type="checkbox" ${g.inflation ? "checked" : ""}> ${t("Target in today's money (2% inflation)")}</label>
       </div>
     </div>
-    <div id="goalOut"><p class="empty" style="margin-top:20px">${t("Simulating…")}</p></div>`;
+    <div id="goalOut"><p class="empty" style="margin-top:20px">${t("Simulating…")}</p></div>
+    ${nextBar("execute", t("Next: review and invest"))}`;
   const read = () => ({
     name: $('input[name="gk"]:checked').value,
     target: +$("#gTarget").value,
@@ -938,7 +962,8 @@ async function renderCompare(asset = "") {
       </table>` : `<p class="empty">${t("No products in this group match your risk class.")}</p>`}
     </div>
     ${data.locked?.length ? `<p class="hidden-note">${t("Not shown because you may need the money sooner than they allow withdrawals: {names}.", { names: data.locked.map((h) => esc(h.name)).join(", ") })}</p>` : ""}
-    ${data.hidden.length ? `<p class="hidden-note">${t("Not shown because they exceed R{n}: {names}.", { n: state.profile.investor_class, names: data.hidden.map((h) => `${esc(h.name)} (R${h.risk_class})`).join(", ") })}</p>` : ""}`;
+    ${data.hidden.length ? `<p class="hidden-note">${t("Not shown because they exceed R{n}: {names}.", { n: state.profile.investor_class, names: data.hidden.map((h) => `${esc(h.name)} (R${h.risk_class})`).join(", ") })}</p>` : ""}
+    ${nextBar(null, "", { back: true })}`;
   panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare(i.value)));
 }
 
@@ -965,7 +990,7 @@ async function renderStress() {
           <div class="name">${esc(LANG === "zh" ? t(s.name) : s.name[0].toUpperCase() + s.name.slice(1))}</div>
           <div class="stress-track">
             <div class="stress-bar ${s.breach ? "breach" : ""}" style="width:${x(s.loss)}"></div>
-            <div class="stress-val" style="left:${x(s.loss)}">−${pct(s.loss)} <span style="font-weight:400;color:var(--ink-3)">(${num(money(s.loss_amount), prov, t("Loss in {name}", { name: t(s.name) }))})</span></div>
+            <div class="stress-val" style="left:${x(s.loss)}">${s.loss < 0.0005 ? t("No loss") : `−${pct(s.loss)} <span style="font-weight:400;color:var(--ink-3)">(${num(money(s.loss_amount), prov, t("Loss in {name}", { name: t(s.name) }))})</span>`}</div>
             <div class="limit" style="left:${x(data.max_loss)}"></div>
             ${i === 0 ? `<div class="limit-label" style="left:${x(data.max_loss)}">${t("Your limit {v}", { v: pct(data.max_loss, 0) })}</div>` : ""}
           </div>
@@ -976,7 +1001,8 @@ async function renderStress() {
           : `<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div>${t("<strong>Within your limit in every scenario.</strong> The worst case is a {v} fall.", { v: pct(Math.max(...data.scenarios.map((s) => s.loss))) })}</div>`}
       </div>
     </div>
-    <p class="hint">${t("Shocks are applied per asset class from historical peak-to-trough moves. Real losses can be larger.")}</p>`;
+    <p class="hint">${t("Shocks are applied per asset class from historical peak-to-trough moves. Real losses can be larger.")}</p>
+    ${nextBar(null, "", { back: true })}`;
   const worst = data.scenarios.reduce((a, b) => (b.loss > a.loss ? b : a));
   say([
     t("In a repeat of the {name}, this portfolio would have fallen about <strong>{v}</strong>, or {amount}.", { name: esc(t(worst.name)), v: pct(worst.loss), amount: money(worst.loss_amount) }),
@@ -1093,18 +1119,19 @@ async function renderTicket() {
     <div class="exec">
       <div class="ticket">
         <div class="ticket-head">
-          <div><div class="ticket-sub">${t("Order ticket")}</div><div class="ticket-title">${tn("Buy 1 product", "Buy {n} products", d.orders.length)}</div></div>
-          <div class="ticket-acct"><div class="ticket-sub">${t("Simulated cash")}</div><b>${num(money(d.cash), d.provenance, t("Simulated account cash"))}</b></div>
+          <div><div class="ticket-sub">${t("Order ticket")}</div><div class="ticket-title">${later.length ? t("{a} now, {b} after cooling-off", { a: tn("1 order", "{n} orders", now.length), b: later.length }) : tn("1 order", "{n} orders", now.length)}</div></div>
+          <div class="ticket-acct"><div class="ticket-sub">${t("Practice account balance")}</div><b>${num(money(d.cash), d.provenance, t("Simulated account cash"))}</b></div>
         </div>
         <div class="perf" aria-hidden="true"></div>
         <ul class="ticket-lines">
-          ${d.orders.map((o) => `
+          ${[...now, ...later].map((o) => `
             <li class="${o.cooling_off ? "muted" : ""}">
               <span class="swatch" style="background:var(--${o.asset_class})"></span>
               <span class="tl-name">${esc(o.name)}<small>R${o.risk_class}, ${t("{units} units at {nav}", { units: o.units.toFixed(2), nav: o.nav.toFixed(2) })}${o.cooling_off ? `, ${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}` : ""}</small></span>
               <span class="tl-amt">${money(o.amount)}</span>
             </li>`).join("")}
         </ul>
+        ${later.length ? `<p class="hint cooling-note">${t("Funds rated R4 or higher wait 24 hours before they are placed. This cooling-off period is a regulatory protection; you can cancel during it.")}</p>` : ""}
         <div class="perf" aria-hidden="true"></div>
         <ul class="checks">
           <li>${t("Every product is rated R{n} or lower", { n: d.investor_class })}</li>
@@ -1285,7 +1312,8 @@ async function refreshAudit() {
     const pill = $("#auditPill");
     pill.classList.toggle("ok", a.valid);
     pill.classList.toggle("bad", !a.valid);
-    $("#auditText").textContent = a.valid ? t("{n} records verified", { n: a.total }) : t("Audit chain broken");
+    $("#auditText").textContent = a.valid ? t("Audit log") : t("Audit chain broken");
+    pill.title = a.valid ? t("{n} records verified", { n: a.total }) : "";
     return a;
   } catch { return null; }
 }
@@ -1356,7 +1384,7 @@ scrim.onclick = closeDrawer;
 (async function boot() {
   say([
     t("Hello. I'm your digital wealth advisor."),
-    t("Before I recommend anything, I need to understand how much risk you can afford and how much you are comfortable with. The short questionnaire on the right takes about two minutes."),
+    t("Before I recommend anything, I need to understand how much risk you can afford and how much you are comfortable with. Eight short questions, about two minutes."),
     t("You can also ask me anything here at any time."),
   ]);
   try { state.catalog = await api("/api/catalog-info"); } catch { state.catalog = null; }

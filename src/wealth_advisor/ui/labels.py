@@ -126,6 +126,19 @@ def question_label(key: str) -> str:
     return QUESTION_LABELS.get(key, key.replace("_", " ").capitalize())
 
 
+# Short noun labels for the "why this class" list, so each line reads "Label: answer".
+REASON_LABELS = {
+    "horizon": ("Investment horizon", "投资期限"),
+    "income_stability": ("Income", "收入"),
+    "emergency_fund": ("Cash reserve", "备用现金"),
+    "invested_share": ("Share of your net worth", "占净资产比例"),
+    "liquidity_need": ("When you may need the money", "用款时间"),
+    "drawdown_reaction": ("If it fell 20% in a month", "若一个月内下跌20%"),
+    "experience": ("Experience", "投资经验"),
+    "goal": ("Goal", "投资目标"),
+}
+
+
 FIXED_REASONS = {
     "RISK_ADJUSTED_RETURN_NET_OF_FEES": ("Best expected return per unit of risk, after fees, within its asset class.", "在同类资产中，扣除费用后单位风险的预期收益最高。"),
     "REHEARSAL_HELD": ("You held your portfolio through the 2008 crash rehearsal.", "在2008年危机演练中，您坚持持有了投资组合。"),
@@ -151,5 +164,6 @@ def explain_reason(code: str) -> str:
         prefix = question.upper() + "_"
         if code.startswith(prefix):
             answer = code[len(prefix):].lower()
-            return f"{question_label(question)}: {humanize(answer)}"
+            label = REASON_LABELS.get(question, (question_label(question),) * 2)[1 if zh else 0]
+            return f"{label}{'：' if zh else ': '}{humanize(answer)}"
     return code.replace("_", " ").capitalize()
