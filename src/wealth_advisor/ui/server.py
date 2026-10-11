@@ -683,4 +683,4 @@ def main() -> None:
     # Audit anchors go to the local WeBank FISCO BCOS consortium chain (scripts/fisco_chain.sh start).
     os.environ.setdefault("ANCHOR_NETWORK", "fisco")
 
-    uvicorn.run("wealth_advisor.ui.server:app", host="127.0.0.1", port=8600, reload=False)
+    uvicorn.run("wealth_advisor.ui.server:app", host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "8600")), reload=False)
