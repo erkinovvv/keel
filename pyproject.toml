@@ -8,12 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.143.0",
     "numpy>=2.5.4",
     "openai>=3.28.0",
     "pydantic>=2.12.5",
     "python-dotenv>=1.2.4",
     "rich>=15.0.0",
     "streamlit>=1.65.0",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
