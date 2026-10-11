@@ -492,7 +492,7 @@ function fanChart(fan, target) {
       <path class="band-inner" d="${area("p25", "p75")}"/>
       <path class="median" d="M${fan.map((f, i) => `${x(i)},${y(f.p50)}`).join("L")}"/>
       <line class="target" x1="${L}" x2="${W - R}" y1="${y(target)}" y2="${y(target)}"/>
-      <text class="target-label" x="${W - R}" y="${y(target) - 6}" text-anchor="end">Target ${short(target)}</text>
+      <text class="target-label" x="${L + 8}" y="${y(target) - 7}" text-anchor="start">Target ${short(target)}</text>
       <line class="cross" id="fanCross" y1="${T}" y2="${H - B}" visibility="hidden"/>
       <circle class="cross-dot" id="fanDot" r="5" visibility="hidden"/>
       <rect id="fanHit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>

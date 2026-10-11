@@ -223,7 +223,7 @@ svg { display: block; }
 /* ------------------------------------------------------------ numbers with provenance */
 .num {
   border: 0; background: none; padding: 0; cursor: help; font: inherit;
-  text-decoration: underline dotted var(--ink-3); text-underline-offset: 4px;
+  text-decoration: underline dotted var(--ink-3); text-decoration-thickness: 1.5px; text-underline-offset: 4px;
 }
 .num:hover { text-decoration-color: var(--jade); color: var(--jade-ink); }
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
@@ -303,6 +303,7 @@ td.r, th.r { text-align: right; }
 /* ------------------------------------------------------------ goal planning */
 .goal-head { display: flex; align-items: center; gap: 22px; margin: 24px 0 14px; }
 .goal-chance { font: 500 72px/1 var(--serif); letter-spacing: -0.03em; }
+.goal-chance .num { text-underline-offset: 8px; }
 .goal-line { font-size: 17px; margin-top: 6px; }
 .tone { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 .tone.ok { background: var(--jade-soft); color: var(--jade-ink); }
