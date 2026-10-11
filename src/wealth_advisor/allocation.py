@@ -66,14 +66,35 @@ def _rank(product: Product, cash_rate: float) -> float:
     return (net_return - cash_rate) / max(product.volatility, 0.01)
 
 
-def _select_holdings(products: list[Product], asset_class: str, target: float, amount: float, investor_class: int, cash_rate: float) -> list[Holding]:
+def _product_weight_cap(product: Product, allow_cash_equivalent_50: bool = False) -> float:
+    if allow_cash_equivalent_50 and product.asset_class == "cash" and product.risk_class == 1 and product.liquidity_days <= 2:
+        return 0.50
+    return MAX_PRODUCT_WEIGHT
+
+
+def _select_holdings(
+    products: list[Product],
+    asset_class: str,
+    target: float,
+    amount: float,
+    investor_class: int,
+    cash_rate: float,
+    preferred_max_liquid_days: int | None = None,
+) -> list[Holding]:
     candidates = sorted(
         products,
-        key=lambda product: (-_rank(product, cash_rate), product.fee, product.id),
+        key=lambda product: (
+            0 if preferred_max_liquid_days is not None and product.liquidity_days <= preferred_max_liquid_days else 1,
+            -_rank(product, cash_rate),
+            product.fee,
+            product.id,
+        ),
     )
     if not candidates:
         raise ValueError(f"no suitable product for asset class {asset_class}")
-    count = max(1, math.ceil(target / MAX_PRODUCT_WEIGHT))
+    allow_cash_equivalent_50 = preferred_max_liquid_days is not None
+    maximum_weight = max(_product_weight_cap(product, allow_cash_equivalent_50) for product in candidates)
+    count = max(1, math.ceil(target / maximum_weight))
     eligible = [product for product in candidates if amount * target / count >= product.min_investment]
     if len(eligible) < count:
         raise ValueError(f"amount {amount} cannot satisfy the {MAX_PRODUCT_WEIGHT:.0%} product cap for {asset_class}")
@@ -91,6 +112,46 @@ def _select_holdings(products: list[Product], asset_class: str, target: float, a
         )
         for product, weight in zip(selected, weights)
     ]
+
+
+def _liquidity_policy(liquidity_days: int | None) -> tuple[float, int] | None:
+    if liquidity_days is None or liquidity_days > 30:
+        return None
+    if liquidity_days <= 1:
+        return 0.30, 1
+    if liquidity_days <= 7:
+        return 0.20, 7
+    return 0.10, 30
+
+
+def _enforce_liquidity_sleeve(
+    weights: dict[str, float],
+    eligible_by_class: dict[str, list[Product]],
+    sleeve_target: float,
+    max_liquid_days: int,
+) -> dict[str, float]:
+    liquid_classes = {
+        asset_class
+        for asset_class, products in eligible_by_class.items()
+        if any(product.liquidity_days <= max_liquid_days for product in products)
+    }
+    liquid_weight = sum(weights.get(asset_class, 0.0) for asset_class in liquid_classes)
+    if liquid_weight >= sleeve_target - 1e-12:
+        return weights
+    destination = "cash" if "cash" in liquid_classes else next(iter(liquid_classes), None)
+    if destination is None:
+        raise ValueError("no suitable liquid products remain for the liquidity sleeve")
+    deficit = sleeve_target - liquid_weight
+    for asset_class in sorted(weights, key=lambda item: (-weights[item], item)):
+        if asset_class in liquid_classes or deficit <= 1e-12:
+            continue
+        moved = min(weights[asset_class], deficit)
+        weights[asset_class] -= moved
+        deficit -= moved
+    if deficit > 1e-9:
+        raise ValueError("unable to fund the liquidity sleeve within the strategic weights")
+    weights[destination] = weights.get(destination, 0.0) + sleeve_target - liquid_weight
+    return weights
 
 
 def _project_bounds(weights: np.ndarray, lower: np.ndarray, upper: np.ndarray) -> np.ndarray:
@@ -184,10 +245,13 @@ def build_allocation(
     strategic = dict(STRATEGIC_WEIGHTS[investor_class])
     if strategic["equity"] > EQUITY_CAPS[investor_class]:
         strategic["equity"] = EQUITY_CAPS[investor_class]
+    liquidity_policy = _liquidity_policy(liquidity_days)
+    max_liquid_days = liquidity_policy[1] if liquidity_policy else None
     eligible_by_class = {
         asset_class: [
             product
-            for product in filter_products(catalog, investor_class, amount=amount, liquidity_days=liquidity_days, exclusions=exclusions)
+            for product in filter_products(catalog, investor_class, amount=amount, liquidity_days=None, exclusions=exclusions)
+            if max_liquid_days is None or product.liquidity_days <= 30
             if product.asset_class == asset_class
         ]
         for asset_class in strategic
@@ -204,11 +268,38 @@ def build_allocation(
                 break
         else:
             raise ValueError("no suitable products remain after exclusions")
+    if liquidity_policy:
+        strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
     strategic = _refine_class_weights(strategic, eligible_by_class, investor_class)
+    if liquidity_policy:
+        strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
     holdings: list[Holding] = []
     for asset_class, target in strategic.items():
         if target:
-            holdings.extend(_select_holdings(eligible_by_class[asset_class], asset_class, target, amount, investor_class, cash_rate))
+            holdings.extend(
+                _select_holdings(
+                    eligible_by_class[asset_class],
+                    asset_class,
+                    target,
+                    amount,
+                    investor_class,
+                    cash_rate,
+                    max_liquid_days if liquidity_policy and asset_class == "cash" else None,
+                )
+            )
+    if liquidity_policy:
+        sleeve_target, max_liquid_days = liquidity_policy
+        catalog_by_id = {product.id: product for product in catalog}
+        holdings = [
+            Holding(
+                holding.product_id,
+                holding.asset_class,
+                holding.weight,
+                holding.amount,
+                holding.reason_codes + (("LIQUIDITY_SLEEVE",) if catalog_by_id[holding.product_id].liquidity_days <= max_liquid_days else ()),
+            )
+            for holding in holdings
+        ]
     total_weight = sum(holding.weight for holding in holdings)
     if not math.isclose(total_weight, 1.0, abs_tol=1e-9):
         raise ValueError(f"allocation weights sum to {total_weight}")

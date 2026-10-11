@@ -132,9 +132,51 @@ class AdvisorSession:
         turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
         self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
-        guarded_output = output_guard(turn.content, [*self._tool_results, self.snapshot()], recommendation=recommendation)
+        client_messages = [message["content"] for message in self.messages if message.get("role") == "user"]
+        client_messages.append(guard.text)
+        guarded_output = output_guard(
+            turn.content,
+            [*self._tool_results, self.snapshot()],
+            recommendation=recommendation,
+            client_messages=client_messages,
+        )
         if not guarded_output.allowed:
-            self.audit.append("output_guard", {"allowed": False, "reasons": guarded_output.reasons})
+            self.audit.append(
+                "output_guard",
+                {
+                    "allowed": False,
+                    "reasons": guarded_output.reasons,
+                    "ungrounded": list(guarded_output.ungrounded_numbers),
+                },
+            )
+            language = "Chinese" if any("\u4e00" <= character <= "\u9fff" for character in guard.text) else "the client's language"
+            feedback = (
+                f"Rewrite your last answer in {language}, under 120 words, with no tables. "
+                "Use only figures present in the tool results or in the client's messages. "
+                f"Do not use these ungrounded figures: {', '.join(guarded_output.ungrounded_numbers) or 'none'}. "
+                "Do not make guarantees; keep the advisory workflow and explain the deterministic result."
+            )
+            regeneration_messages = [*turn.messages[:-1], {"role": "user", "content": feedback}]
+            regenerated = self.agent.run_turn(regeneration_messages, tools=[])
+            self._tool_results.extend(regenerated.tool_results)
+            guarded_regenerated = output_guard(
+                regenerated.content,
+                [*self._tool_results, self.snapshot()],
+                recommendation=recommendation,
+                client_messages=client_messages,
+            )
+            if guarded_regenerated.allowed:
+                self.audit.append(
+                    "output_guard",
+                    {"allowed": True, "regenerated": True, "rejected_ungrounded": list(guarded_output.ungrounded_numbers)},
+                )
+                turn = regenerated
+                guarded_output = guarded_regenerated
+            else:
+                self.audit.append(
+                    "output_guard",
+                    {"allowed": False, "regenerated": True, "reasons": guarded_regenerated.reasons, "ungrounded": list(guarded_regenerated.ungrounded_numbers)},
+                )
         turn.messages[-1]["content"] = guarded_output.message
         self.messages = trim_complete_turns(turn.messages, max_turns=4)
         self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary(), "usage": turn.usage, "latency_ms": turn.latency_ms})

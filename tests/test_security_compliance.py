@@ -55,6 +55,9 @@ def test_output_guard_normalizes_percentages_amounts_and_years():
     assert output_guard("The investment amount is 11,950.", [{"amount": 11950.0}]).allowed
     assert output_guard("The stress scenario is from 2008.", [{"scenario": "2008_gfc"}]).allowed
     assert not output_guard("There is no way you can lose money.", []).allowed
+    assert output_guard("1. Cash\n2. Bonds\nOption 3: growth", []).allowed
+    assert output_guard("Your horizon is 1_3y and liquidity is within_7d.", []).allowed
+    assert output_guard("You said 600,000 for 5 years.", [], client_messages=["I have 600,000 for 5 years."]).allowed
 
 
 def test_pretrade_suitability_checks_risk_liquidity_and_allocation():
