@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from typing import Any
 
 from .audit import AuditLogger
@@ -18,6 +19,8 @@ class AgentTurn:
     content: str
     messages: list[dict[str, Any]]
     tool_results: list[dict[str, Any]]
+    usage: dict[str, int] = field(default_factory=dict)
+    latency_ms: float = 0.0
 
 
 def trim_complete_turns(messages: list[dict[str, Any]], max_turns: int = 6) -> list[dict[str, Any]]:
@@ -60,19 +63,33 @@ class AdvisorAgent:
 
         messages = list(messages)
         tool_results: list[dict[str, Any]] = []
+        failed_calls: dict[str, int] = {}
+        usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        started = time.perf_counter()
         for _ in range(self.max_steps):
             response = self.llm.chat(messages, TOOL_SCHEMAS)
+            for key in usage:
+                usage[key] += int(response.usage.get(key, 0))
             if not response.tool_calls:
                 messages.append({"role": "assistant", "content": response.content})
-                return AgentTurn(response.content, messages, tool_results)
-            messages.append({"role": "assistant", "content": response.content, "tool_calls": [
+                return AgentTurn(response.content, messages, tool_results, usage, (time.perf_counter() - started) * 1000)
+            messages.append({"role": "assistant", "content": response.content or None, "tool_calls": [
                 {"id": call.id, "type": "function", "function": {"name": call.name, "arguments": json.dumps(call.arguments)}}
                 for call in response.tool_calls
             ]})
             for call in response.tool_calls:
+                call_key = json.dumps({"name": call.name, "arguments": call.arguments}, sort_keys=True, separators=(",", ":"))
                 try:
-                    result = self.dispatcher.dispatch(call.name, call.arguments)
+                    if failed_calls.get(call_key, 0) >= 2:
+                        result = {
+                            "error": "Tool retry limit exceeded",
+                            "message": "This identical tool call has already failed twice in this turn.",
+                            "hint": "Ask the client for the missing or corrected information instead of retrying the same arguments.",
+                        }
+                    else:
+                        result = self.dispatcher.dispatch(call.name, call.arguments)
                 except Exception as exc:
+                    failed_calls[call_key] = failed_calls.get(call_key, 0) + 1
                     result = {
                         "error": type(exc).__name__,
                         "message": str(exc),
@@ -86,7 +103,7 @@ class AdvisorAgent:
                     if self.audit:
                         self.audit.append("tool_output_blocked", {"tool": call.name})
                 tool_results.append(result)
-                messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(result, separators=(",", ":"))})
+                messages.append({"role": "tool", "tool_call_id": call.id, "name": call.name, "content": json.dumps(result, separators=(",", ":"))})
         raise RuntimeError("maximum tool steps exceeded")
 
     def run(self, user_message: str, history: list[dict[str, Any]] | None = None) -> str:

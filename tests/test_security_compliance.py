@@ -50,6 +50,13 @@ def test_output_guard_enforces_claims_numbers_and_disclaimer():
     assert DISCLAIMER in result.message
 
 
+def test_output_guard_normalizes_percentages_amounts_and_years():
+    assert output_guard("The expected return is 5.3 percent.", [{"expected_return": 0.0527}]).allowed
+    assert output_guard("The investment amount is 11,950.", [{"amount": 11950.0}]).allowed
+    assert output_guard("The stress scenario is from 2008.", [{"scenario": "2008_gfc"}]).allowed
+    assert not output_guard("There is no way you can lose money.", []).allowed
+
+
 def test_pretrade_suitability_checks_risk_liquidity_and_allocation():
     profile = profile_investor(ANSWERS)
     products = load_catalog()

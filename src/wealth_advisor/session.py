@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import time
 from typing import Any
 
 from .agent import AdvisorAgent, AgentTurn, trim_complete_turns
@@ -94,6 +95,7 @@ class AdvisorSession:
             max_steps=self.settings.max_tool_steps,
         )
         self.messages: list[dict[str, Any]] = []
+        self._tool_results: list[dict[str, Any]] = []
         self.rate_limiter = RateLimiter(max_calls=self.settings.max_session_turns)
         self.confirmation_tokens = ConfirmationTokenStore()
         self.prompt_guard = PromptGuardClassifier(self.settings, self.audit)
@@ -116,13 +118,14 @@ class AdvisorSession:
         if not guard.allowed:
             return "I cannot process instruction-like requests. Please describe your financial goal directly."
         turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text))
+        self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
-        guarded_output = output_guard(turn.content, turn.tool_results, recommendation=recommendation)
+        guarded_output = output_guard(turn.content, self._tool_results, recommendation=recommendation)
         if not guarded_output.allowed:
             self.audit.append("output_guard", {"allowed": False, "reasons": guarded_output.reasons})
         turn.messages[-1]["content"] = guarded_output.message
         self.messages = trim_complete_turns(turn.messages, max_turns=6)
-        self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary()})
+        self.audit.append("session_turn", {"message_count": len(self.messages), "state": self.state.summary(), "usage": turn.usage, "latency_ms": turn.latency_ms})
         return guarded_output.message
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:

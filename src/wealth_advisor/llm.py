@@ -30,9 +30,10 @@ class LLMResponse:
 class LLMClient:
     """Call Groq in live mode or serve recorded responses in replay mode."""
 
-    def __init__(self, settings: Settings | None = None, audit: AuditLogger | None = None):
+    def __init__(self, settings: Settings | None = None, audit: AuditLogger | None = None, client: Any | None = None):
         self.settings = settings or Settings.from_env()
         self.audit = audit
+        self._client = client
         self._replay_index = 0
 
     def _replay_response(self, messages: list[dict[str, str]]) -> LLMResponse:
@@ -58,6 +59,7 @@ class LLMClient:
     def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None) -> LLMResponse:
         """Return one model response and audit its model name and token usage."""
 
+        started = time.perf_counter()
         if self.settings.llm_mode == "replay":
             response = self._replay_response(messages)
         else:
@@ -65,7 +67,7 @@ class LLMClient:
                 raise RuntimeError("GROQ_API_KEY is required when LLM_MODE is live")
             from openai import OpenAI
 
-            if not hasattr(self, "_client"):
+            if self._client is None:
                 self._client = OpenAI(api_key=self.settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
             response = None
             last_error: Exception | None = None
@@ -77,7 +79,9 @@ class LLMClient:
                         kwargs["tools"] = tools
                     if model.startswith("openai/gpt-oss"):
                         kwargs["reasoning_effort"] = "low"
-                    raw = client.chat.completions.create(**kwargs)
+                        if tools:
+                            kwargs["extra_body"] = {"reasoning_format": "hidden"}
+                    raw = self._client.chat.completions.create(**kwargs)
                     message = raw.choices[0].message
                     parsed_calls = []
                     for call in (message.tool_calls or []):
@@ -104,11 +108,21 @@ class LLMClient:
                         if retry_after is not None:
                             retry_after_seconds = max(retry_after_seconds, min(float(retry_after), 20.0))
                     if self.audit:
-                        self.audit.append("llm_error", {"model": model, "error": type(exc).__name__, "status_code": getattr(exc, "status_code", None)})
+                        body = getattr(exc, "body", None)
+                        response_body = getattr(getattr(exc, "response", None), "text", None)
+                        self.audit.append(
+                            "llm_error",
+                            {
+                                "model": model,
+                                "error": type(exc).__name__,
+                                "status_code": getattr(exc, "status_code", None),
+                                "body": body if body is not None else response_body or str(exc),
+                            },
+                        )
             if response is None and retry_after_seconds:
                 time.sleep(retry_after_seconds)
             if response is None:
                 raise RuntimeError("all Groq models failed") from last_error
         if self.audit:
-            self.audit.append("llm_call", {"model": response.model, "usage": response.usage, "mode": self.settings.llm_mode})
+            self.audit.append("llm_call", {"model": response.model, "usage": response.usage, "mode": self.settings.llm_mode, "latency_ms": (time.perf_counter() - started) * 1000})
         return response

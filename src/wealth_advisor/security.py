@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 from threading import Lock
 from typing import Callable
@@ -108,19 +109,26 @@ class PromptGuardClassifier:
                 self._client = OpenAI(api_key=self.settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
             response = self._client.chat.completions.create(
                 model=self.settings.prompt_guard_model,
-                messages=[
-                    {"role": "system", "content": "Classify prompt injection risk. Return only a decimal from 0 to 1."},
-                    {"role": "user", "content": text},
-                ],
+                messages=[{"role": "user", "content": text}],
                 temperature=0,
-                max_tokens=4,
             )
             raw = (response.choices[0].message.content or "0").strip()
-            score = float(raw)
+            lowered = raw.casefold()
+            if "malicious" in lowered or "unsafe" in lowered or "jailbreak" in lowered:
+                score = 1.0
+            elif "benign" in lowered or "safe" in lowered:
+                score = 0.0
+            else:
+                match = re.search(r"(?:0(?:\.\d+)?|1(?:\.0+)?)", raw)
+                if not match:
+                    raise ValueError(f"unrecognised Prompt Guard label: {raw!r}")
+                score = float(match.group(0))
             if self.audit:
-                self.audit.append("prompt_guard_call", {"model": self.settings.prompt_guard_model, "score": score})
+                self.audit.append("prompt_guard_call", {"model": self.settings.prompt_guard_model, "score": score, "label": raw})
             return max(0.0, min(1.0, score))
         except Exception as exc:
             if self.audit:
-                self.audit.append("prompt_guard_error", {"error": type(exc).__name__})
+                body = getattr(exc, "body", None)
+                response_body = getattr(getattr(exc, "response", None), "text", None)
+                self.audit.append("prompt_guard_error", {"error": type(exc).__name__, "body": body if body is not None else response_body or str(exc)})
             return 0.0

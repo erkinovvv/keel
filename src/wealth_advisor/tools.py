@@ -2,20 +2,35 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 from .allocation import Allocation, Holding, build_allocation
 from .audit import AuditLogger
 from .catalog import compare_products, load_catalog
-from .profiling import profile_investor
+from .profiling import QUESTIONNAIRE, profile_investor
 from .stress import stress_test
 from .permissions import PermissionTier, require_tier
 
 
+QuestionnaireAnswers = create_model(
+    "QuestionnaireAnswers",
+    **{
+        key: (
+            Literal[tuple(spec["options"].keys())],
+            Field(
+                default="within_7d" if key == "liquidity_need" else ...,
+                description=f"{spec['domain'].capitalize()} questionnaire answer; choose one listed option.",
+            ),
+        )
+        for key, spec in QUESTIONNAIRE.items()
+    },
+)
+
+
 class ProfileArgs(BaseModel):
-    answers: dict[str, str]
+    answers: QuestionnaireAnswers = Field(description="All enumerated investor questionnaire answers.")
     age: int | None = Field(default=None, ge=18, le=120)
     borrowed_money: bool | None = None
 
@@ -53,9 +68,22 @@ class DraftOrderArgs(BaseModel):
     allocation_id: str = "latest"
 
 
+def _provider_schema(model: type[BaseModel]) -> dict[str, Any]:
+    """Return a self-contained function schema for providers with limited refs support."""
+
+    schema = model.model_json_schema()
+    definitions = schema.pop("$defs", {})
+    for property_schema in schema.get("properties", {}).values():
+        reference = property_schema.get("$ref")
+        if reference:
+            property_schema.clear()
+            property_schema.update(definitions[reference.rsplit("/", 1)[-1]])
+    return schema
+
+
 TOOL_SCHEMAS = [
     {"type": "function", "function": {"name": "record_client_facts", "description": "Store validated client KYC facts", "parameters": ClientFactsArgs.model_json_schema()}},
-    {"type": "function", "function": {"name": "profile_investor", "description": "Score enumerated investor answers", "parameters": ProfileArgs.model_json_schema()}},
+    {"type": "function", "function": {"name": "profile_investor", "description": "Score enumerated investor answers", "parameters": _provider_schema(ProfileArgs)}},
     {"type": "function", "function": {"name": "compare_products", "description": "Compare suitable catalog products", "parameters": CompareArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation", "parameters": AllocationArgs.model_json_schema()}},
     {"type": "function", "function": {"name": "stress_test", "description": "Apply a historical-style portfolio stress", "parameters": StressArgs.model_json_schema()}},
