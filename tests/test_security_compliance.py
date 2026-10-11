@@ -31,6 +31,7 @@ def test_identity_and_mobile_redaction_never_leaks_identifier():
         ("my passport: X9876543", "X9876543", "[PASSPORT_REDACTED]"),
         ("ID number is 123456789012345678", "123456789012345678", "[NATIONAL_ID_REDACTED]"),
         ("Chinese mobile +86 138 0013 8000", "+86 138 0013 8000", "[PHONE_REDACTED]"),
+        ("UnionPay 6222 0212 3456 7890 123", "6222 0212 3456 7890 123", "[CARD_REDACTED]"),
     )
     for text, identifier, placeholder in cases:
         redacted, _ = redact_pii(text)
