@@ -40,9 +40,10 @@ def _decoded_base64(text: str) -> list[str]:
 
 
 def _normalised_candidates(text: str) -> tuple[str, ...]:
-    normalized = unicodedata.normalize("NFKC", text).casefold()
+    original = unicodedata.normalize("NFKC", text)
+    normalized = original.casefold()
     candidates = [normalized, normalized.translate(_LEETSPEAK), _collapse_spaced_letters(normalized)]
-    for decoded in _decoded_base64(normalized):
+    for decoded in _decoded_base64(original):
         candidates.extend((decoded.casefold(), decoded.casefold().translate(_LEETSPEAK)))
     return tuple(candidates)
 
@@ -59,6 +60,7 @@ _INJECTION_PATTERNS = (
     re.compile(r"oldingi.*(?:e['’]?tiborsiz|etiborsiz).*ko['’]?rsatmalar|barcha.*pul.*(?:fond|texnologiya)", re.I),
     re.compile(r"ignora.*instrucciones.*(?:anteriores|sistema)|muestra.*(?:prompt|sistema)", re.I),
     re.compile(r"(?:assistant|system|model).*(?:must|should|tell|recommend).*(?:guaranteed|return|fund|product)|(?:guaranteed|certain)\s+to\s+(?:return|profit)", re.I),
+    re.compile(r"(?:first\s+letters?|acrostic|initials?)\s+(?:spell|form|read|say).{0,30}(?:ignore|bypass|disregard|reveal|system|rules)", re.I),
 )
 _PII_PATTERNS = (
     ("EMAIL", re.compile(r"\b[\w.+-]+@[\w-]+(?:\.[\w-]+)+\b")),
