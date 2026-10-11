@@ -14,7 +14,7 @@ from .permissions import PermissionTier
 from .permissions import ConfirmationTokenStore, PermissionDenied, require_tier
 from .profiling import InvestorProfile
 from .compliance import output_guard
-from .security import GuardDecision, RateLimiter, input_guard
+from .security import GuardDecision, PromptGuardClassifier, RateLimiter, input_guard
 from .stress import StressResult
 from .tools import ToolDispatcher
 
@@ -74,6 +74,7 @@ class AdvisorSession:
         self.messages: list[dict[str, Any]] = []
         self.rate_limiter = RateLimiter(max_calls=self.settings.max_session_turns)
         self.confirmation_tokens = ConfirmationTokenStore()
+        self.prompt_guard = PromptGuardClassifier(self.settings, self.audit)
 
     def _messages_for_turn(self, user_message: str) -> list[dict[str, Any]]:
         system = self.agent.system_message(self.state.summary())
@@ -88,7 +89,7 @@ class AdvisorSession:
         if not self.rate_limiter.allow():
             self.audit.append("guard_blocked", {"guard": "rate_limit"})
             return "This session has reached its request limit. Please try again later."
-        guard: GuardDecision = input_guard(user_message)
+        guard: GuardDecision = input_guard(user_message, classifier=self.prompt_guard.score)
         self.audit.append("input_guard", {"allowed": guard.allowed, "reasons": guard.reasons, "pii_redacted": guard.pii_redacted, "injection_score": guard.injection_score})
         if not guard.allowed:
             return "I cannot process instruction-like requests. Please describe your financial goal directly."

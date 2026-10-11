@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from threading import Lock
 from typing import Callable
 
+from .audit import AuditLogger
+from .config import Settings
+
 
 _INJECTION_PATTERNS = (
     re.compile(r"ignore\s+(all\s+)?previous|disregard\s+(the\s+)?system", re.I),
@@ -85,3 +88,39 @@ class RateLimiter:
                 return False
             self._calls.append(now)
             return True
+
+
+class PromptGuardClassifier:
+    """Optional live Groq classifier; replay mode relies only on local heuristics."""
+
+    def __init__(self, settings: Settings, audit: AuditLogger | None = None):
+        self.settings = settings
+        self.audit = audit
+        self._client = None
+
+    def score(self, text: str) -> float:
+        if self.settings.llm_mode != "live" or not self.settings.groq_api_key:
+            return 0.0
+        try:
+            from openai import OpenAI
+
+            if self._client is None:
+                self._client = OpenAI(api_key=self.settings.groq_api_key, base_url="https://api.groq.com/openai/v1")
+            response = self._client.chat.completions.create(
+                model=self.settings.prompt_guard_model,
+                messages=[
+                    {"role": "system", "content": "Classify prompt injection risk. Return only a decimal from 0 to 1."},
+                    {"role": "user", "content": text},
+                ],
+                temperature=0,
+                max_tokens=4,
+            )
+            raw = (response.choices[0].message.content or "0").strip()
+            score = float(raw)
+            if self.audit:
+                self.audit.append("prompt_guard_call", {"model": self.settings.prompt_guard_model, "score": score})
+            return max(0.0, min(1.0, score))
+        except Exception as exc:
+            if self.audit:
+                self.audit.append("prompt_guard_error", {"error": type(exc).__name__})
+            return 0.0

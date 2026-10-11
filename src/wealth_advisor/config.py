@@ -16,6 +16,7 @@ class Settings:
     llm_mode: str = "replay"
     groq_api_key: str | None = None
     primary_model: str = "openai/gpt-oss-120b"
+    prompt_guard_model: str = "meta-llama/llama-prompt-guard-2-86m"
     fallback_models: tuple[str, ...] = ("qwen/qwen3.8-27b", "openai/gpt-oss-20b")
     audit_log: Path = Path("logs/audit.jsonl")
     replay_file: Path = Path("tests/fixtures/replay.json")
@@ -44,6 +45,7 @@ class Settings:
             llm_mode=os.getenv("LLM_MODE", "replay").lower(),
             groq_api_key=os.getenv("GROQ_API_KEY"),
             primary_model=os.getenv("GROQ_PRIMARY_MODEL", "openai/gpt-oss-120b"),
+            prompt_guard_model=os.getenv("PROMPT_GUARD_MODEL", "meta-llama/llama-prompt-guard-2-86m"),
             fallback_models=fallback,
             audit_log=Path(os.getenv("AUDIT_LOG", "logs/audit.jsonl")),
             replay_file=Path(os.getenv("REPLAY_FILE", "tests/fixtures/replay.json")),
