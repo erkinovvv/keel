@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from wealth_advisor.agent import AdvisorAgent
 from wealth_advisor.audit import AuditLogger
 from wealth_advisor.config import Settings
+from wealth_advisor.config import ProviderConfig
 from wealth_advisor.llm import LLMClient
 from wealth_advisor.tools import ToolDispatcher
 
@@ -88,6 +89,36 @@ def test_live_429_falls_through_to_fallback_model(tmp_path):
     assert result.model == "fallback-model"
     assert result.content == "fallback"
     assert len(fake.chat.completions.calls) == 2
+
+
+def test_live_provider_failover_skips_missing_key_and_logs_provider(tmp_path):
+    groq = FakeClient([RateLimitError("1")])
+    cerebras = FakeClient([response("cerebras", total_tokens=5)])
+    providers = (
+        ProviderConfig("groq", "https://groq.test", "GROQ_API_KEY", ("groq-model",), "groq-key"),
+        ProviderConfig("cerebras", "https://cerebras.test", "CEREBRAS_API_KEY", ("cerebras-model",), "cerebras-key"),
+    )
+    audit = AuditLogger(tmp_path / "audit.jsonl")
+    client = LLMClient(live_settings(tmp_path), audit, provider_clients={"groq": groq, "cerebras": cerebras}, providers=providers)
+    result = client.chat([{"role": "user", "content": "hello"}])
+    assert result.provider == "cerebras"
+    assert result.model == "cerebras-model"
+    records = [json.loads(line) for line in (tmp_path / "audit.jsonl").read_text().splitlines()]
+    call = next(record for record in records if record["event"] == "llm_call")
+    assert call["details"]["provider"] == "cerebras"
+    assert all("groq-key" not in line and "cerebras-key" not in line for line in (tmp_path / "audit.jsonl").read_text().splitlines())
+
+
+def test_groq_key_pool_cools_one_key_then_uses_next(tmp_path):
+    first = FakeClient([RateLimitError("5")])
+    second = FakeClient([response("second key", total_tokens=5)])
+    providers = (ProviderConfig("groq", "https://groq.test", "GROQ_API_KEY", ("groq-model",), api_keys=("key-one", "key-two")),)
+    audit = AuditLogger(tmp_path / "audit.jsonl")
+    client = LLMClient(live_settings(tmp_path), audit, provider_clients={("groq", 0): first, ("groq", 1): second}, providers=providers)
+    result = client.chat([{"role": "user", "content": "hello"}])
+    assert result.key_index == 1
+    assert len(first.chat.completions.calls) == 1
+    assert len(second.chat.completions.calls) == 1
 
 
 def test_live_retries_an_all_429_chain_twice(tmp_path, monkeypatch):

@@ -10,11 +10,26 @@ from dotenv import load_dotenv
 
 
 @dataclass(frozen=True)
+class ProviderConfig:
+    """One OpenAI-compatible provider and its ordered, provider-specific key pool."""
+
+    name: str
+    base_url: str
+    api_key_env: str
+    models: tuple[str, ...]
+    api_key: str | None = None
+    api_keys: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Settings:
     """Runtime settings with replay mode as the safe offline default."""
 
     llm_mode: str = "replay"
     groq_api_key: str | None = None
+    groq_api_keys: tuple[str, ...] = ()
+    cerebras_api_key: str | None = None
+    cerebras_models: tuple[str, ...] = ("gpt-oss-120b",)
     primary_model: str = "openai/gpt-oss-120b"
     prompt_guard_model: str = "meta-llama/llama-prompt-guard-2-86m"
     fallback_models: tuple[str, ...] = ("qwen/qwen3.8-27b", "openai/gpt-oss-20b")
@@ -29,6 +44,7 @@ class Settings:
     max_orders_per_session: int = 20
     cooling_off_days: int = 1
     simulated_cash: float = 1_000_000.0
+    providers: tuple[ProviderConfig, ...] = ()
 
     @classmethod
     def from_env(cls, env_file: str | Path | None = ".env") -> "Settings":
@@ -41,9 +57,15 @@ class Settings:
             for model in os.getenv("GROQ_FALLBACK_MODELS", "qwen/qwen3.8-27b,openai/gpt-oss-20b").split(",")
             if model.strip()
         )
+        groq_key = os.getenv("GROQ_API_KEY")
+        cerebras_key = os.getenv("CEREBRAS_API_KEY")
+        groq_pool = tuple(key.strip() for key in os.getenv("GROQ_API_KEYS", "").split(",") if key.strip())
         return cls(
             llm_mode=os.getenv("LLM_MODE", "replay").lower(),
-            groq_api_key=os.getenv("GROQ_API_KEY"),
+            groq_api_key=groq_key,
+            groq_api_keys=groq_pool,
+            cerebras_api_key=cerebras_key,
+            cerebras_models=tuple(model.strip() for model in os.getenv("CEREBRAS_MODELS", "gpt-oss-120b").split(",") if model.strip()),
             primary_model=os.getenv("GROQ_PRIMARY_MODEL", "openai/gpt-oss-120b"),
             prompt_guard_model=os.getenv("PROMPT_GUARD_MODEL", "meta-llama/llama-prompt-guard-2-86m"),
             fallback_models=fallback,
