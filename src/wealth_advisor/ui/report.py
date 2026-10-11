@@ -56,7 +56,7 @@ def render_report(
       <section>
         <h2>{next(number)}. Your risk profile</h2>
         <div class="facts">
-          <div><span>Risk class</span><b>C{profile.investor_class} · {CLASS_NAMES[profile.investor_class]}</b></div>
+          <div><span>Risk class</span><b>C{profile.investor_class}, {CLASS_NAMES[profile.investor_class]}</b></div>
           <div><span>Capacity for loss</span><b>C{profile.capacity_class}</b></div>
           <div><span>Tolerance for risk</span><b>C{profile.tolerance_class}</b></div>
           <div><span>Valid until</span><b>{profile.expires_on:%d %B %Y}</b></div>
@@ -147,7 +147,7 @@ def render_report(
         </ul>
         <div class="facts">
           <div><span>Risk disclosure</span><b>{'Signed in this session' if signed else 'Not signed'}</b></div>
-          <div><span>Audit chain</span><b>{'Verified' if audit_valid else 'FAILED'} · {audit_records} records</b></div>
+          <div><span>Audit chain</span><b>{'Verified' if audit_valid else 'FAILED'}, {audit_records} records</b></div>
           <div><span>Language model</span><b>{escape(model_mode)} mode</b></div>
         </div>
       </section>""")
@@ -159,17 +159,17 @@ def render_report(
 <title>Advice Report</title>
 <link rel="icon" href="/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&family=Noto+Sans+SC:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
 <style>
-  :root {{ --ink:#14211f; --ink2:#4a5b57; --ink3:#7a8a86; --line:#d9e2df; --jade:#17695a; --paper:#ffffff; }}
+  :root {{ --ink:#0f1b26; --ink2:#5a6773; --ink3:#8692a0; --line:#dde2e7; --brass:#8a6420; --paper:#ffffff; --sans:"Inter","Noto Sans SC","PingFang SC",system-ui,sans-serif; }}
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; background:#eef2f1; color:var(--ink); font:400 14px/1.55 "Schibsted Grotesk", system-ui, sans-serif; }}
-  .page {{ max-width: 820px; margin: 32px auto; background: var(--paper); padding: 56px 64px; box-shadow: 0 8px 30px rgba(10,30,26,.08); }}
-  header {{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 8px; }}
-  h1 {{ font: 500 34px/1.1 "Newsreader", Georgia, serif; margin: 0; letter-spacing: -0.01em; }}
+  body {{ margin:0; background:#f5f6f7; color:var(--ink); font:400 14px/1.55 var(--sans); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }}
+  .page {{ max-width: 820px; margin: 32px auto; background: var(--paper); padding: 56px 64px; border: 1px solid var(--line); }}
+  header {{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom: 1px solid var(--ink); padding-bottom: 18px; margin-bottom: 8px; }}
+  h1 {{ font: 600 30px/1.15 var(--sans); margin: 0; letter-spacing: -0.02em; }}
   header p {{ margin: 6px 0 0; color: var(--ink2); }}
   .meta {{ text-align:right; font-size: 12px; color: var(--ink2); }}
-  h2 {{ font: 500 21px/1.2 "Newsreader", Georgia, serif; margin: 34px 0 12px; }}
+  h2 {{ font: 600 18px/1.3 var(--sans); margin: 34px 0 12px; letter-spacing: -0.01em; }}
   h3 {{ font-size: 13px; margin: 18px 0 6px; color: var(--ink2); font-weight: 600; }}
   p {{ margin: 8px 0; max-width: 70ch; }}
   .facts {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 12px 0; padding: 1px 0 0 1px; }}
@@ -187,7 +187,7 @@ def render_report(
   footer {{ margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--ink3); }}
   footer code {{ font-family: "IBM Plex Mono", monospace; color: var(--ink2); word-break: break-all; }}
   .toolbar {{ max-width: 820px; margin: 24px auto -12px; display:flex; justify-content:flex-end; gap: 8px; }}
-  .toolbar button {{ font: 600 14px "Schibsted Grotesk", sans-serif; border:0; border-radius:10px; padding:10px 16px; background: var(--jade); color:#fff; cursor:pointer; }}
+  .toolbar button {{ font: 600 14px var(--sans); border:0; border-radius:6px; padding:10px 16px; background: var(--brass); color:#fff; cursor:pointer; }}
   @media print {{ body {{ background:#fff; }} .page {{ box-shadow:none; margin:0; padding: 0; max-width:none; }} .toolbar {{ display:none; }} section {{ break-inside: avoid; }} }}
   @media (max-width: 700px) {{ .page {{ padding: 28px 20px; margin: 0; }} ul.cols {{ columns: 1; }} }}
 </style></head>

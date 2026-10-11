@@ -151,5 +151,5 @@ def explain_reason(code: str) -> str:
         prefix = question.upper() + "_"
         if code.startswith(prefix):
             answer = code[len(prefix):].lower()
-            return f"{question_label(question)} → {humanize(answer)}"
+            return f"{question_label(question)}: {humanize(answer)}"
     return code.replace("_", " ").capitalize()

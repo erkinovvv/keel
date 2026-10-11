@@ -72,7 +72,7 @@ const thread = $("#thread");
 function say(paragraphs) {
   const li = document.createElement("li");
   li.className = "msg-advisor";
-  li.innerHTML = `<div class="sig">${t("Advisor")}</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
+  li.innerHTML = `${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
   thread.append(li);
   thread.scrollTop = thread.scrollHeight;
 }
@@ -137,7 +137,7 @@ $("#composer").addEventListener("submit", async (e) => {
   try {
     const r = await api("/api/redact", { method: "POST", body: { message: text } });
     if (r.pii_types.length) {
-      scramble(bubble.firstChild, r.redacted);
+      bubble.firstChild.textContent = r.redacted;
       const tag = document.createElement("small");
       tag.className = "pii-tag";
       tag.textContent = t("Masked before reaching the AI: {types}", { types: r.pii_types.map((x) => x.toLowerCase().replace(/_/g, " ")).join(", ") });
@@ -326,7 +326,7 @@ async function loadAllocation(amount, level, narrate) {
 function limitNote(a) {
   if (!a.notes?.length) return "";
   const delta = a.stress_limit_before != null && a.stress_limit_after != null
-    ? ` ${t("Worst historical loss: {before} → {after}.", { before: pct(a.stress_limit_before), after: pct(a.stress_limit_after) })}`
+    ? ` ${t("Worst historical loss falls from {before} to {after}.", { before: pct(a.stress_limit_before), after: pct(a.stress_limit_after) })}`
     : "";
   return `<div class="verdict-bar ok limit-note"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg><div>${a.notes.map(esc).join(" ")}${delta}</div></div>`;
 }
@@ -334,7 +334,7 @@ function limitNote(a) {
 function dataNote() {
   const c = state.catalog;
   if (!c?.real) return "";
-  return `<p class="data-note"><span class="dot-live"></span>${t("{n} real Chinese public funds · public data as of {date} · amounts in {cur}", { n: c.count, date: longDate(c.as_of), cur: c.currency })}</p>`;
+  return `<p class="data-note">${t("{n} real Chinese public funds, public data as of {date}. Amounts in {cur}.", { n: c.count, date: longDate(c.as_of), cur: c.currency })}</p>`;
 }
 
 function chainName(net = state.catalog?.anchor_network, short = false) {
@@ -496,7 +496,7 @@ function adviceLine(c) {
 function sayAlert(paragraphs) {
   const li = document.createElement("li");
   li.className = "msg-advisor msg-alert";
-  li.innerHTML = `<div class="sig">${t("Advisor · reached out first")}</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
+  li.innerHTML = `<div class="sig">${t("Keel noticed a market move")}</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
   thread.append(li);
   thread.scrollTop = thread.scrollHeight;
 }
@@ -511,7 +511,7 @@ function alertCard(c) {
     <div class="sheet alert-card ${c.change < 0 ? "down" : "up"}">
       <div class="alert-head">
         <div><span class="alert-tag">${t("Proactive alert")}</span><h3 style="margin:6px 0 0">${esc(t(c.event_name))}</h3></div>
-        <div class="alert-move"><b>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</b><span>${money(c.value_before)} → ${money(c.value_after)}</span></div>
+        <div class="alert-move"><b>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</b><span>${t("{after}, was {before}", { after: money(c.value_after), before: money(c.value_before) })}</span></div>
       </div>
       <table><thead><tr><th>${t("Asset class")}</th><th class="r">${t("Target")}</th><th class="r">${t("Now")}</th><th class="r">${t("Drift")}</th></tr></thead><tbody>${rows}</tbody></table>
       <p class="alert-advice">${adviceLine(c)}</p>
@@ -567,7 +567,7 @@ async function renderRehearse() {
   const reaction = state.answers?.drawdown_reaction;
   panel.innerHTML = `
     <h1>${t("Before we invest, live through 2008")}</h1>
-    <p class="lede">${t("Every robo-advisor stress-tests the portfolio. We stress-test the investor. You will replay October 2007 to March 2013 month by month, with real market returns, holding exactly the portfolio we just built for you. You can sell at any moment.")}</p>
+    <p class="lede">${t("You will replay October 2007 to March 2013 month by month, with real market returns, holding the portfolio we just built for you. Sell whenever you want. What you do here tells us more about your tolerance for loss than any questionnaire.")}</p>
     <div class="sheet rehearse-intro">
       <div class="ri-facts">
         <div><span>${t("Your portfolio")}</span><b>${money(state.allocation.amount)}</b></div>
@@ -598,44 +598,66 @@ async function startRehearsal() {
   stage.setAttribute("role", "dialog");
   stage.setAttribute("aria-label", t("Crash rehearsal"));
   stage.tabIndex = -1;
-  const W = 1000, H = 300;
+  let W = 1000, H = 300;
   const vals = pts.map((p) => p.value);
   const lo = Math.min(...vals) * 0.96, hi = Math.max(...vals) * 1.04;
   const X = (i) => (i / (pts.length - 1)) * W;
   const Y = (v) => H - ((v - lo) / (hi - lo)) * H;
   stage.innerHTML = `
     <div class="th-top">
-      <div><div class="th-label">${t("Crash rehearsal · your portfolio")}</div><div class="th-month" id="thMonth">${monthName(pts[0].month)}</div></div>
+      <div><div class="th-label">${t("Crash rehearsal")}</div><div class="th-month" id="thMonth">${monthName(pts[0].month)}</div></div>
       <button class="th-quit" id="thQuit" type="button">${t("Stop rehearsal")}</button>
     </div>
     <div class="th-value"><span id="thValue">${money(pts[0].value)}</span><span class="th-change" id="thChange">0.0%</span></div>
     <div class="th-dd" id="thDd">${t("From your peak: {dd}", { dd: "0.0%" })}</div>
-    <svg class="th-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-      <line class="th-base" x1="0" x2="${W}" y1="${Y(data.amount)}" y2="${Y(data.amount)}"/>
-      <path class="th-area" id="thArea" d=""/>
-      <path class="th-line" id="thLine" d=""/>
-      <circle class="th-dot" id="thDot" r="6" cx="0" cy="${Y(pts[0].value)}"/>
-    </svg>
+    <svg class="th-chart" aria-hidden="true"></svg>
+    <div class="th-legend"><span>${t("Waterline: the {amount} you started with", { amount: money(data.amount) })}</span><span>${t("Circles: headlines")}</span><span id="thLowLabel"></span></div>
     <div class="th-news" aria-live="polite"><span class="th-news-tag">${t("News")}</span><span id="thNews">${t("Markets are calm. Stocks are near record highs.")}</span></div>
     <div class="th-actions">
-      <button class="th-sell" id="thSell" type="button">${t("Sell everything")}</button>
-      <button class="th-buy" id="thBuy" type="button">${t("Buy more")}</button>
+      <button class="th-sell" id="thSell" type="button"><span>${t("Sell everything")}</span><small id="thSellNote">${t("Nothing is lost yet")}</small></button>
+      <button class="th-buy" id="thBuy" type="button"><span>${t("Buy more")}</span><small>${t("Adds to the position at this price")}</small></button>
       <span class="th-hint" id="thHint">${t("Doing nothing means you hold.")}</span>
     </div>`;
   document.body.append(stage);
+  // Draw in real pixels so the marker stays round and lines keep their weight at any size.
+  const chart = $(".th-chart", stage);
+  ({ width: W, height: H } = chart.getBoundingClientRect());
+  chart.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  chart.innerHTML = `
+      <defs>
+        <clipPath id="thBelow"><rect x="0" y="${Y(data.amount)}" width="${W}" height="${H}"/></clipPath>
+        <clipPath id="thAbove"><rect x="0" y="0" width="${W}" height="${Y(data.amount)}"/></clipPath>
+      </defs>
+      <path class="th-area" id="thArea" d="" clip-path="url(#thBelow)"/>
+      <path class="th-area up" id="thAreaUp" d="" clip-path="url(#thAbove)"/>
+      <line class="th-base" x1="0" x2="${W}" y1="${Y(data.amount)}" y2="${Y(data.amount)}"/>
+      <line class="th-low" id="thLow" x1="0" x2="${W}" y1="-10" y2="-10"/>
+      <path class="th-line" id="thLine" d=""/>
+      <g id="thTicks"></g>
+      <circle class="th-dot" id="thDot" r="5" cx="0" cy="${Y(pts[0].value)}"/>
+`;
   stage.focus();
 
   // ?demo plays the same months about three times faster, for recorded demos.
   const fast = new URLSearchParams(location.search).has("demo");
   const pace = { start: fast ? 600 : 1200, crash: fast ? 650 : 1500, recovery: fast ? 110 : 330 };
-  let i = 0, done = false, boughtAt = null, timer = null;
+  let i = 0, done = false, boughtAt = null, timer = null, low = pts[0].value;
   const tick = () => {
     if (done) return;
     i += 1;
     const p = pts[i];
     const line = pts.slice(0, i + 1).map((q, k) => `${k ? "L" : "M"}${X(k).toFixed(1)},${Y(q.value).toFixed(1)}`).join("");
     $("#thLine").setAttribute("d", line);
-    $("#thArea").setAttribute("d", `${line}L${X(i).toFixed(1)},${H}L0,${H}Z`);
+    const base = Y(data.amount).toFixed(1);
+    const area = `${line}L${X(i).toFixed(1)},${base}L0,${base}Z`;
+    $("#thArea").setAttribute("d", area);
+    $("#thAreaUp").setAttribute("d", area);
+    if (p.value < low) {
+      low = p.value;
+      $("#thLow").setAttribute("y1", Y(low)); $("#thLow").setAttribute("y2", Y(low));
+      $("#thLowLabel").textContent = t("Dashed: lowest so far, {v}", { v: money(low) });
+    }
+    if (p.headline) $("#thTicks").insertAdjacentHTML("beforeend", `<circle class="th-tick" r="3.5" cx="${X(i)}" cy="${Y(p.value)}"/>`);
     $("#thDot").setAttribute("cx", X(i)); $("#thDot").setAttribute("cy", Y(p.value));
     const change = p.value / data.amount - 1;
     $("#thMonth").textContent = monthName(p.month);
@@ -643,8 +665,9 @@ async function startRehearsal() {
     $("#thChange").textContent = `${change >= 0 ? "+" : "−"}${pct(Math.abs(change))}`;
     $("#thDd").textContent = t("From your peak: {dd}", { dd: `−${pct(p.drawdown)}` });
     stage.classList.toggle("red", change < 0);
-    stage.classList.toggle("deep", p.drawdown > 0.1);
-    $("#thSell").classList.toggle("tempt", p.drawdown > 0.05 && i <= troughIndex + 2);
+    $("#thSellNote").textContent = change < 0
+      ? t("Locks in a loss of {v}", { v: money(data.amount - p.value) })
+      : t("Locks in a gain of {v}", { v: money(p.value - data.amount) });
     if (p.headline) { const n = $("#thNews"); n.textContent = t(p.headline); n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); }
     if (i === troughIndex) $("#thHint").textContent = t("This is the moment most investors sell.");
     if (i === troughIndex + 3) $("#thHint").textContent = t("Doing nothing means you hold.");
@@ -669,7 +692,7 @@ async function startRehearsal() {
     setTimeout(() => { stage.remove(); go("rehearse"); $("#rehearsalResult")?.scrollIntoView({ behavior: "smooth" }); }, action === "sell" ? 900 : 300);
   };
   $("#thSell").onclick = () => finish("sell", i);
-  $("#thBuy").onclick = (e) => { if (boughtAt === null) { boughtAt = i; e.target.textContent = t("Bought more"); e.target.disabled = true; } };
+  $("#thBuy").onclick = (e) => { if (boughtAt === null) { boughtAt = i; const b = e.currentTarget; b.firstElementChild.textContent = t("Bought more"); b.disabled = true; } };
   $("#thQuit").onclick = () => { done = true; clearTimeout(timer); stage.remove(); note(t("Rehearsal stopped. Nothing was recorded about your risk class.")); };
   stage.addEventListener("keydown", (e) => { if (e.key === "Escape") $("#thQuit").click(); });
   timer = setTimeout(tick, pace.start);
@@ -1078,7 +1101,7 @@ async function renderTicket() {
           ${d.orders.map((o) => `
             <li class="${o.cooling_off ? "muted" : ""}">
               <span class="swatch" style="background:var(--${o.asset_class})"></span>
-              <span class="tl-name">${esc(o.name)}<small>R${o.risk_class} · ${t("{units} units at {nav}", { units: o.units.toFixed(2), nav: o.nav.toFixed(2) })}${o.cooling_off ? ` · ${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}` : ""}</small></span>
+              <span class="tl-name">${esc(o.name)}<small>R${o.risk_class}, ${t("{units} units at {nav}", { units: o.units.toFixed(2), nav: o.nav.toFixed(2) })}${o.cooling_off ? `, ${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}` : ""}</small></span>
               <span class="tl-amt">${money(o.amount)}</span>
             </li>`).join("")}
         </ul>
@@ -1189,18 +1212,6 @@ function wireHold(btn, orders) {
   function reset() { done = false; btn.classList.remove("armed"); set(0); }
 }
 
-function barcode(hash) {
-  let x = 0;
-  const bars = [];
-  for (const ch of hash.slice(0, 40)) {
-    const v = parseInt(ch, 16);
-    const w = 1 + (v % 3);
-    bars.push(`<rect x="${x}" width="${w}" height="34"/>`);
-    x += w + 1 + ((v >> 2) % 2);
-  }
-  return `<svg class="barcode" viewBox="0 0 ${x} 34" preserveAspectRatio="none" aria-hidden="true">${bars.join("")}</svg>`;
-}
-
 function printReceipt(r) {
   const printer = $("#printer");
   const paper = $("#paper");
@@ -1208,34 +1219,27 @@ function printReceipt(r) {
   const later = (state.drafts?.orders || []).filter((o) => o.cooling_off);
   const settle = r.executed[0]?.settles_on;
   const line = (l, rgt) => `<div class="rl"><span>${l}</span><span>${rgt}</span></div>`;
+  const hash = r.provenance.audit_hash;
   paper.innerHTML = `
-    <div class="rc-head">Keel<br>${t("Simulated brokerage account")}</div>
-    <div class="rc-center">${t("Trade confirmation")}</div>
-    <div class="rc-center rc-dim">${ts.toLocaleDateString(LOCALE, { day: "2-digit", month: "short", year: "numeric" })} ${ts.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })}</div>
+    <div class="rl"><span class="rc-head">${t("Trade confirmation")}</span><span class="rc-dim">${ts.toLocaleDateString(LOCALE, { day: "2-digit", month: "short", year: "numeric" })} ${ts.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })}</span></div>
+    <div class="rc-dim">${t("Simulated brokerage account")}</div>
     <div class="rc-rule"></div>
-    ${r.executed.map((o) => `
-      <div class="rc-item">
-        ${line(t("BUY {name}", { name: esc(o.name) }), "")}
-        ${line(`&nbsp;&nbsp;R${o.risk_class} · ${o.units.toFixed(2)} u @ ${o.nav.toFixed(2)}`, money(o.amount))}
-      </div>`).join("")}
-    ${later.map((o) => `
-      <div class="rc-item rc-dim">
-        ${line(t("HOLD {name}", { name: esc(o.name) }), "")}
-        ${line(`&nbsp;&nbsp;${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}`, money(o.amount))}
-      </div>`).join("")}
-    ${r.failed.map((f) => `<div class="rc-item rc-fail">${line(t("NOT PLACED {id}", { id: esc(f.order_id) }), "")}<div>&nbsp;&nbsp;${esc(f.reason)}</div></div>`).join("")}
+    <table class="rc-table">
+      <thead><tr><th>${t("Fund")}</th><th class="r">${t("Units")}</th><th class="r">${t("NAV")}</th><th class="r">${t("Amount")}</th></tr></thead>
+      <tbody>
+        ${r.executed.map((o) => `<tr><td>${esc(o.name)}<small>${t("Bought")}, R${o.risk_class}</small></td><td class="r">${o.units.toFixed(2)}</td><td class="r">${o.nav.toFixed(4)}</td><td class="r">${money(o.amount)}</td></tr>`).join("")}
+        ${later.map((o) => `<tr class="rc-dim"><td>${esc(o.name)}<small>${t("cooling-off until {date}", { date: shortDate(o.cooling_off_until) })}</small></td><td class="r">–</td><td class="r">–</td><td class="r">${money(o.amount)}</td></tr>`).join("")}
+        ${r.failed.map((f) => `<tr class="rc-fail"><td colspan="4">${t("Not placed: {why}", { why: esc(f.reason) })}</td></tr>`).join("")}
+      </tbody>
+    </table>
     <div class="rc-rule"></div>
     ${line(`<b>${t("Total executed")}</b>`, `<b>${money(r.total)}</b>`)}
     ${line(t("Cash remaining"), money(r.cash))}
-    ${settle ? line(t("Settlement"), `T+2 · ${shortDate(settle)}`) : ""}
+    ${settle ? line(t("Settlement"), `T+2, ${shortDate(settle)}`) : ""}
+    ${line(t("Suitability"), t("Client C{n}, every fund R{n} or lower", { n: r.investor_class }))}
     <div class="rc-rule"></div>
     <div class="rc-dim">${t("Audit record")}</div>
-    <div class="rc-hash">${r.provenance.audit_hash.match(/.{1,4}/g).slice(0, 8).join(" ")}</div>
-    ${barcode(r.provenance.audit_hash)}
-    <div class="stamp" aria-label="${t("Suitability checked")}">
-      <span>${t("Suitability checked")}</span>
-      <b>${t("C{n} · all ≤ R{n}", { n: r.investor_class })}</b>
-    </div>`;
+    <div class="rc-hash">${hash.slice(0, 32)}<br>${hash.slice(32)}</div>`;
   printer.hidden = false;
   printer.classList.remove("printing");
   void printer.offsetWidth;
@@ -1257,43 +1261,17 @@ async function anchorOnReceipt(paper) {
   const slot = document.createElement("div");
   slot.className = "rc-chain";
   slot.innerHTML = `<div class="rc-rule"></div><div class="rc-dim">${t("On-chain proof")}</div><div>${t("Anchoring on {net}…", { net: chainName() })}</div>`;
-  paper.insertBefore(slot, paper.querySelector(".stamp"));
+  paper.append(slot);
   try {
     const a = await api("/api/anchor", { method: "POST" });
     const txText = `${esc(a.tx_hash?.slice(0, 10) || "")}…${esc(a.tx_hash?.slice(-6) || "")}`;
     slot.lastElementChild.innerHTML = a.sent
-      ? `${esc(chainName(a.network, true))}${a.block ? ` · ${t("block {n}", { n: a.block })}` : ""}<br>tx ${a.explorer_url ? `<a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${txText}</a>` : txText}<br><span class="rc-dim">${t("audit head after {n} records", { n: a.record_count })}</span>`
+      ? `${esc(chainName(a.network, true))}${a.block ? `, ${t("block {n}", { n: a.block })}` : ""}<br>tx ${a.explorer_url ? `<a href="${esc(a.explorer_url)}" target="_blank" rel="noopener">${txText}</a>` : txText}<br><span class="rc-dim">${t("audit head after {n} records", { n: a.record_count })}</span>`
       : `<span class="rc-dim">${t("Not anchored: {why}", { why: esc(a.note) })}</span>`;
     refreshAudit();
   } catch (err) {
     slot.lastElementChild.innerHTML = `<span class="rc-dim">${t("Not anchored: {why}", { why: esc(err.message) })}</span>`;
   }
-}
-
-// ---------------------------------------------------------------- PII scramble (chat)
-
-function scramble(el, target) {
-  const from = el.textContent;
-  if (reduceMotion || from === target) { el.textContent = target; return; }
-  const glyphs = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%*";
-  const len = Math.max(from.length, target.length);
-  const frames = 26;
-  let f = 0;
-  const step = () => {
-    f += 1;
-    let out = "";
-    for (let i = 0; i < len; i++) {
-      const settle = (i / len) * frames * 0.7 + 6;
-      const a = from[i] ?? "", b = target[i] ?? "";
-      if (f >= settle) out += b;
-      else if (a === b) out += a;
-      else out += glyphs[(Math.random() * glyphs.length) | 0];
-    }
-    el.textContent = out;
-    if (f < frames + 6) setTimeout(step, 28);
-    else el.textContent = target;
-  };
-  step();
 }
 
 // ---------------------------------------------------------------- audit drawer
@@ -1307,7 +1285,7 @@ async function refreshAudit() {
     const pill = $("#auditPill");
     pill.classList.toggle("ok", a.valid);
     pill.classList.toggle("bad", !a.valid);
-    $("#auditText").textContent = a.valid ? t("Audit chain verified · {n}", { n: a.total }) : t("Audit chain broken");
+    $("#auditText").textContent = a.valid ? t("{n} records verified", { n: a.total }) : t("Audit chain broken");
     return a;
   } catch { return null; }
 }
@@ -1322,8 +1300,8 @@ async function openDrawer() {
   $("#chain").innerHTML = a.records.map((r) => `
     <li>
       <div class="ev">${esc(r.event.replace(/_/g, " "))}</div>
-      <div class="src">${esc(new Date(r.timestamp).toLocaleString(LOCALE))}${r.source ? ` · ${esc(r.source)}` : ""}</div>
-      <div class="h">${esc(r.hash.slice(0, 20))}… ← ${esc((r.prev_hash || "genesis").slice(0, 12))}</div>
+      <div class="src">${esc(new Date(r.timestamp).toLocaleString(LOCALE))}${r.source ? `, ${esc(r.source)}` : ""}</div>
+      <div class="h">${esc(r.hash.slice(0, 20))}  ${t("prev")} ${esc((r.prev_hash || "genesis").slice(0, 12))}</div>
     </li>`).join("");
   drawer.hidden = false;
   scrim.hidden = false;
@@ -1342,7 +1320,7 @@ async function renderAnchors() {
     ${sent.slice().reverse().map((x) => `
       <div class="anchor-row">
         ${x.explorer_url ? `<a href="${esc(x.explorer_url)}" target="_blank" rel="noopener">${esc(x.tx_hash.slice(0, 12))}…</a>` : `<code>${esc(x.tx_hash.slice(0, 12))}…</code>`}
-        <span class="rc-dim">${x.block ? `${t("block {n}", { n: x.block })} · ` : ""}${t("{n} records", { n: x.record_count })}</span>
+        <span class="rc-dim">${x.block ? `${t("block {n}", { n: x.block })}, ` : ""}${t("{n} records", { n: x.record_count })}</span>
         <button class="why" type="button" data-verify="${esc(x.tx_hash)}">${t("Verify")}</button>
         <span class="verify-out"></span>
       </div>`).join("")}
@@ -1357,7 +1335,7 @@ async function renderAnchors() {
     out.textContent = t("Checking…");
     try {
       const v = await api(`/api/anchor/verify?tx=${b.dataset.verify}`);
-      out.textContent = v.matches ? t("✓ matches the log at record {n}, block {b}", { n: v.record_count, b: v.block }) : t("✗ does not match ({why})", { why: v.chain_reason });
+      out.textContent = v.matches ? t("Matches the log at record {n}, block {b}.", { n: v.record_count, b: v.block }) : t("Does not match: {why}", { why: v.chain_reason });
       out.className = `verify-out ${v.matches ? "ok" : "bad"}`;
     } catch (err) { out.textContent = err.message; }
   }));
