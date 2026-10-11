@@ -119,6 +119,8 @@ def run_persona(persona: dict[str, Any]) -> dict[str, Any]:
         "seconds": round(time.monotonic() - started, 1),
         "errors": errors,
         "final_reply": (replies[-1] if replies else "")[:400],
+        "replies": [reply[:800] for reply in replies],
+        "promise_hits": [m.group(0) for reply in replies for m in PROMISE.finditer(_NEGATED.sub("", reply))],
     }
 
 
