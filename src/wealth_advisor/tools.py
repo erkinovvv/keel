@@ -14,6 +14,13 @@ from .stress import stress_test
 from .permissions import PermissionTier, require_tier
 
 
+_QUESTION_DESCRIPTIONS = {
+    "horizon": "Time until the money is needed: under_1y is less than one year; 1_3y is one to three years; 3_7y is three to seven; 7_10y is seven to ten; over_10y is more than ten.",
+    "invested_share": "Share of total savings in this investment: over_75, 50_75, 25_50, or under_25; two thirds maps to 50_75.",
+    "drawdown_reaction": "Reaction to a 20% fall: sell_all means sell everything; reduce means sell some; hold means stay invested; buy_more means add money.",
+}
+
+
 QuestionnaireAnswers = create_model(
     "QuestionnaireAnswers",
     **{
@@ -21,7 +28,10 @@ QuestionnaireAnswers = create_model(
             Literal[tuple(spec["options"].keys())],
             Field(
                 default="within_7d" if key == "liquidity_need" else ...,
-                description=f"{spec['domain'].capitalize()} questionnaire answer; choose one listed option.",
+                description=_QUESTION_DESCRIPTIONS.get(
+                    key,
+                    f"{spec['domain'].capitalize()} questionnaire answer; choose one listed option.",
+                ),
             ),
         )
         for key, spec in QUESTIONNAIRE.items()

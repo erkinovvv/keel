@@ -147,3 +147,6 @@ def test_profile_schema_inlines_all_enumerated_questionnaire_fields():
         "invested_share", "drawdown_reaction", "experience", "goal",
     }
     assert "buy_more" in answers["properties"]["drawdown_reaction"]["enum"]
+    assert "two thirds" in answers["properties"]["invested_share"]["description"]
+    assert "sell some" in answers["properties"]["drawdown_reaction"]["description"]
+    assert "under_1y is less than one year" in answers["properties"]["horizon"]["description"]
