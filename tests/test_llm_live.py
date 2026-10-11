@@ -45,6 +45,12 @@ class RateLimitError(Exception):
         self.response = SimpleNamespace(headers={"retry-after": retry_after})
 
 
+class DailyQuotaError(RateLimitError):
+    def __init__(self):
+        super().__init__("1")
+        self.args = ("TPD quota exceeded for organization org_1234",)
+
+
 ANSWERS = {
     "horizon": "7_10y",
     "liquidity_need": "over_30d",
@@ -119,6 +125,22 @@ def test_groq_key_pool_cools_one_key_then_uses_next(tmp_path):
     assert result.key_index == 1
     assert len(first.chat.completions.calls) == 1
     assert len(second.chat.completions.calls) == 1
+
+
+def test_daily_quota_cools_only_failed_key_across_calls(tmp_path):
+    first = FakeClient([DailyQuotaError(), response("key zero retry", total_tokens=5)])
+    second = FakeClient([response("key one", total_tokens=5), response("key one again", total_tokens=5)])
+    providers = (ProviderConfig("groq", "https://groq.test", "GROQ_API_KEY", ("groq-model",), api_keys=("key-zero", "key-one")),)
+    audit = AuditLogger(tmp_path / "audit.jsonl")
+    client = LLMClient(live_settings(tmp_path), audit, provider_clients={("groq", 0): first, ("groq", 1): second}, providers=providers)
+    assert client.chat([{"role": "user", "content": "first"}]).key_index == 1
+    assert client.chat([{"role": "user", "content": "second"}]).key_index == 1
+    assert len(first.chat.completions.calls) == 1
+    assert len(second.chat.completions.calls) == 2
+    records = [json.loads(line) for line in (tmp_path / "audit.jsonl").read_text().splitlines()]
+    cooldown = next(record for record in records if record["event"] == "llm_key_cooldown")
+    assert cooldown["details"]["key_index"] == 0
+    assert cooldown["details"]["organization"] == "org_1234"
 
 
 def test_live_retries_an_all_429_chain_twice(tmp_path, monkeypatch):

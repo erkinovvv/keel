@@ -49,6 +49,7 @@ class LLMClient:
         self._provider_clients = dict(provider_clients or {})
         self._providers_override = providers
         self._cooldowns: dict[tuple[str, int, str], float] = {}
+        self._daily_cooldowns: set[tuple[str, int]] = set()
         self._key_organizations: dict[tuple[str, int], str] = {}
         self._replay_index = 0
 
@@ -140,11 +141,8 @@ class LLMClient:
         if organization:
             self._key_organizations[(provider.name, key_index)] = organization
         indices = [key_index]
-        if daily and provider.name == "groq":
-            indices = [
-                index for index in range(len(self._provider_keys(provider)))
-                if organization is None or self._key_organizations.get((provider.name, index), organization) == organization
-            ]
+        if daily:
+            self._daily_cooldowns.add((provider.name, key_index))
         until = time.monotonic() + duration
         models = provider.models if daily else (model,)
         for index in indices:
@@ -152,7 +150,7 @@ class LLMClient:
                 cooldown_key = (provider.name, index, cooled_model)
                 self._cooldowns[cooldown_key] = max(until, self._cooldowns.get(cooldown_key, 0.0))
             if self.audit:
-                self.audit.append("llm_key_cooldown", {"provider": provider.name, "key_index": index, "seconds": duration, "daily_quota": daily})
+                self.audit.append("llm_key_cooldown", {"provider": provider.name, "key_index": index, "organization": organization, "seconds": duration, "daily_quota": daily})
         return duration
 
     def _safe_error(self, exc: Exception) -> str:
@@ -240,7 +238,9 @@ class LLMClient:
                 provider_unavailable = False
                 for model in provider.models:
                     for key_index, key in enumerate(keys):
-                        if chain_attempt == 0 and self._cooldowns.get((provider.name, key_index, model), 0.0) > time.monotonic():
+                        cooldown_active = self._cooldowns.get((provider.name, key_index, model), 0.0) > time.monotonic()
+                        daily_cooldown_active = (provider.name, key_index) in self._daily_cooldowns and cooldown_active
+                        if cooldown_active and (chain_attempt == 0 or daily_cooldown_active):
                             continue
                         try:
                             kwargs: dict[str, Any] = {"model": model, "messages": messages, "temperature": 0}
