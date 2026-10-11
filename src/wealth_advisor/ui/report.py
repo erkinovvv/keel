@@ -197,7 +197,7 @@ def render_report(
   <main class="page">
     <header>
       <div><h1>Advice Report</h1><p>Suitability record of your advisory session</p></div>
-      <div class="meta">Wealth Advisor<br>{now:%d %B %Y, %H:%M} UTC<br>Report {digest[:12]}</div>
+      <div class="meta">Keel<br>{now:%d %B %Y, %H:%M} UTC<br>Report {digest[:12]}</div>
     </header>
     {body}
     <footer>Report fingerprint (SHA-256): <code>{digest}</code><br>This fingerprint is recorded in the session's hash-chained audit log, so any change to this report can be detected.</footer>

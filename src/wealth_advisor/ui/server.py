@@ -49,7 +49,7 @@ SCENARIO_NAMES = {
     "2022_rate_shock": "2022 rate shock",
 }
 
-app = FastAPI(title="Wealth Advisor Agent", docs_url="/api/docs")
+app = FastAPI(title="Keel", docs_url="/api/docs")
 
 
 CSP = (

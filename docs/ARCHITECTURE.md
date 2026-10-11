@@ -1,6 +1,6 @@
 # Architecture
 
-Lucid is an AI wealth advisor that runs a professional advisory workflow — fact-find, risk
+Keel is an AI wealth advisor that runs a professional advisory workflow — fact-find, risk
 profiling, product comparison, explainable asset allocation, stress testing and client-confirmed
 execution — while keeping every financial number and every money-moving action outside the
 language model.

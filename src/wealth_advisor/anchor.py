@@ -69,7 +69,7 @@ def encode_payload(head_hash: str, count: int) -> bytes:
 
 def decode_payload(data: bytes) -> tuple[str, int]:
     if len(data) != 40 or not data.startswith(MAGIC):
-        raise ValueError("transaction data is not a Wealth Advisor anchor")
+        raise ValueError("transaction data is not a Keel audit anchor")
     return data[4:36].hex(), int.from_bytes(data[36:40], "big")
 
 

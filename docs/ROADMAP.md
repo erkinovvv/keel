@@ -37,9 +37,9 @@ passport scans · submit by 2026-10-20 12:00 UTC+8.
 
 **An AI wealth advisor that proves every recommendation it makes.**
 
-Working name: **Lucid** (placeholder — pick before the deck).
+Working name: **Keel** (placeholder — pick before the deck).
 
-Every digital advisor claims to be "explainable". Lucid makes it verifiable:
+Every digital advisor claims to be "explainable". Keel makes it verifiable:
 
 1. **Every number is computed by audited code, never by the model**, and the UI shows its source.
 2. **Every decision is written to a tamper-evident audit chain**, anchored on a public blockchain.
@@ -54,7 +54,7 @@ We call this **Proof-of-Advice**. It is the story of the deck, the demo and the 
 - **Secondary (APEC angle):** international students and cross-border professionals in the
   Greater Bay Area who hold money in two currencies and need suitability-checked advice in
   English and Chinese.
-- **Buyer:** the bank. Lucid is a compliance-first advisory module a bank embeds in its app.
+- **Buyer:** the bank. Keel is a compliance-first advisory module a bank embeds in its app.
 
 ### Why judges should care (mapped to who is judging)
 | Judge profile | What they will probe | Our answer |
@@ -130,7 +130,7 @@ WeBank is the strategic sponsor and host institute of the competition ("WeBank F
 Challenge"); its engineers judge the finals and Qiang Yang, WeBank's Chief AI Adviser, is an
 academic adviser. What we show them:
 
-| WeBank asset | How Lucid uses it |
+| WeBank asset | How Keel uses it |
 |---|---|
 | **FISCO BCOS** (open-source consortium chain led by WeBank) | Every advisory session's audit-chain head is written to the `AuditAnchor` contract on a FISCO BCOS 3.17 chain; Verify recomputes and compares. Production picture: nodes run by the bank, an external auditor and the regulator. |
 | **FATE** (open-source federated learning, Qiang Yang) | Roadmap slide: Crash Rehearsal produces a new signal — *revealed* risk tolerance. Banks could train a model that predicts it from questionnaire answers with FATE, each bank keeping its clients' rehearsal data; the questionnaire becomes smarter without pooling personal data. Not built in this round. |

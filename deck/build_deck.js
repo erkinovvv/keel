@@ -1,14 +1,14 @@
-// Builds deck/Lucid_FinTechathon_2026.pptx — the ≤10-minute pitch for Topic B.
+// Builds deck/Keel_FinTechathon_2026.pptx — the ≤10-minute pitch for Topic B.
 //   cd deck && node build_deck.js
 const path = require("path");
 const pptxgen = require("pptxgenjs");
 
 const SKILL_THEME = path.join(__dirname, "apply_theme.js");  // copied from the pptx skill
 const IMG = (name) => path.join(__dirname, "..", "docs", "img", name);
-const OUT = path.join(__dirname, "Lucid_FinTechathon_2026.pptx");
+const OUT = path.join(__dirname, "Keel_FinTechathon_2026.pptx");
 
 const THEME = {
-  name: "Lucid",
+  name: "Keel",
   headFontFace: "Cambria",
   bodyFontFace: "Calibri",
   colors: {
@@ -27,13 +27,13 @@ const NUMBERS = {
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE"; // 13.333 x 7.5 in
-pres.title = "Lucid — the AI wealth advisor that proves its advice";
+pres.title = "Keel — the AI wealth advisor that proves its advice";
 pres.author = "[Name 1], [Name 2]";
 pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
 const C = pres.SchemeColor;
 
 const W = 13.333, M = 0.6;
-const FOOTER = "Lucid · FinTechathon 2026 · Topic B";
+const FOOTER = "Keel · FinTechathon 2026 · Topic B";
 
 pres.defineSlideMaster({
   title: "LIGHT_CONTENT",
@@ -63,11 +63,11 @@ pres.addSection({ title: "Why advice cannot be checked" });
 {
   const s = pres.addSlide({ masterName: "DARK", sectionTitle: "Why advice cannot be checked" });
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M, y: 0.6, w: 0.45, h: 0.45, rectRadius: 0.1, fill: { color: C.accent1 }, line: { color: C.accent1 }, objectName: "logo" });
-  text(s, "Lucid", { x: M + 0.6, y: 0.62, w: 3, h: 0.45, fontSize: 22, bold: true, color: C.background1, valign: "middle" });
+  text(s, "Keel", { x: M + 0.6, y: 0.62, w: 3, h: 0.45, fontSize: 22, bold: true, color: C.background1, valign: "middle" });
   text(s, "The AI wealth advisor that proves its advice", { x: M, y: 2.2, w: 11, h: 2.0, fontFace: THEME.headFontFace, fontSize: 54, color: C.background1, valign: "bottom" });
   text(s, "A licensed advisor's workflow, a crash rehearsal for the client, and an audit trail anchored on WeBank's FISCO BCOS.", { x: M, y: 4.4, w: 10, h: 1.0, fontSize: 20, color: "BFD0CC" });
   text(s, "FinTechathon 2026 · International Track · Topic B: Wealth Advisory Agent\n[Name 1], [Name 2] · Westminster International University in Tashkent", { x: M, y: 6.2, w: 11, h: 0.7, fontSize: 14, color: "BFD0CC" });
-  s.addNotes("Hello, we are [names] from Westminster International University in Tashkent. Our project is Lucid, a wealth-advisory agent for Topic B. In one sentence: it is the AI wealth advisor that proves its advice. In the next nine minutes we show what that means and why it matters to a bank like WeBank.");
+  s.addNotes("Hello, we are [names] from Westminster International University in Tashkent. Our project is Keel, a wealth-advisory agent for Topic B. In one sentence: it is the AI wealth advisor that proves its advice. In the next nine minutes we show what that means and why it matters to a bank like WeBank.");
 }
 
 // ------------------------------------------------------------------ 2 problem
@@ -94,9 +94,9 @@ pres.addSection({ title: "Why advice cannot be checked" });
 }
 
 // ------------------------------------------------------------------ 3 workflow
-pres.addSection({ title: "Lucid" });
+pres.addSection({ title: "Keel" });
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Lucid" });
+  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Keel" });
   s.addText("A licensed advisor's workflow, in one conversation", { placeholder: "title" });
   const steps = [["Fact-find", "chat or form, EN / 中文"], ["Profile", "C1–C5, lower of capacity and tolerance"], ["Rehearse", "live through 2008 first"], ["Allocate", "real funds, a reason per holding"], ["Plan", "goal odds from 5,000 futures"], ["Stress", "against the client's own limit"], ["Execute", "signed, held, on-chain"]];
   const sw = (W - 2 * M - 6 * 0.15) / 7;
@@ -108,13 +108,13 @@ pres.addSection({ title: "Lucid" });
     text(s, head, { x: x + 0.18, y: 2.1, w: sw - 0.3, h: 0.4, fontSize: 16, bold: true, color: dark ? C.background1 : C.text1 });
     text(s, body, { x: x + 0.18, y: 2.5, w: sw - 0.3, h: 0.75, fontSize: 11.5, color: dark ? "BFD0CC" : C.accent5 });
   });
-  s.addImage({ path: IMG("portfolio.png"), x: M + 1.4, y: 3.55, w: 9.3, h: 3.3, sizing: { type: "cover", w: 9.3, h: 3.3 }, altText: "Lucid web app: recommended portfolio, every number linked to the function that computed it", objectName: "screenshot-portfolio" });
-  s.addNotes("Lucid runs the same seven steps a licensed advisor follows: fact-find, risk profile, crash rehearsal, allocation, goal planning, stress test and execution. The client can do it in conversation, in English or Chinese, and the client file fills in live. Every underlined number opens its provenance: which function computed it and which audit record holds it.");
+  s.addImage({ path: IMG("portfolio.png"), x: M + 1.4, y: 3.55, w: 9.3, h: 3.3, sizing: { type: "cover", w: 9.3, h: 3.3 }, altText: "Keel web app: recommended portfolio, every number linked to the function that computed it", objectName: "screenshot-portfolio" });
+  s.addNotes("Keel runs the same seven steps a licensed advisor follows: fact-find, risk profile, crash rehearsal, allocation, goal planning, stress test and execution. The client can do it in conversation, in English or Chinese, and the client file fills in live. Every underlined number opens its provenance: which function computed it and which audit record holds it.");
 }
 
 // ------------------------------------------------------------------ 4 statement
 {
-  const s = pres.addSlide({ masterName: "DARK", sectionTitle: "Lucid" });
+  const s = pres.addSlide({ masterName: "DARK", sectionTitle: "Keel" });
   text(s, [
     { text: "Every robo-advisor stress-tests the portfolio. ", options: { color: C.background1 } },
     { text: "We stress-test the investor.", options: { color: C.accent2 } },
@@ -125,7 +125,7 @@ pres.addSection({ title: "Lucid" });
 
 // ------------------------------------------------------------------ 5 crash rehearsal
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Lucid" });
+  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Keel" });
   s.addText("Crash Rehearsal: what clients do, not what they say", { placeholder: "title" });
   s.addImage({ path: IMG("rehearsal.png"), x: M, y: 1.55, w: 6.6, h: 4.15, sizing: { type: "cover", w: 6.6, h: 4.15 }, altText: "Crash Rehearsal screen: the client's portfolio falling to 88,033 in September 2008 with the Lehman headline and a Sell everything button", objectName: "screenshot-rehearsal" });
   const rx = M + 7.0, rw = W - M - rx;
@@ -241,7 +241,7 @@ pres.addSection({ title: "Results and fit" });
   });
   card(s, M, 4.55, W - 2 * M, 1.95, { fill: C.text2, line: "07110F", name: "backtest-insight" });
   text(s, "What the backtest taught us", { x: M + 0.35, y: 4.75, w: 6, h: 0.4, fontSize: 15, bold: true, color: C.accent6 });
-  text(s, "Every class kept its volatility target for 18 years, yet every class's worst fall was deeper than that number suggests: C5's 2008 drawdown was 34%. A volatility figure does not tell a client what 2008 feels like. That is why Lucid enforces the client's own loss limit and makes them rehearse the crash.", { x: M + 0.35, y: 5.2, w: W - 2 * M - 0.7, h: 1.2, fontSize: 15, color: C.background1 });
+  text(s, "Every class kept its volatility target for 18 years, yet every class's worst fall was deeper than that number suggests: C5's 2008 drawdown was 34%. A volatility figure does not tell a client what 2008 feels like. That is why Keel enforces the client's own loss limit and makes them rehearse the crash.", { x: M + 0.35, y: 5.2, w: W - 2 * M - 0.7, h: 1.2, fontSize: 15, color: C.background1 });
   s.addNotes("Numbers we measured. 29 of 30 scripted clients completed the whole journey on a live model. All 57 red-team attacks stopped. 89 automated tests. And a backtest from 2008 to 2026: every model portfolio stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why we enforce the client's own loss limit and make them rehearse the crash.");
 }
 
@@ -298,7 +298,7 @@ pres.addSection({ title: "Results and fit" });
   text(s, "Advice you can prove.", { x: M, y: 2.0, w: 11, h: 1.4, fontFace: THEME.headFontFace, fontSize: 60, color: C.background1, valign: "bottom" });
   text(s, "Rehearse the crash. Ground every number. Let only the client move money. Anchor the record on chain.", { x: M, y: 3.6, w: 10.5, h: 1.0, fontSize: 20, color: "BFD0CC" });
   text(s, "Code and documentation: github.com/[account]/[repository]  ·  Demo video: [link]\n[Name 1], [Name 2] · Westminster International University in Tashkent", { x: M, y: 5.8, w: 11.5, h: 0.8, fontSize: 14, color: "BFD0CC" });
-  s.addNotes("Lucid: advice you can prove. We rehearse the crash before the client invests, every number is grounded in audited code, only the client can move money, and the record lives on chain. Thank you; we are happy to take questions and to show the live demo.");
+  s.addNotes("Keel: advice you can prove. We rehearse the crash before the client invests, every number is grounded in audited code, only the client can move money, and the record lives on chain. Thank you; we are happy to take questions and to show the live demo.");
 }
 
 (async () => {

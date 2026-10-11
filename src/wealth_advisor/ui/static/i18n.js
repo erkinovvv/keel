@@ -13,7 +13,7 @@ if (!document.cookie.includes("wa_lang=")) document.cookie = `wa_lang=${LANG}; p
 
 const ZH = {
   // chrome
-  "Wealth Advisor": "智能财富顾问",
+  "Keel": "Keel 龙骨",
   "Advice report": "建议报告",
   "Advice only": "仅提供建议",
   "Simulated trading on": "模拟交易已开启",
@@ -412,7 +412,7 @@ function setLanguage(lang) {
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.textContent.trim()); });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => { el.placeholder = t(el.placeholder); });
-  document.title = t("Wealth Advisor");
+  document.title = t("Keel");
   const toggle = document.getElementById("langToggle");
   if (toggle) {
     toggle.textContent = LANG === "zh" ? "EN" : "中文";

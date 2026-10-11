@@ -1,8 +1,8 @@
-# Lucid — the AI wealth advisor that proves its advice
+# Keel — the AI wealth advisor that keeps you steady, and proves its advice
 
 **FinTechathon 2026 · International Track · Topic B: Wealth Advisory Agent**
 
-Lucid runs the workflow of a licensed wealth advisor — fact-find, risk profiling, product
+Keel runs the workflow of a licensed wealth advisor — fact-find, risk profiling, product
 comparison, asset allocation, stress testing and client-confirmed execution — in a natural
 conversation. Two things make it different.
 

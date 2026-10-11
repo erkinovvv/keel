@@ -35,7 +35,7 @@ def run_chat(settings: Settings) -> None:
 
     console = Console()
     session = AdvisorSession(settings=settings, tier=PermissionTier.ADVISE)
-    console.print("Wealth Advisor chat. Type 'quit' to exit.")
+    console.print("Keel advisor chat. Type 'quit' to exit.")
     while True:
         message = console.input("[bold]You[/bold] ")
         if message.strip().lower() in {"quit", "exit"}:

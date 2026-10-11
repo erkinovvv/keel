@@ -1,4 +1,4 @@
-// Wealth Advisor web UI. Every number shown is computed on the server by deterministic code;
+// Keel web UI. Every number shown is computed on the server by deterministic code;
 // the UI only formats it and shows where it came from (provenance popover).
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -1209,7 +1209,7 @@ function printReceipt(r) {
   const settle = r.executed[0]?.settles_on;
   const line = (l, rgt) => `<div class="rl"><span>${l}</span><span>${rgt}</span></div>`;
   paper.innerHTML = `
-    <div class="rc-head">${t("Wealth Advisor")}<br>${t("Simulated brokerage account")}</div>
+    <div class="rc-head">Keel<br>${t("Simulated brokerage account")}</div>
     <div class="rc-center">${t("Trade confirmation")}</div>
     <div class="rc-center rc-dim">${ts.toLocaleDateString(LOCALE, { day: "2-digit", month: "short", year: "numeric" })} ${ts.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" })}</div>
     <div class="rc-rule"></div>
