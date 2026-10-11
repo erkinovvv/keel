@@ -100,6 +100,19 @@ Real broker APIs, real client data, mobile app, voice, federated learning implem
 
 ---
 
+## 3b. WeBank alignment (for the deck and Q&A)
+
+WeBank is the strategic sponsor and host institute of the competition ("WeBank FinTech University
+Challenge"); its engineers judge the finals and Qiang Yang, WeBank's Chief AI Adviser, is an
+academic adviser. What we show them:
+
+| WeBank asset | How Lucid uses it |
+|---|---|
+| **FISCO BCOS** (open-source consortium chain led by WeBank) | Every advisory session's audit-chain head is written to the `AuditAnchor` contract on a FISCO BCOS 3.17 chain; Verify recomputes and compares. Production picture: nodes run by the bank, an external auditor and the regulator. |
+| **FATE** (open-source federated learning, Qiang Yang) | Roadmap slide: Crash Rehearsal produces a new signal — *revealed* risk tolerance. Banks could train a model that predicts it from questionnaire answers with FATE, each bank keeping its clients' rehearsal data; the questionnaire becomes smarter without pooling personal data. Not built in this round. |
+| Fund distribution in the WeBank app | Our catalog is real Chinese public funds with distributor risk levels R1–R5. |
+| Digital-only, Shenzhen, APEC 2026 | Bilingual EN/中文 UI; amounts in CNY. |
+
 ## 4. Demo story (5 minutes)
 
 1. **Meet the client** (30 s): a 28-year-old engineer in Shenzhen, 200k to invest, wants a flat in 8 years.
