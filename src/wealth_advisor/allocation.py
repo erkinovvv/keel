@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Iterable
 
 import numpy as np
@@ -48,6 +48,9 @@ class Allocation:
     var_95_1y_parametric: float
     strategic_weights: dict[str, float]
     volatility_band: tuple[float, float]
+    reason_codes: tuple[str, ...] = ()
+    stress_limit_before: float | None = None
+    stress_limit_after: float | None = None
 
     @property
     def var_95_1y(self) -> float:
@@ -58,6 +61,7 @@ class Allocation:
     def as_dict(self) -> dict[str, object]:
         result = asdict(self)
         result["holdings"] = [holding.as_dict() for holding in self.holdings]
+        result["reason_codes"] = list(self.reason_codes)
         return result
 
 
@@ -178,6 +182,8 @@ def _refine_class_weights(
     base_weights: dict[str, float],
     eligible_by_class: dict[str, list[Product]],
     investor_class: int,
+    market_estimate: object | None = None,
+    use_black_litterman: bool = False,
 ) -> dict[str, float]:
     """Apply a small projected-gradient mean-variance refinement around strategic weights."""
 
@@ -186,19 +192,34 @@ def _refine_class_weights(
     if len(active) < 2:
         return dict(base_weights)
     index = {asset: position for position, asset in enumerate(classes)}
-    expected = np.array([
-        max(product.expected_return - product.fee for product in eligible_by_class[asset])
-        for asset in active
-    ])
-    class_volatility = np.array([
-        min(product.volatility for product in eligible_by_class[asset])
-        for asset in active
-    ])
-    correlation = np.array([
-        [correlations[index[left]][index[right]] for right in active]
-        for left in active
-    ])
-    covariance = correlation * np.outer(class_volatility, class_volatility)
+    if market_estimate is None:
+        expected = np.array([
+            max(product.expected_return - product.fee for product in eligible_by_class[asset])
+            for asset in active
+        ])
+        class_volatility = np.array([
+            min(product.volatility for product in eligible_by_class[asset])
+            for asset in active
+        ])
+        correlation = np.array([
+            [correlations[index[left]][index[right]] for right in active]
+            for left in active
+        ])
+        covariance = correlation * np.outer(class_volatility, class_volatility)
+    else:
+        from .market import black_litterman_weights
+
+        expected = np.array([market_estimate.annual_expected_returns[asset] for asset in active])
+        covariance = np.array([
+            [market_estimate.annual_covariance[left][right] for right in active]
+            for left in active
+        ])
+        if use_black_litterman:
+            anchored = black_litterman_weights(market_estimate, base_weights)
+            base_weights = {asset: anchored.get(asset, 0.0) for asset in active}
+            total = sum(base_weights.values())
+            if total > 1e-12:
+                base_weights = {asset: weight / total for asset, weight in base_weights.items()}
     base = np.array([base_weights[asset] for asset in active], dtype=float)
     lower = np.maximum(0.0, base - 0.10)
     upper = np.minimum(1.0, base + 0.10)
@@ -226,6 +247,44 @@ def _refine_class_weights(
     }
 
 
+def _worst_stress_loss(weights: dict[str, float]) -> float:
+    from .stress import SCENARIOS
+
+    return max(max(0.0, -sum(weight * shocks[asset] for asset, weight in weights.items())) for shocks in SCENARIOS.values())
+
+
+def _constrain_stress_weights(
+    weights: dict[str, float],
+    strategic: dict[str, float],
+    limit: float,
+) -> dict[str, float]:
+    from .stress import SCENARIOS
+
+    adjusted = dict(weights)
+    for _ in range(20):
+        worst = max(SCENARIOS.values(), key=lambda shocks: -sum(weight * shocks[asset] for asset, weight in adjusted.items()))
+        excess = _worst_stress_loss(adjusted) - limit
+        if excess <= 1e-10:
+            break
+        for source in ("reits", "equity"):
+            source_room = max(0.0, adjusted.get(source, 0.0) - max(0.0, strategic.get(source, 0.0) - 0.10))
+            for destination in ("cash", "bonds"):
+                destination_room = max(0.0, min(1.0, strategic.get(destination, 0.0) + 0.10) - adjusted.get(destination, 0.0))
+                improvement = worst[destination] - worst[source]
+                if improvement <= 0 or source_room <= 1e-12 or destination_room <= 1e-12:
+                    continue
+                moved = min(source_room, destination_room, excess / improvement)
+                adjusted[source] -= moved
+                adjusted[destination] += moved
+                source_room -= moved
+                excess -= moved * improvement
+                if excess <= 1e-10:
+                    break
+            if excess <= 1e-10:
+                break
+    return adjusted
+
+
 def build_allocation(
     amount: float,
     investor_class: int,
@@ -234,6 +293,9 @@ def build_allocation(
     liquidity_days: int | None = None,
     exclusions: Iterable[str] = (),
     cash_rate: float = 0.035,
+    max_tolerable_loss: float | None = None,
+    market_data: object | None = None,
+    use_black_litterman: bool = False,
 ) -> Allocation:
     """Build a suitable portfolio with non-negative weights and a 35% product cap."""
 
@@ -241,7 +303,12 @@ def build_allocation(
         raise ValueError("amount must be positive")
     if investor_class not in STRATEGIC_WEIGHTS:
         raise ValueError("investor_class must be between 1 and 5")
+    if max_tolerable_loss is not None and not 0 <= max_tolerable_loss <= 1:
+        raise ValueError("max_tolerable_loss must be between 0 and 1")
+    if use_black_litterman and market_data is None:
+        raise ValueError("market_data is required for Black-Litterman allocation")
     catalog = list(products) if products is not None else load_catalog()
+    excluded = tuple(exclusions)
     strategic = dict(STRATEGIC_WEIGHTS[investor_class])
     if strategic["equity"] > EQUITY_CAPS[investor_class]:
         strategic["equity"] = EQUITY_CAPS[investor_class]
@@ -250,7 +317,7 @@ def build_allocation(
     eligible_by_class = {
         asset_class: [
             product
-            for product in filter_products(catalog, investor_class, amount=amount, liquidity_days=None, exclusions=exclusions)
+            for product in filter_products(catalog, investor_class, amount=amount, liquidity_days=None, exclusions=excluded)
             if max_liquid_days is None or product.liquidity_days <= 30
             if product.asset_class == asset_class
         ]
@@ -270,9 +337,34 @@ def build_allocation(
             raise ValueError("no suitable products remain after exclusions")
     if liquidity_policy:
         strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
-    strategic = _refine_class_weights(strategic, eligible_by_class, investor_class)
+    class_base = dict(strategic)
+    market_estimate = None
+    if market_data is not None:
+        from .market import estimate_market_parameters
+
+        market_estimate = estimate_market_parameters(market_data)
+    strategic = _refine_class_weights(strategic, eligible_by_class, investor_class, market_estimate, use_black_litterman)
     if liquidity_policy:
         strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
+    stress_before = _worst_stress_loss(strategic) if max_tolerable_loss is not None else None
+    if max_tolerable_loss is not None and stress_before > max_tolerable_loss + 1e-10:
+        strategic = _constrain_stress_weights(strategic, class_base, max_tolerable_loss)
+        if liquidity_policy:
+            strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
+        if _worst_stress_loss(strategic) > max_tolerable_loss + 1e-10:
+            if investor_class == 1:
+                raise ValueError("no suitable allocation satisfies the client's maximum historical stress loss")
+            lower = build_allocation(
+                amount, investor_class - 1, catalog, liquidity_days=liquidity_days,
+                exclusions=excluded, cash_rate=cash_rate, max_tolerable_loss=max_tolerable_loss,
+                market_data=market_data, use_black_litterman=use_black_litterman,
+            )
+            return replace(
+                lower,
+                reason_codes=("STRESS_LIMIT_APPLIED",),
+                stress_limit_before=stress_before,
+                stress_limit_after=_worst_stress_loss(lower.strategic_weights),
+            )
     holdings: list[Holding] = []
     for asset_class, target in strategic.items():
         if target:
@@ -326,4 +418,7 @@ def build_allocation(
         var_95_1y_parametric=float(1.645 * portfolio_volatility * amount),
         strategic_weights={asset: float(weight) for asset, weight in zip(classes, class_weights)},
         volatility_band=VOLATILITY_BANDS[investor_class],
+        reason_codes=("STRESS_LIMIT_APPLIED",) if stress_before is not None and stress_before > max_tolerable_loss + 1e-10 else (),
+        stress_limit_before=stress_before if stress_before is not None and stress_before > max_tolerable_loss + 1e-10 else None,
+        stress_limit_after=_worst_stress_loss({asset: float(weight) for asset, weight in zip(classes, class_weights)}) if stress_before is not None and stress_before > max_tolerable_loss + 1e-10 else None,
     )

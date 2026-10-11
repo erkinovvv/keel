@@ -6,6 +6,7 @@ import pytest
 
 from wealth_advisor.allocation import MAX_PRODUCT_WEIGHT, build_allocation
 from wealth_advisor.catalog import load_catalog
+from wealth_advisor.stress import SCENARIOS, stress_test
 
 
 @pytest.mark.parametrize("investor_class", range(1, 6))
@@ -45,3 +46,20 @@ def test_all_journey_personas_build_allocations():
             sleeve_days = 1 if liquidity == 1 else 7 if liquidity == 7 else 30
             sleeve_target = 0.30 if liquidity == 1 else 0.20 if liquidity == 7 else 0.10
             assert sum(item.weight for item in allocation.holdings if load_catalog()[next(i for i, product in enumerate(load_catalog()) if product.id == item.product_id)].liquidity_days <= sleeve_days) >= sleeve_target - 1e-9
+
+
+def test_stress_limit_reweights_before_recommending():
+    unconstrained = build_allocation(100_000, 4)
+    constrained = build_allocation(100_000, 4, max_tolerable_loss=0.20)
+    assert "STRESS_LIMIT_APPLIED" in constrained.reason_codes
+    assert constrained.stress_limit_before == max(stress_test(unconstrained, scenario).loss_percent for scenario in SCENARIOS)
+    assert constrained.stress_limit_after == pytest.approx(max(stress_test(constrained, scenario).loss_percent for scenario in SCENARIOS))
+    assert constrained.stress_limit_after <= 0.20 + 1e-9
+    assert constrained.strategic_weights["equity"] + constrained.strategic_weights["reits"] < unconstrained.strategic_weights["equity"] + unconstrained.strategic_weights["reits"]
+
+
+def test_stress_limit_may_step_down_class():
+    allocation = build_allocation(100_000, 4, max_tolerable_loss=0.10)
+    assert allocation.investor_class < 4
+    assert "STRESS_LIMIT_APPLIED" in allocation.reason_codes
+    assert max(stress_test(allocation, scenario).loss_percent for scenario in SCENARIOS) <= 0.10 + 1e-9

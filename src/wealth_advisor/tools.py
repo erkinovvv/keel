@@ -54,6 +54,7 @@ class CompareArgs(BaseModel):
 class AllocationArgs(BaseModel):
     amount: float | None = Field(default=None, gt=0)
     liquidity_days: int | None = Field(default=None, ge=0)
+    max_tolerable_loss: float | None = Field(default=None, ge=0, le=1)
     exclusions: list[str] = Field(default_factory=list)
 
 
@@ -183,6 +184,8 @@ class ToolDispatcher:
             if self.session:
                 self.session.state.amount = args_data["amount"]
                 self.session.state.client.amount = args_data["amount"]
+            if self.session:
+                args_data["max_tolerable_loss"] = self.session.state.client.max_loss
             allocation = build_allocation(products=self.catalog, **args_data)
             if self.session:
                 allocation_id = f"allocation-{len(self.session.state.allocations) + 1}"

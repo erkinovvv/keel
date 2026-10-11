@@ -1,0 +1,59 @@
+{
+ "data_window": [
+  "2008-01",
+  "2026-08"
+ ],
+ "method": "Static monthly-rebalanced C1-C5 strategic weights; realised volatility is monthly standard deviation annualised by sqrt(12); drawdown is peak-to-trough wealth loss.",
+ "portfolios": [
+  {
+   "class": "C1",
+   "months": 224,
+   "start": "2008-01",
+   "end": "2026-08",
+   "realised_volatility": 0.02385380363126,
+   "max_drawdown": 0.06799375906490268,
+   "drawdown_tolerance": 0.06,
+   "drawdown_within_tolerance": false
+  },
+  {
+   "class": "C2",
+   "months": 224,
+   "start": "2008-01",
+   "end": "2026-08",
+   "realised_volatility": 0.03927821878901062,
+   "max_drawdown": 0.09688594999819733,
+   "drawdown_tolerance": 0.09,
+   "drawdown_within_tolerance": false
+  },
+  {
+   "class": "C3",
+   "months": 224,
+   "start": "2008-01",
+   "end": "2026-08",
+   "realised_volatility": 0.07133027206263437,
+   "max_drawdown": 0.19565551109329093,
+   "drawdown_tolerance": 0.14,
+   "drawdown_within_tolerance": false
+  },
+  {
+   "class": "C4",
+   "months": 224,
+   "start": "2008-01",
+   "end": "2026-08",
+   "realised_volatility": 0.09303101154941618,
+   "max_drawdown": 0.27294300534813876,
+   "drawdown_tolerance": 0.2,
+   "drawdown_within_tolerance": false
+  },
+  {
+   "class": "C5",
+   "months": 224,
+   "start": "2008-01",
+   "end": "2026-08",
+   "realised_volatility": 0.11604979050077883,
+   "max_drawdown": 0.3439793443763025,
+   "drawdown_tolerance": 0.28,
+   "drawdown_within_tolerance": false
+  }
+ ]
+}

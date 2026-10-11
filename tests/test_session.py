@@ -100,3 +100,14 @@ def test_session_liquidity_need_excludes_long_lockup(tmp_path):
     session.dispatcher.dispatch("profile_investor", {"answers": dict(ANSWERS, liquidity_need="within_7d")})
     result = session.dispatcher.dispatch("compare_products", {"amount": 100_000, "horizon_years": 5})
     assert "CASH-DEP" not in {item["product_id"] for item in result["comparisons"]}
+
+
+def test_allocation_tool_uses_revealed_class_and_client_loss_limit(tmp_path):
+    session = make_session(tmp_path)
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+    session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "max_loss": 0.02})
+    session.state.profile = replace(session.state.profile, investor_class=3, reason_codes=(*session.state.profile.reason_codes, "REVEALED_TOLERANCE_C3"))
+    allocation = session.dispatcher.dispatch("build_allocation", {})
+    assert allocation["investor_class"] <= 3
+    assert allocation["stress_limit_after"] <= 0.02 + 1e-9
+    assert "STRESS_LIMIT_APPLIED" in allocation["reason_codes"]
