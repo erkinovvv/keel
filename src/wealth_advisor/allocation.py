@@ -158,6 +158,24 @@ def _enforce_liquidity_sleeve(
     return weights
 
 
+def _redistribute_missing_weight(weights: dict[str, float], eligible_by_class: dict[str, list[Product]]) -> dict[str, float]:
+    """Move unavailable asset-class targets across the classes still suitable for the client."""
+
+    missing = sum(target for asset_class, target in weights.items() if target and not eligible_by_class[asset_class])
+    for asset_class in weights:
+        if weights[asset_class] and not eligible_by_class[asset_class]:
+            weights[asset_class] = 0.0
+    if missing <= 1e-12:
+        return weights
+    available = [asset_class for asset_class, target in weights.items() if target > 0 and eligible_by_class[asset_class]]
+    total = sum(weights[asset_class] for asset_class in available)
+    if not available or total <= 1e-12:
+        raise ValueError("no suitable products remain after exclusions")
+    for asset_class in available:
+        weights[asset_class] += missing * weights[asset_class] / total
+    return weights
+
+
 def _project_bounds(weights: np.ndarray, lower: np.ndarray, upper: np.ndarray) -> np.ndarray:
     """Project class weights onto box constraints and the unit-sum simplex."""
 
@@ -323,18 +341,7 @@ def build_allocation(
         ]
         for asset_class in strategic
     }
-    missing_weight = 0.0
-    for asset_class, target in list(strategic.items()):
-        if target and not eligible_by_class[asset_class]:
-            missing_weight += target
-            strategic[asset_class] = 0.0
-    if missing_weight:
-        for fallback in ("cash", "bonds", "gold", "reits", "equity"):
-            if eligible_by_class[fallback]:
-                strategic[fallback] += missing_weight
-                break
-        else:
-            raise ValueError("no suitable products remain after exclusions")
+    strategic = _redistribute_missing_weight(strategic, eligible_by_class)
     if liquidity_policy:
         strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
     class_base = dict(strategic)

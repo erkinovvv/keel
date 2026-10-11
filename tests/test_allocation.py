@@ -64,3 +64,9 @@ def test_stress_limit_may_step_down_class():
     assert allocation.investor_class < 4
     assert "STRESS_LIMIT_APPLIED" in allocation.reason_codes
     assert max(stress_test(allocation, scenario).loss_percent for scenario in SCENARIOS) <= 0.10 + 1e-9
+
+
+def test_cn_catalog_expected_returns_are_non_decreasing():
+    cn_catalog = load_catalog(Path(__file__).parents[1] / "src" / "wealth_advisor" / "data" / "products_cn.json")
+    returns = [build_allocation(100_000, investor_class, cn_catalog).expected_return for investor_class in range(1, 6)]
+    assert returns == sorted(returns)
