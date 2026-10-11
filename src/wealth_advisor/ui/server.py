@@ -13,6 +13,8 @@ import hashlib
 import json
 import os
 import secrets
+import time
+from contextvars import ContextVar
 from datetime import date
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -50,12 +52,46 @@ SCENARIO_NAMES = {
 app = FastAPI(title="Wealth Advisor Agent", docs_url="/api/docs")
 
 
+CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; "
+    "frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+)
+
+
 @app.middleware("http")
-async def language(request, call_next):
-    """UI language for labels and reason texts, chosen by the client (cookie wa_lang)."""
+async def request_context(request, call_next):
+    """Per-request language and client address, plus security headers on every response."""
 
     LANG.set("zh" if request.cookies.get("wa_lang") == "zh" else "en")
-    return await call_next(request)
+    CLIENT_IP.set(request.client.host if request.client else "unknown")
+    response = await call_next(request)
+    response.headers.setdefault("Content-Security-Policy", CSP)
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    return response
+
+
+@app.get("/healthz")
+def healthz() -> dict[str, Any]:
+    """Liveness and a summary of what this instance is running with."""
+
+    from importlib.metadata import version
+
+    settings = Settings.from_env()
+    valid, _ = verify_audit_log(Path(settings.audit_log))
+    return {
+        "status": "ok",
+        "version": version("wealth-advisor"),
+        "llm_mode": settings.llm_mode,
+        "catalog": "cn" if os.getenv("WEALTH_ADVISOR_CATALOG", "").lower() == "cn" else "mock",
+        "products": len(load_catalog()),
+        "audit_chain_valid": valid,
+        "anchor_network": anchor_network(),
+        "active_sessions": len(_FILES),
+    }
 
 
 @dataclass
@@ -70,14 +106,39 @@ class ClientFile:
     anchors: list[dict[str, Any]] = field(default_factory=list)
     rehearsals: list[dict[str, Any]] = field(default_factory=list)
     alerts: list[dict[str, Any]] = field(default_factory=list)
+    last_seen: float = field(default_factory=time.monotonic)
+
+
+SESSION_IDLE_SECONDS = int(os.getenv("SESSION_IDLE_SECONDS", "7200"))
+MAX_SESSIONS = int(os.getenv("MAX_SESSIONS", "500"))
+NEW_SESSIONS_PER_IP = int(os.getenv("NEW_SESSIONS_PER_IP", "30"))  # per 10 minutes
+CLIENT_IP: ContextVar[str] = ContextVar("client_ip", default="unknown")
+_NEW_SESSION_TIMES: dict[str, list[float]] = {}
+
+
+def _evict_sessions(now: float) -> None:
+    """Drop idle sessions and keep the store bounded (oldest first)."""
+
+    for sid in [k for k, f in _FILES.items() if now - f.last_seen > SESSION_IDLE_SECONDS]:
+        del _FILES[sid]
+    while len(_FILES) >= MAX_SESSIONS:
+        del _FILES[min(_FILES, key=lambda k: _FILES[k].last_seen)]
 
 
 _FILES: dict[str, ClientFile] = {}
 
 
 def _file(sid: str | None, response: Response) -> ClientFile:
+    now = time.monotonic()
     if sid and sid in _FILES:
+        _FILES[sid].last_seen = now
         return _FILES[sid]
+    ip = CLIENT_IP.get()
+    recent = [t for t in _NEW_SESSION_TIMES.get(ip, []) if now - t < 600]
+    if len(recent) >= NEW_SESSIONS_PER_IP:
+        raise HTTPException(429, "Too many new sessions from this address; try again in a few minutes.")
+    _NEW_SESSION_TIMES[ip] = [*recent, now]
+    _evict_sessions(now)
     sid = secrets.token_urlsafe(16)
     session = AdvisorSession(Settings.from_env())
     # A pseudonymous tag (never the cookie itself) lets one session be replayed from the shared log.
@@ -667,6 +728,11 @@ def advice_report(response: Response, wa_sid: str | None = Cookie(default=None))
     )
     _record(file, "advice_report_issued", "ui.report.render_report", {"report_sha256": digest})
     return HTMLResponse(html)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon() -> FileResponse:
+    return FileResponse(STATIC / "favicon.svg", media_type="image/svg+xml")
 
 
 @app.get("/")

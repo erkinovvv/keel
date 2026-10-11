@@ -157,6 +157,7 @@ def render_report(
     html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Advice Report</title>
+<link rel="icon" href="/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Schibsted+Grotesk:wght@400;500;600&family=IBM+Plex+Mono&display=swap" rel="stylesheet">
 <style>
@@ -191,7 +192,8 @@ def render_report(
   @media (max-width: 700px) {{ .page {{ padding: 28px 20px; margin: 0; }} ul.cols {{ columns: 1; }} }}
 </style></head>
 <body>
-  <div class="toolbar"><button onclick="window.print()">Save as PDF</button></div>
+  <div class="toolbar"><button id="printReport" type="button">Save as PDF</button></div>
+  <script src="/static/report.js"></script>
   <main class="page">
     <header>
       <div><h1>Advice Report</h1><p>Suitability record of your advisory session</p></div>

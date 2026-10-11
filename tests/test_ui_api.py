@@ -140,3 +140,28 @@ def test_proactive_alert_and_client_decision(tmp_path, monkeypatch):
     assert decision["choice"] == "hold"
     events = [r["event"] for r in client.get("/api/audit").json()["records"]]
     assert {"proactive_alert", "client_decision_after_alert"} <= set(events)
+
+
+def test_security_headers_and_health(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    page = client.get("/")
+    assert "frame-ancestors 'none'" in page.headers["content-security-policy"]
+    assert page.headers["x-frame-options"] == "DENY" and page.headers["x-content-type-options"] == "nosniff"
+    health = client.get("/healthz").json()
+    assert health["status"] == "ok" and health["products"] > 0 and health["audit_chain_valid"] is True
+
+
+def test_session_store_is_bounded(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from wealth_advisor.ui import server
+
+    monkeypatch.setenv("AUDIT_LOG", str(tmp_path / "audit.jsonl"))
+    monkeypatch.setattr(server, "NEW_SESSIONS_PER_IP", 3)
+    monkeypatch.setattr(server, "_NEW_SESSION_TIMES", {})
+    statuses = [TestClient(server.app).get("/api/state").status_code for _ in range(4)]
+    assert statuses == [200, 200, 200, 429]
+    monkeypatch.setattr(server, "NEW_SESSIONS_PER_IP", 1000)
+    monkeypatch.setattr(server, "SESSION_IDLE_SECONDS", 0)
+    TestClient(server.app).get("/api/state")
+    assert len(server._FILES) <= 1  # idle sessions were evicted before the new one was stored
