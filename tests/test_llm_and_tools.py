@@ -65,6 +65,17 @@ def test_model_tool_results_are_compact_and_display_ready(tmp_path):
     assert "BOND-1" in compact["display"]
 
 
+def test_stage_tool_lists_preserve_canonical_order(tmp_path):
+    from wealth_advisor.permissions import PermissionTier
+    from wealth_advisor.session import AdvisorSession
+    from wealth_advisor.tools import TOOL_SCHEMAS
+
+    canonical = [item["function"]["name"] for item in TOOL_SCHEMAS]
+    session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.ADVISE)
+    first_stage = [item["function"]["name"] for item in session._tools_for_state()]
+    assert first_stage == [name for name in canonical if name in {"record_client_facts", "profile_investor"}]
+
+
 def test_tool_dispatcher_exposes_stress_test(tmp_path):
     from wealth_advisor.permissions import PermissionTier
     from wealth_advisor.session import AdvisorSession

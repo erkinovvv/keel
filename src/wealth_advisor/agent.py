@@ -89,7 +89,6 @@ class AdvisorAgent:
                         result = {
                             "error": "Tool retry limit exceeded",
                             "message": "This identical tool call has already failed twice in this turn.",
-                            "hint": "Ask the client for the missing or corrected information instead of retrying the same arguments.",
                         }
                     else:
                         result = self.dispatcher.dispatch(call.name, call.arguments)
@@ -98,13 +97,12 @@ class AdvisorAgent:
                     result = {
                         "error": type(exc).__name__,
                         "message": str(exc),
-                        "hint": "Correct the arguments or complete the required profile step, then retry.",
                     }
                     if self.audit:
                         self.audit.append("tool_error", {"tool": call.name, "error": type(exc).__name__, "message": str(exc)})
                 tool_text = json.dumps(result, separators=(",", ":"))
                 if not tool_output_guard(tool_text).allowed:
-                    result = {"error": "Unsafe tool output blocked", "hint": "The tool result contained instruction-like text."}
+                    result = {"error": "Unsafe tool output blocked", "message": "The tool result contained instruction-like text."}
                     if self.audit:
                         self.audit.append("tool_output_blocked", {"tool": call.name})
                 compact_result = compact_tool_result(call.name, result)
