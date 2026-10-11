@@ -1,0 +1,15 @@
+[
+  {"id": "CASH-MMF", "name": "Global Money Market Fund", "asset_class": "cash", "region": "global", "risk_class": 1, "expected_return": 0.035, "volatility": 0.005, "fee": 0.0015, "liquidity_days": 1, "min_investment": 100, "nav": 1.00},
+  {"id": "CASH-TBILL", "name": "Short Treasury Bill Fund", "asset_class": "cash", "region": "global", "risk_class": 1, "expected_return": 0.034, "volatility": 0.003, "fee": 0.0008, "liquidity_days": 2, "min_investment": 100, "nav": 10.00},
+  {"id": "CASH-SAVE", "name": "Insured Savings Account", "asset_class": "cash", "region": "local", "risk_class": 1, "expected_return": 0.032, "volatility": 0.001, "fee": 0.0005, "liquidity_days": 1, "min_investment": 100, "nav": 1.00},
+  {"id": "CASH-DEP", "name": "12M Fixed Term Deposit", "asset_class": "cash", "region": "local", "risk_class": 1, "expected_return": 0.038, "volatility": 0.0, "fee": 0.0, "liquidity_days": 365, "min_investment": 1000, "nav": 1.00},
+  {"id": "BOND-GOV", "name": "Developed Markets Government Bond ETF", "asset_class": "bonds", "region": "global", "risk_class": 2, "expected_return": 0.040, "volatility": 0.050, "fee": 0.0010, "liquidity_days": 2, "min_investment": 100, "nav": 48.20},
+  {"id": "BOND-IG", "name": "Investment Grade Corporate Bond ETF", "asset_class": "bonds", "region": "global", "risk_class": 2, "expected_return": 0.048, "volatility": 0.065, "fee": 0.0015, "liquidity_days": 2, "min_investment": 100, "nav": 102.50},
+  {"id": "BOND-HY", "name": "High Yield Bond Fund", "asset_class": "bonds", "region": "global", "risk_class": 3, "expected_return": 0.065, "volatility": 0.100, "fee": 0.0045, "liquidity_days": 3, "min_investment": 500, "nav": 9.85},
+  {"id": "EQ-WORLD", "name": "MSCI World Index ETF", "asset_class": "equity", "region": "developed", "risk_class": 4, "expected_return": 0.075, "volatility": 0.150, "fee": 0.0020, "liquidity_days": 2, "min_investment": 100, "nav": 95.10},
+  {"id": "EQ-DIV", "name": "Global Dividend Low-Volatility ETF", "asset_class": "equity", "region": "developed", "risk_class": 3, "expected_return": 0.065, "volatility": 0.120, "fee": 0.0030, "liquidity_days": 2, "min_investment": 100, "nav": 31.40},
+  {"id": "EQ-EM", "name": "Emerging Markets Equity ETF", "asset_class": "equity", "region": "emerging", "risk_class": 5, "expected_return": 0.090, "volatility": 0.220, "fee": 0.0018, "liquidity_days": 2, "min_investment": 100, "nav": 42.75},
+  {"id": "EQ-TECH", "name": "Active Global Technology Fund", "asset_class": "equity", "region": "global", "risk_class": 5, "expected_return": 0.100, "volatility": 0.280, "fee": 0.0150, "liquidity_days": 3, "min_investment": 1000, "nav": 18.60},
+  {"id": "GOLD-ETC", "name": "Physical Gold ETC", "asset_class": "gold", "region": "global", "risk_class": 3, "expected_return": 0.045, "volatility": 0.150, "fee": 0.0025, "liquidity_days": 2, "min_investment": 100, "nav": 210.30},
+  {"id": "REIT-GL", "name": "Global REIT ETF", "asset_class": "reits", "region": "global", "risk_class": 4, "expected_return": 0.070, "volatility": 0.180, "fee": 0.0040, "liquidity_days": 2, "min_investment": 100, "nav": 22.90}
+]
