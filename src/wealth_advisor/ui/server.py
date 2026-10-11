@@ -33,6 +33,7 @@ from wealth_advisor.goals import GoalInput, project_goal
 from wealth_advisor.permissions import PermissionDenied, PermissionTier
 from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_investor
 from wealth_advisor.rehearsal import apply_outcome, evaluate, load_scenario, portfolio_path
+from wealth_advisor.monitoring import EVENTS, check_market
 from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
@@ -68,6 +69,7 @@ class ClientFile:
     signed: bool = False
     anchors: list[dict[str, Any]] = field(default_factory=list)
     rehearsals: list[dict[str, Any]] = field(default_factory=list)
+    alerts: list[dict[str, Any]] = field(default_factory=list)
 
 
 _FILES: dict[str, ClientFile] = {}
@@ -397,6 +399,43 @@ def rehearsal_decision(body: DecisionIn, response: Response, wa_sid: str | None 
     file.rehearsals.append(view)
     stamp = _record(file, "rehearsal_decision", "rehearsal.evaluate", {"outcome": view})
     return {"outcome": view, "profile": _profile_view(file.session.state.profile), "provenance": stamp}
+
+
+@app.post("/api/market/event/{event}")
+def market_event(event: str, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Proactive monitoring: apply a market event to the client's portfolio and prepare the advisor's message."""
+
+    file = _file(wa_sid, response)
+    _require_profile(file)
+    if event not in EVENTS:
+        raise HTTPException(404, "Unknown market event.")
+    try:
+        allocation = file.session.stored_allocation("latest")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    check = check_market(allocation, event, loss_limit=_client(file).get("max_loss"), rehearsal=file.rehearsals[-1] if file.rehearsals else None)
+    view = check.as_dict()
+    file.alerts.append(view)
+    stamp = _record(file, "proactive_alert", "monitoring.check_market", {"check": view})
+    return {"check": view, "provenance": stamp}
+
+
+class AlertDecisionIn(BaseModel):
+    event: str
+    choice: Literal["hold", "rebalance", "sell"]
+
+
+@app.post("/api/market/decision")
+def market_decision(body: AlertDecisionIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Record the client's decision after an alert. Rebalancing is an instruction for the simulated account."""
+
+    file = _file(wa_sid, response)
+    _require_profile(file)
+    alert = next((a for a in reversed(file.alerts) if a["event"] == body.event), None)
+    if alert is None:
+        raise HTTPException(409, "No alert for this event in this session.")
+    stamp = _record(file, "client_decision_after_alert", "ui.server.market_decision", {"event": body.event, "choice": body.choice, "recommendation": alert["recommendation"], "trades": alert["trades"] if body.choice == "rebalance" else []})
+    return {"choice": body.choice, "followed_advice": body.choice == alert["recommendation"] or (alert["recommendation"] == "hold" and body.choice == "hold"), "provenance": stamp}
 
 
 class ChatIn(BaseModel):

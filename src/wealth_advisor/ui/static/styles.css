@@ -412,6 +412,25 @@ td.r, th.r { text-align: right; }
 @media (max-width: 920px) { .rehearse-intro .ri-facts { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .th-sell.tempt { animation: none; } }
 
+/* ------------------------------------------------------------ proactive monitoring */
+.monitor .filters { margin: 10px 0 0; }
+.msg-alert { border-left: 0; background: var(--warning-soft); padding: 12px 14px; border-radius: var(--r-md); }
+.msg-alert .sig { color: var(--warning); }
+.msg-alert .sig::before { background: var(--warning); }
+.alert-card { margin-bottom: 18px; }
+.alert-card.down { box-shadow: 0 0 0 2px var(--warning-soft) inset; }
+.alert-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+.alert-tag { font-size: 12px; font-weight: 600; color: var(--warning); background: var(--warning-soft); padding: 3px 9px; border-radius: 999px; }
+.alert-move { text-align: right; }
+.alert-move b { display: block; font-size: 28px; letter-spacing: -0.02em; }
+.alert-card.down .alert-move b { color: var(--critical); }
+.alert-card.up .alert-move b { color: var(--jade-ink); }
+.alert-move span { font-size: 13px; color: var(--ink-2); }
+.drift-hi { color: var(--warning); font-weight: 600; }
+.alert-advice { margin: 14px 0 0; font-size: 15px; }
+.alert-done { margin: 14px 0 0; color: var(--jade-ink); font-weight: 500; }
+.sell-btn { color: var(--critical); }
+
 /* ------------------------------------------------------------ tier pill */
 .tier.live { color: var(--jade-ink); border-color: var(--jade); background: var(--jade-soft); }
 

@@ -372,6 +372,7 @@ async function renderPortfolio() {
     ${dataNote()}
     ${staleBanner()}
     ${limitNote(a)}
+    <div id="alertSlot">${state.alert ? alertCard(state.alert) : ""}</div>
     <div class="kpis">
       <div class="kpi"><div class="k">${t("Expected return")}</div><span class="v">${num(pct(a.expected_return, 2), prov, t("Expected annual return, net of fees"))}</span><div class="h">${t("per year, after fees")}</div></div>
       <div class="kpi"><div class="k">${t("Volatility")}</div><span class="v">${num(pct(a.volatility, 2), prov, t("Annual portfolio volatility"))}</span><div class="h">${t("typical yearly swing")}</div></div>
@@ -414,6 +415,11 @@ async function renderPortfolio() {
         </tbody>
       </table>
     </div>
+    <h3>${t("Monitoring")}</h3>
+    <div class="sheet monitor">
+      <p class="hint" style="margin-top:0">${t("After you invest, the advisor watches the markets and reaches out first. Simulate next month:")}</p>
+      <div class="filters">${Object.entries(MARKET_EVENTS).map(([k, label]) => `<button class="btn secondary" type="button" data-event="${k}">${t(label)}</button>`).join("")}</div>
+    </div>
     <div class="actions"><button class="btn" type="button" id="toRehearse">${t("Live through 2008 with this portfolio")}</button><button class="btn secondary" type="button" id="toGoal">${t("Check my goal")}</button><button class="btn secondary" type="button" id="toStress">${t("Stress-test this portfolio")}</button><button class="btn secondary" type="button" id="toCompare">${t("Compare products")}</button></div>
     <div id="allocErr"></div>`;
 
@@ -425,6 +431,8 @@ async function renderPortfolio() {
   panel.querySelectorAll("[data-level]").forEach((b) => (b.onclick = () => rebuild(+$("#wiAmount").value, +b.dataset.level)));
   let debounce;
   $("#wiAmount").oninput = (e) => { clearTimeout(debounce); debounce = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
+  panel.querySelectorAll("[data-event]").forEach((b) => (b.onclick = () => triggerMarket(b.dataset.event)));
+  wireAlert();
   $("#toRehearse").onclick = () => go("rehearse");
   wireStale();
   $("#toGoal").onclick = () => go("goal");
@@ -442,6 +450,105 @@ async function rebuild(amount, level) {
   } catch (err) {
     $("#allocErr").innerHTML = `<p class="err">${esc(err.message)}</p>`;
   }
+}
+
+// ---------------------------------------------------------------- proactive monitoring
+
+const MARKET_EVENTS = { equity_selloff: "Sharp equity sell-off", rate_shock: "Interest-rate shock", rally: "Strong equity rally" };
+
+async function triggerMarket(event) {
+  let res;
+  try { res = await api(`/api/market/event/${event}`, { method: "POST" }); }
+  catch (err) { note(err.message, "msg-error"); return; }
+  refreshAudit();
+  const c = res.check;
+  state.alert = { ...c, decided: null };
+  const lines = [
+    t("I'm reaching out before you ask."),
+    t("{event}: your portfolio is {change} this month, {amount}.", { event: t(c.event_name), change: `<strong>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</strong>`, amount: money(c.value_after) }),
+  ];
+  if (c.loss_limit != null && c.change < 0) {
+    lines.push(c.within_limit
+      ? t("That is within the {limit} loss you said you could accept.", { limit: pct(c.loss_limit, 0) })
+      : t("That is more than the {limit} you said you could accept. Let's review your risk level together before doing anything.", { limit: pct(c.loss_limit, 0) }));
+  }
+  if (c.rehearsal_sold_at != null && c.change < 0) {
+    lines.push(t("In the crash rehearsal you sold at {sold} below your peak; today we are at {now}.", { sold: pct(c.rehearsal_sold_at), now: pct(-c.change) }));
+  }
+  lines.push(adviceLine(c));
+  sayAlert(lines);
+  if (state.step === "portfolio") { $("#alertSlot").innerHTML = alertCard(state.alert); wireAlert(); $("#alertSlot").scrollIntoView({ behavior: "smooth", block: "start" }); }
+  else go("portfolio");
+}
+
+function adviceLine(c) {
+  if (c.recommendation === "review_risk") return t("My recommendation: do not sell in a hurry. Review your risk level with me first.");
+  if (c.recommendation === "rebalance") {
+    const name = (k) => (LANG === "zh" ? ASSET_NAMES[k] : ASSET_NAMES[k].toLowerCase());
+    const sep = LANG === "zh" ? "、" : ", ";
+    const sells = c.trades.filter((x) => x.side === "sell").map((x) => name(x.asset_class)).join(sep);
+    const buys = c.trades.filter((x) => x.side === "buy").map((x) => name(x.asset_class)).join(sep);
+    return t("My recommendation: rebalance back to your target mix. Sell some {sells}, buy {buys}. Buying what fell is how a plan recovers.", { sells, buys });
+  }
+  return t("My recommendation: stay the course. Your mix is still close to target, so no trades are needed.");
+}
+
+function sayAlert(paragraphs) {
+  const li = document.createElement("li");
+  li.className = "msg-advisor msg-alert";
+  li.innerHTML = `<div class="sig">${t("Advisor · reached out first")}</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
+  thread.append(li);
+  thread.scrollTop = thread.scrollHeight;
+}
+
+function alertCard(c) {
+  const rows = Object.keys(c.weights_target).map((k) => {
+    const d = c.weights_now[k] - c.weights_target[k];
+    return `<tr><td><span class="swatch" style="background:var(--${k})"></span>${ASSET_NAMES[k]}</td><td class="r">${pct(c.weights_target[k], 1)}</td><td class="r">${pct(c.weights_now[k], 1)}</td><td class="r ${Math.abs(d) > 0.05 ? "drift-hi" : ""}">${d >= 0 ? "+" : "−"}${pct(Math.abs(d), 1)}</td></tr>`;
+  }).join("");
+  const decided = c.decided ? `<p class="alert-done">${t("Your decision: {choice}. Recorded in the audit log.", { choice: t(CHOICE_TEXT[c.decided]) })}</p>` : "";
+  return `
+    <div class="sheet alert-card ${c.change < 0 ? "down" : "up"}">
+      <div class="alert-head">
+        <div><span class="alert-tag">${t("Proactive alert")}</span><h3 style="margin:6px 0 0">${esc(t(c.event_name))}</h3></div>
+        <div class="alert-move"><b>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</b><span>${money(c.value_before)} → ${money(c.value_after)}</span></div>
+      </div>
+      <table><thead><tr><th>${t("Asset class")}</th><th class="r">${t("Target")}</th><th class="r">${t("Now")}</th><th class="r">${t("Drift")}</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="alert-advice">${adviceLine(c)}</p>
+      ${c.decided ? decided : `
+      <div class="actions" id="alertActions">
+        <button class="btn" type="button" data-choice="${c.recommendation === "rebalance" ? "rebalance" : "hold"}">${t(c.recommendation === "rebalance" ? "Rebalance to target" : "Stay the course")}</button>
+        <button class="btn secondary" type="button" data-choice="${c.recommendation === "rebalance" ? "hold" : "rebalance"}">${t(c.recommendation === "rebalance" ? "Stay the course" : "Rebalance to target")}</button>
+        <button class="btn secondary sell-btn" type="button" data-choice="sell">${t("Sell everything")}</button>
+      </div>
+      <div id="alertConfirm"></div>`}
+    </div>`;
+}
+
+const CHOICE_TEXT = { hold: "stay the course", rebalance: "rebalance to target", sell: "sell everything" };
+
+function wireAlert() {
+  panel.querySelectorAll("[data-choice]").forEach((b) => (b.onclick = () => {
+    const choice = b.dataset.choice;
+    const c = state.alert;
+    let warn = "";
+    if (choice === "sell") {
+      warn = c.rehearsal_sold_at != null
+        ? t("In the rehearsal, selling during the fall left you with {sold} instead of {held}.", { sold: money(state.rehearsal?.final_value_of_choice ?? 0), held: money(state.rehearsal?.final_value_if_held ?? 0) })
+        : t("Selling after a fall turns a temporary loss into a permanent one.");
+    }
+    const trades = choice === "rebalance" && c.trades.length
+      ? `<ul class="reasons">${c.trades.map((x) => `<li>${t(x.side === "sell" ? "Sell {asset}: {amount}" : "Buy {asset}: {amount}", { asset: ASSET_NAMES[x.asset_class], amount: money(x.amount) })}</li>`).join("")}</ul>` : "";
+    $("#alertConfirm").innerHTML = `<div class="verdict-bar nudge"><div>${warn ? `<strong>${warn}</strong> ` : ""}${trades}${t("Confirm your decision: {choice}?", { choice: t(CHOICE_TEXT[choice]) })}</div><button class="btn" type="button" id="alertGo">${t("Confirm")}</button></div>`;
+    $("#alertGo").onclick = async () => {
+      try { await api("/api/market/decision", { method: "POST", body: { event: c.event, choice } }); }
+      catch (err) { note(err.message, "msg-error"); return; }
+      state.alert = { ...c, decided: choice };
+      refreshAudit();
+      say([choice === "sell" ? t("Understood. I have recorded your decision to sell and the warning I gave. If you want, we can rebuild a lower-risk plan together.") : choice === "rebalance" ? t("Done: the rebalancing instruction is recorded for your simulated account.") : t("Good decision. Staying invested is how the plan was designed to work. I will keep watching.")]);
+      $("#alertSlot").innerHTML = alertCard(state.alert);
+    };
+  }));
 }
 
 // ---------------------------------------------------------------- 3. crash rehearsal

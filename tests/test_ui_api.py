@@ -126,3 +126,17 @@ def test_crash_rehearsal_reveals_tolerance(tmp_path, monkeypatch):
     assert {"rehearsal_started", "rehearsal_decision"} <= set(events)
     report = client.get("/report").text
     assert "what you said and what you did" in report and "Risk class lowered" in report
+
+
+def test_proactive_alert_and_client_decision(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    _profile(client)
+    assert client.post("/api/market/event/equity_selloff").status_code == 409  # no portfolio yet
+    client.post("/api/allocation", json={})
+    check = client.post("/api/market/event/equity_selloff").json()["check"]
+    assert check["change"] < 0 and check["recommendation"] in {"hold", "rebalance", "review_risk"}
+    assert client.post("/api/market/event/meteor").status_code == 404
+    decision = client.post("/api/market/decision", json={"event": "equity_selloff", "choice": "hold"}).json()
+    assert decision["choice"] == "hold"
+    events = [r["event"] for r in client.get("/api/audit").json()["records"]]
+    assert {"proactive_alert", "client_decision_after_alert"} <= set(events)
