@@ -125,3 +125,17 @@ def test_guard_fallback_does_not_claim_empty_session_is_complete(tmp_path):
     reply = session.send("hello")
     assert "No investor profile, allocation, or stress test is stored" in reply
     assert "complete" not in reply.lower()
+
+
+def test_session_passes_exact_settings_to_llm_and_prompt_guard(tmp_path):
+    settings = Settings(
+        llm_mode="live",
+        groq_api_key="session-only-key",
+        primary_model="session-model",
+        audit_log=tmp_path / "audit.jsonl",
+    )
+    session = AdvisorSession(settings)
+    assert session.agent.llm.settings is settings
+    assert session.agent.llm.settings.groq_api_key == "session-only-key"
+    assert session.agent.llm.settings.primary_model == "session-model"
+    assert session.prompt_guard.settings is settings

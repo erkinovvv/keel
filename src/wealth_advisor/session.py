@@ -11,6 +11,7 @@ from .account import SimulatedAccount
 from .allocation import Allocation
 from .audit import AuditLogger
 from .config import Settings
+from .llm import LLMClient
 from .permissions import PermissionTier
 from .permissions import ConfirmationTokenStore, PermissionDenied, require_tier
 from .profiling import InvestorProfile
@@ -90,7 +91,7 @@ class AdvisorSession:
         self.audit = AuditLogger(self.settings.audit_log)
         self.dispatcher = ToolDispatcher(audit=self.audit, session=self)
         self.agent = AdvisorAgent(
-            llm=None,
+            llm=LLMClient(settings=self.settings, audit=self.audit),
             dispatcher=self.dispatcher,
             audit=self.audit,
             max_steps=self.settings.max_tool_steps,
