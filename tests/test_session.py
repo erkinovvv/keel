@@ -137,6 +137,21 @@ def test_guard_fallback_does_not_claim_empty_session_is_complete(tmp_path):
     assert "complete" not in reply.lower()
 
 
+def test_guard_regeneration_receives_exact_ungrounded_figures(tmp_path):
+    session = make_session(tmp_path)
+    calls: list[list[dict[str, object]]] = []
+
+    def run_turn(messages, tools=None):
+        calls.append(messages)
+        content = "The result is 23%." if len(calls) == 1 else "Please share the next fact when you are ready."
+        return AgentTurn(content, [*messages, {"role": "assistant", "content": content}], [], {})
+
+    session.agent.run_turn = run_turn
+    assert session.send("hello") == "Please share the next fact when you are ready."
+    assert "23%" in calls[1][-1]["content"]
+    assert "ungrounded figures" in calls[1][-1]["content"]
+
+
 def test_session_passes_exact_settings_to_llm_and_prompt_guard(tmp_path):
     settings = Settings(
         llm_mode="live",
