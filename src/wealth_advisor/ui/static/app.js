@@ -152,7 +152,7 @@ $("#composer").addEventListener("submit", async (e) => {
   try {
     const res = await api("/api/chat", { method: "POST", body: { message: text } });
     typing.remove();
-    say(esc(res.reply).split(/\n{2,}/).map((p) => p.replace(/\n/g, "<br>")));
+    say(chatHtml(res.reply));
     applyServerState(res.state, { fromChat: true });
   } catch (err) {
     typing.remove();
@@ -162,6 +162,10 @@ $("#composer").addEventListener("submit", async (e) => {
     refreshAudit();
   }
 });
+// Model text is escaped first; only **bold** and line breaks are turned back into markup.
+function chatHtml(text) {
+  return esc(text).split(/\n{2,}/).map((p) => p.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*\*/g, "").replace(/\n/g, "<br>"));
+}
 const autosize = (el) => { el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 140)}px`; };
 $("#chatInput").addEventListener("input", (e) => autosize(e.target));
 $("#chatInput").addEventListener("keydown", (e) => {
