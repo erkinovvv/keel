@@ -33,7 +33,7 @@ never raise it, and the result goes into the audit log and the client's Advice R
 
 ![Recommended portfolio with provenance popovers](docs/img/portfolio.png)
 
-| Goal planning | Execution with printed confirmation |
+| Goal planning | Hold-to-confirm execution and trade confirmation |
 |---|---|
 | ![Goal planning](docs/img/goal.png) | ![Execution](docs/img/execute.png) |
 

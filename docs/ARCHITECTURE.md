@@ -17,52 +17,10 @@ language model.
 
 ## Components
 
-```mermaid
-flowchart LR
-  subgraph Client
-    UI["Web UI<br/>chat + client file"]
-  end
-  subgraph Server["FastAPI server (ui/server.py)"]
-    API["JSON API<br/>/api/*"]
-    REP["Advice Report<br/>/report"]
-  end
-  subgraph Core["Advisory core"]
-    SES["AdvisorSession<br/>session.py"]
-    GIN["Input guard<br/>PII redaction, injection checks<br/>security.py"]
-    AG["Agent loop<br/>agent.py"]
-    DSP["Tool dispatcher<br/>tools.py"]
-    GOUT["Output guard<br/>grounding, unsafe claims<br/>compliance.py"]
-  end
-  subgraph Engine["Deterministic engine"]
-    PRF["profiling.py"]
-    CAT["catalog.py"]
-    ALC["allocation.py"]
-    STR["stress.py"]
-    GOL["goals.py"]
-    ACC["account.py<br/>simulated broker"]
-    PER["permissions.py<br/>tiers + tokens"]
-  end
-  subgraph Evidence
-    AUD["Audit log<br/>hash chain"]
-    ANC["anchor.py<br/>FISCO BCOS · AuditAnchor.sol"]
-  end
-  LLM[("Groq<br/>gpt-oss-120b<br/>+ fallbacks")]
-  PG[("Prompt Guard 2")]
+![Keel components: the model sits outside the decision path](img/architecture.svg)
 
-  UI <--> API
-  UI --> REP
-  API --> SES
-  SES --> GIN --> AG
-  GIN -.score.-> PG
-  AG <--> LLM
-  AG --> DSP
-  DSP --> PRF & CAT & ALC & STR
-  AG --> GOUT --> SES
-  API --> GOL & ACC & PER
-  SES --> ACC
-  SES & DSP & API --> AUD
-  AUD --> ANC
-```
+The language model only talks and requests tools. Numbers come from the deterministic engine; money
+moves only through client actions with a one-time token; every step lands in the audit chain.
 
 ## One chat turn
 
@@ -112,7 +70,7 @@ Key properties of the loop:
 |---|---|---|
 | `ClientFacts` | `session.py` | amount, horizon, max acceptable loss, age, borrowed money — collected in chat or in the form |
 | `InvestorProfile` | `profiling.py` | class C1–C5, capacity and tolerance classes, reason codes, vulnerability flags, liquidity need, expiry (12 months) |
-| `Product` | `data/products.json` | mock catalog with risk level R1–R5, expected return, volatility, fee, liquidity days, minimum, NAV |
+| `Product` | `data/products_cn.json` (24 real funds) or `data/products.json` (synthetic, used by tests) | risk level R1–R5, expected return, volatility, fee, liquidity days, minimum, NAV, public source page |
 | `Allocation` | `allocation.py` | holdings with weights, amounts and reason codes; portfolio return, volatility, fee, 95% VaR |
 | `StressResult` | `stress.py` | scenario loss in % and money, breach of the client's own limit |
 | `SimulatedOrder` | `account.py` | draft → executed, T+2 settlement, cooling-off for R4+ |
@@ -177,6 +135,8 @@ src/wealth_advisor/
   audit.py        hash-chained audit log
   anchor.py       audit anchoring on FISCO BCOS (or Sepolia) and verification
   rehearsal.py    Crash Rehearsal: 2007-2013 replay and revealed risk tolerance
+  monitoring.py   proactive monitoring: market events, drift, rebalancing proposals
+  market.py       capital-market estimates from historical data, backtest
   ui/             web server, static front end, Advice Report
 evals/redteam/    attack suite, runner, report
 evals/journeys/   client personas, live journey runner, report
