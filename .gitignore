@@ -7,3 +7,5 @@ logs/*.jsonl
 !logs/evidence/
 node_modules/
 submission/.build/
+.vercel
+.env*
