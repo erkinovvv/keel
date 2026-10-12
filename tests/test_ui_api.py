@@ -209,3 +209,16 @@ def test_session_store_is_bounded(tmp_path, monkeypatch):
     monkeypatch.setattr(server, "SESSION_IDLE_SECONDS", 0)
     TestClient(server.app).get("/api/state")
     assert len(server._FILES) <= 1  # idle sessions were evicted before the new one was stored
+
+
+def test_signed_state_cookie_restores_after_process_eviction(tmp_path, monkeypatch):
+    from wealth_advisor.ui import server
+
+    client = _client(tmp_path, monkeypatch)
+    _profile(client)
+    client.post("/api/allocation", json={})
+    sid = client.cookies["wa_sid"]
+    del server._FILES[sid]
+    state = client.get("/api/state")
+    assert state.status_code == 200
+    assert state.json()["profile"] is not None and state.json()["allocation"] is not None

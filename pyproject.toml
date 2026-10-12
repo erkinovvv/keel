@@ -22,6 +22,9 @@ dependencies = [
 wealth-advisor = "wealth_advisor.cli:main"
 wealth-advisor-ui = "wealth_advisor.ui.server:main"
 
+[tool.vercel]
+entrypoint = "api.index:app"
+
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13.0"]
 build-backend = "uv_build"

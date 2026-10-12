@@ -9,11 +9,14 @@ and the hash of the audit record written for that computation.
 from __future__ import annotations
 
 import dataclasses
+import base64
 import hashlib
+import hmac
 import json
 import os
 import secrets
 import time
+import zlib
 from contextvars import ContextVar
 from datetime import date
 from dataclasses import dataclass, field
@@ -26,7 +29,8 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from wealth_advisor.allocation import Allocation, build_allocation
+from wealth_advisor.account import SimulatedAccount, SimulatedOrder
+from wealth_advisor.allocation import Allocation, Holding, build_allocation
 from wealth_advisor.anchor import anchor_audit_log, network as anchor_network, verify_anchor
 from wealth_advisor.audit import verify_audit_log
 from wealth_advisor.catalog import compare_products, load_catalog
@@ -37,8 +41,8 @@ from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_inv
 from wealth_advisor.rehearsal import apply_outcome, evaluate, load_scenario, portfolio_path
 from wealth_advisor.monitoring import EVENTS, check_live_market, check_market
 from wealth_advisor.security import redact_pii
-from wealth_advisor.session import AdvisorSession
-from wealth_advisor.stress import SCENARIOS, stress_test
+from wealth_advisor.session import AdvisorSession, ClientFacts
+from wealth_advisor.stress import SCENARIOS, StressResult, stress_test
 from wealth_advisor.ui.report import render_report
 from wealth_advisor.ui.labels import LANG, class_name, lang, explain_reason, flag_label, humanize, question_label
 
@@ -65,7 +69,16 @@ async def request_context(request, call_next):
 
     LANG.set("zh" if request.cookies.get("wa_lang") == "zh" else "en")
     CLIENT_IP.set(request.client.host if request.client else "unknown")
+    sid = request.cookies.get("wa_sid")
+    if sid and sid not in _FILES:
+        payload = _open_state(request.cookies.get(_STATE_COOKIE, ""), sid)
+        if payload is not None:
+            _FILES[sid] = _restore_file(sid, payload)
     response = await call_next(request)
+    if sid and sid in _FILES:
+        token = _seal_state(_FILES[sid], sid)
+        if len(token) <= _STATE_COOKIE_MAX:
+            response.set_cookie(_STATE_COOKIE, token, httponly=True, samesite="strict")
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -126,13 +139,121 @@ def _evict_sessions(now: float) -> None:
 
 
 _FILES: dict[str, ClientFile] = {}
+_STATE_COOKIE = "wa_state"
+_STATE_COOKIE_MAX = 3800
+_STATE_COOKIE_SECRET = os.getenv("STATE_COOKIE_SECRET") or secrets.token_bytes(32).hex()
 
 
-def _file(sid: str | None, response: Response) -> ClientFile:
+def _state_cookie_key() -> bytes:
+    return _STATE_COOKIE_SECRET.encode("utf-8")
+
+
+def _seal_state(file: ClientFile, sid: str) -> str:
+    state = file.session.state
+    payload = {
+        "sid": sid,
+        "client": state.client.as_dict(),
+        "profile": state.profile.as_dict() if state.profile else None,
+        "allocations": {key: allocation.as_dict() for key, allocation in state.allocations.items()},
+        "stress_results": {key: result.as_dict() for key, result in state.stress_results.items()},
+        "draft_orders": {key: order.as_dict() for key, order in state.draft_orders.items()},
+        "account": {
+            "cash": state.account.cash,
+            "holdings": state.account.holdings,
+            "orders": {key: order.as_dict() for key, order in state.account.orders.items()},
+        },
+        "allocation_count": file.allocation_count,
+        "allocation_provenance": file.allocation_provenance,
+        "goal": file.goal,
+        "signed": file.signed,
+        "rehearsals": file.rehearsals,
+        "alerts": file.alerts,
+        "anchors": file.anchors,
+    }
+    encoded = base64.urlsafe_b64encode(zlib.compress(json.dumps(payload, separators=(",", ":")).encode(), 9)).decode()
+    signature = hmac.new(_state_cookie_key(), encoded.encode(), hashlib.sha256).hexdigest()
+    return f"{encoded}.{signature}"
+
+
+def _open_state(token: str, sid: str) -> dict[str, Any] | None:
+    try:
+        encoded, signature = token.rsplit(".", 1)
+        expected = hmac.new(_state_cookie_key(), encoded.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
+            return None
+        payload = json.loads(zlib.decompress(base64.urlsafe_b64decode(encoded)).decode())
+        return payload if payload.get("sid") == sid else None
+    except (ValueError, TypeError, OSError, zlib.error, json.JSONDecodeError):
+        return None
+
+
+def _restore_profile(raw: dict[str, Any] | None) -> InvestorProfile | None:
+    if not raw:
+        return None
+    return InvestorProfile(
+        investor_class=raw["investor_class"], capacity_score=raw["capacity_score"], tolerance_score=raw["tolerance_score"],
+        capacity_class=raw["capacity_class"], tolerance_class=raw["tolerance_class"], liquidity_days=raw["liquidity_days"],
+        reason_codes=tuple(raw["reason_codes"]), vulnerability_flags=tuple(raw["vulnerability_flags"]),
+        expires_on=date.fromisoformat(raw["expires_on"]),
+    )
+
+
+def _restore_allocation(raw: dict[str, Any]) -> Allocation:
+    return Allocation(
+        investor_class=raw["investor_class"], amount=raw["amount"],
+        holdings=tuple(Holding(h["product_id"], h["asset_class"], h["weight"], h["amount"], tuple(h["reason_codes"])) for h in raw["holdings"]),
+        expected_return=raw["expected_return"], volatility=raw["volatility"], fee=raw["fee"],
+        var_95_1y_parametric=raw["var_95_1y_parametric"], strategic_weights=raw["strategic_weights"],
+        volatility_band=tuple(raw["volatility_band"]), reason_codes=tuple(raw.get("reason_codes", ())),
+        stress_limit_before=raw.get("stress_limit_before"), stress_limit_after=raw.get("stress_limit_after"),
+    )
+
+
+def _restore_order(raw: dict[str, Any]) -> SimulatedOrder:
+    return SimulatedOrder(
+        order_id=raw["order_id"], product_id=raw["product_id"], amount=raw["amount"], risk_class=raw["risk_class"],
+        status=raw["status"], created_on=date.fromisoformat(raw["created_on"]),
+        settles_on=date.fromisoformat(raw["settles_on"]) if raw.get("settles_on") else None,
+        cooling_off_until=date.fromisoformat(raw["cooling_off_until"]) if raw.get("cooling_off_until") else None,
+        units=raw.get("units"), price=raw.get("price"),
+    )
+
+
+def _restore_file(sid: str, payload: dict[str, Any]) -> ClientFile:
+    session = AdvisorSession(Settings.from_env())
+    session.audit.session_id = hashlib.sha256(sid.encode()).hexdigest()[:12]
+    session.state.client = ClientFacts(**payload.get("client", {}))
+    session.state.profile = _restore_profile(payload.get("profile"))
+    session.state.allocations = {key: _restore_allocation(value) for key, value in payload.get("allocations", {}).items()}
+    session.state.stress_results = {key: StressResult(**value) for key, value in payload.get("stress_results", {}).items()}
+    account_data = payload.get("account", {})
+    session.state.account = SimulatedAccount(
+        cash=account_data.get("cash", session.settings.simulated_cash),
+        holdings=account_data.get("holdings", {}),
+        orders={key: _restore_order(value) for key, value in account_data.get("orders", {}).items()},
+    )
+    session.state.draft_orders = {
+        key: _restore_order(value) for key, value in payload.get("draft_orders", {}).items()
+    }
+    return ClientFile(
+        session=session, allocation_count=payload.get("allocation_count", len(session.state.allocations)),
+        allocation_provenance=payload.get("allocation_provenance", {}), goal=payload.get("goal"), signed=payload.get("signed", False),
+        rehearsals=payload.get("rehearsals", []), alerts=payload.get("alerts", []), anchors=payload.get("anchors", []),
+    )
+
+
+def _file(sid: str | None, response: Response, state_token: str | None = None) -> ClientFile:
     now = time.monotonic()
     if sid and sid in _FILES:
         _FILES[sid].last_seen = now
         return _FILES[sid]
+    if sid and state_token:
+        payload = _open_state(state_token, sid)
+        if payload is not None:
+            restored = _restore_file(sid, payload)
+            restored.last_seen = now
+            _FILES[sid] = restored
+            return restored
     ip = CLIENT_IP.get()
     recent = [t for t in _NEW_SESSION_TIMES.get(ip, []) if now - t < 600]
     if len(recent) >= NEW_SESSIONS_PER_IP:
@@ -145,6 +266,7 @@ def _file(sid: str | None, response: Response) -> ClientFile:
     session.audit.session_id = hashlib.sha256(sid.encode()).hexdigest()[:12]
     _FILES[sid] = ClientFile(session=session)
     response.set_cookie("wa_sid", sid, httponly=True, samesite="strict")
+    response.set_cookie(_STATE_COOKIE, _seal_state(_FILES[sid], sid), httponly=True, samesite="strict")
     return _FILES[sid]
 
 

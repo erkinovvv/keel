@@ -62,6 +62,30 @@ Without a key everything except free-form chat works offline: `uv run wealth-adv
 replay mode, and the questionnaire, portfolio, goal, comparison, stress test, execution and report
 steps are all deterministic.
 
+### Deploy to Vercel
+
+The production app is [keel.vercel.app](https://keel.vercel.app). It uses Vercel's Python runtime
+with `api/index.py` exporting the FastAPI app. Configure the production environment once, using
+product Groq keys only (never `GROQ_EVAL_API_KEY`):
+
+```bash
+vercel link
+vercel env add GROQ_API_KEY production
+vercel env add GROQ_API_KEYS production
+vercel env add STATE_COOKIE_SECRET production
+vercel env add LLM_MODE production            # live
+vercel env add LIVE_MARKET production         # 1
+vercel env add WEALTH_ADVISOR_CATALOG production  # cn
+vercel env add AUDIT_LOG production           # /tmp/keel-audit.jsonl
+vercel env add ANCHOR_NETWORK production      # sepolia
+vercel --prod
+```
+
+Vercel instances use an authenticated state cookie so the profile, portfolio, crash test, goal and
+invest steps survive cold starts; the audit log is ephemeral under `/tmp`. Without a configured
+Sepolia key, the anchor endpoint reports a clear unavailable error rather than contacting the local
+FISCO BCOS chain.
+
 Other entry points:
 
 ```bash
