@@ -1,311 +1,346 @@
-// Builds deck/Keel_FinTechathon_2026.pptx — the ≤10-minute pitch for Topic B.
+// Builds submission/Keel_FinTechathon_2026.pptx, the 10-minute pitch for Topic B.
 //   cd deck && node build_deck.js
+// Figures come from the repository: evals/journeys/REPORT.md, evals/redteam/REPORT.md, the pytest count,
+// docs/ALGORITHM.md (backtest) and evidence/02-crash-rehearsal (rehearsal example).
 const path = require("path");
 const pptxgen = require("pptxgenjs");
+const { applyTheme } = require("./apply_theme.js");  // copied from the pptx skill
 
-const SKILL_THEME = path.join(__dirname, "apply_theme.js");  // copied from the pptx skill
 const IMG = (name) => path.join(__dirname, "..", "docs", "img", name);
-const OUT = path.join(__dirname, "Keel_FinTechathon_2026.pptx");
+const ASSET = (name) => path.join(__dirname, "assets", name);
+const OUT = path.join(__dirname, "..", "submission", "Keel_FinTechathon_2026.pptx");
 
+// Keel design system: ink and canvas, navy for data, brass for the one thing that matters on a slide.
 const THEME = {
   name: "Keel",
-  headFontFace: "Cambria",
-  bodyFontFace: "Calibri",
+  headFontFace: "Arial",
+  bodyFontFace: "Arial",
   colors: {
-    dk1: "14211F", lt1: "FFFFFF", dk2: "07110F", lt2: "F3F6F5",
-    accent1: "17695A", accent2: "FF6B5E", accent3: "2A78D6", accent4: "EDA100", accent5: "4A5B57", accent6: "8FD8C5",
-    hlink: "17695A", folHlink: "0F4D42",
+    dk1: "0F1B26", lt1: "FFFFFF", dk2: "0A1016", lt2: "F5F6F7",
+    accent1: "23476B", accent2: "8A6420", accent3: "0F9A8C", accent4: "C9623A", accent5: "5A6773", accent6: "C9A45C",
+    hlink: "23476B", folHlink: "6E4F16",
   },
 };
-const HEX = THEME.colors;
+const RULE = "DDE2E7", RULE_STRONG = "C5CDD5", SEA_DIM = "A6B1BC", SEA_RULE = "2E3F4E";
 const NUMBERS = {
-  journeys: "29 / 30",  // evals/journeys/REPORT.md, 2026-10-11
-  redteam: "57 / 57",
-  tests: "89",
-  backtest: "5 / 5",
+  journeys: "29 / 30",   // evals/journeys/REPORT.md
+  redteam: "57 / 57",    // evals/redteam/REPORT.md
+  benign: "8 / 8",
+  tests: "129",          // uv run pytest
+  backtest: "5 / 5",     // docs/ALGORITHM.md section 6
 };
 
 const pres = new pptxgen();
 pres.layout = "LAYOUT_WIDE"; // 13.333 x 7.5 in
-pres.title = "Keel — the AI wealth advisor that proves its advice";
-pres.author = "[Name 1], [Name 2]";
+pres.title = "Keel: an AI wealth advisor";
+pres.author = "Team Keel";
 pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
 const C = pres.SchemeColor;
 
-const W = 13.333, M = 0.6;
-const FOOTER = "Keel · FinTechathon 2026 · Topic B";
+const W = 13.333, M = 0.7;
+const FOOTER = "Keel   FinTechathon 2026, International Track, Topic B";
 
 pres.defineSlideMaster({
-  title: "LIGHT_CONTENT",
+  title: "LIGHT",
   background: { color: C.background2 },
   objects: [
-    { text: { text: FOOTER, options: { x: M, y: 7.0, w: 8, h: 0.3, fontSize: 10, color: C.accent5, margin: 0 } } },
-    { placeholder: { options: { name: "title", type: "title", x: M, y: 0.45, w: W - 2 * M, h: 0.9, fontFace: THEME.headFontFace, fontSize: 34, color: C.text1, valign: "top", margin: 0 }, text: "" } },
+    { line: { x: M, y: 6.95, w: W - 2 * M, h: 0, line: { color: RULE, width: 0.75 } } },
+    { text: { text: FOOTER, options: { x: M, y: 7.02, w: 8, h: 0.28, fontSize: 9.5, color: C.accent5, margin: 0 } } },
+    { placeholder: { options: { name: "title", type: "title", x: M, y: 0.5, w: W - 2 * M, h: 0.8, fontFace: THEME.headFontFace, fontSize: 30, bold: true, color: C.text1, align: "left", valign: "top", margin: 0 }, text: "" } },
   ],
-  slideNumber: { x: W - M - 0.5, y: 7.0, w: 0.5, h: 0.3, fontSize: 10, color: C.accent5, align: "right" },
+  slideNumber: { x: W - M - 0.6, y: 7.02, w: 0.6, h: 0.28, fontSize: 9.5, color: C.accent5, align: "right" },
 });
 pres.defineSlideMaster({
   title: "DARK",
   background: { color: C.text2 },
   objects: [],
-  slideNumber: { x: W - M - 0.5, y: 7.0, w: 0.5, h: 0.3, fontSize: 10, color: C.accent6, align: "right" },
+  slideNumber: { x: W - M - 0.6, y: 7.02, w: 0.6, h: 0.28, fontSize: 9.5, color: SEA_DIM, align: "right" },
 });
 
-const card = (slide, x, y, w, h, opts = {}) =>
-  slide.addShape(pres.shapes.ROUNDED_RECTANGLE, {
-    x, y, w, h, rectRadius: 0.12, fill: { color: opts.fill || C.background1 },
-    line: { color: opts.line || "D9E2DF", width: 1 }, objectName: opts.name || "card",
-  });
-const text = (slide, value, opts) => slide.addText(value, { isTextBox: true, margin: 0, valign: "top", ...opts });
+const text = (slide, value, opts) => slide.addText(value, { isTextBox: true, margin: 0, valign: "top", fontFace: THEME.bodyFontFace, ...opts });
+const rule = (slide, x, y, w, color = RULE, name = "rule") => slide.addShape(pres.shapes.LINE, { x, y, w, h: 0, line: { color, width: 0.75 }, objectName: name });
+const vrule = (slide, x, y, h, color = RULE, name = "vrule") => slide.addShape(pres.shapes.LINE, { x, y, w: 0, h, line: { color, width: 0.75 }, objectName: name });
+const shot = (slide, file, x, y, w, alt, name) => {
+  const h = w * (1800 / 2880);
+  slide.addImage({ path: IMG(file), x, y, w, h, altText: alt, objectName: name });
+  slide.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { type: "none" }, line: { color: RULE_STRONG, width: 0.75 }, objectName: `${name}-frame` });
+  return h;
+};
 
 // ------------------------------------------------------------------ 1 cover
-pres.addSection({ title: "Why advice cannot be checked" });
+pres.addSection({ title: "The problem" });
 {
-  const s = pres.addSlide({ masterName: "DARK", sectionTitle: "Why advice cannot be checked" });
-  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: M, y: 0.6, w: 0.45, h: 0.45, rectRadius: 0.1, fill: { color: C.accent1 }, line: { color: C.accent1 }, objectName: "logo" });
-  text(s, "Keel", { x: M + 0.6, y: 0.62, w: 3, h: 0.45, fontSize: 22, bold: true, color: C.background1, valign: "middle" });
-  text(s, "The AI wealth advisor that proves its advice", { x: M, y: 2.2, w: 11, h: 2.0, fontFace: THEME.headFontFace, fontSize: 54, color: C.background1, valign: "bottom" });
-  text(s, "A licensed advisor's workflow, a crash rehearsal for the client, and an audit trail anchored on WeBank's FISCO BCOS.", { x: M, y: 4.4, w: 10, h: 1.0, fontSize: 20, color: "BFD0CC" });
-  text(s, "FinTechathon 2026 · International Track · Topic B: Wealth Advisory Agent\n[Name 1], [Name 2] · Westminster International University in Tashkent", { x: M, y: 6.2, w: 11, h: 0.7, fontSize: 14, color: "BFD0CC" });
-  s.addNotes("Hello, we are [names] from Westminster International University in Tashkent. Our project is Keel, a wealth-advisory agent for Topic B. In one sentence: it is the AI wealth advisor that proves its advice. In the next nine minutes we show what that means and why it matters to a bank like WeBank.");
+  const s = pres.addSlide({ masterName: "DARK", sectionTitle: "The problem" });
+  s.addImage({ path: ASSET("mark_light.png"), x: M, y: 0.7, w: 0.5, h: 0.5, altText: "Keel logo", objectName: "logo" });
+  text(s, "Keel", { x: M + 0.68, y: 0.7, w: 3, h: 0.5, fontSize: 22, bold: true, color: C.background1, valign: "middle" });
+  text(s, "An AI wealth advisor that lets clients live through a crash before they invest, and can prove every number it shows.", { x: M, y: 2.1, w: 11.2, h: 2.4, fontSize: 44, bold: true, color: C.background1, valign: "bottom", lineSpacingMultiple: 0.95 });
+  rule(s, M, 5.75, W - 2 * M, SEA_RULE, "cover-rule");
+  text(s, "2026 Shenzhen International FinTech Competition, International Track, Topic B: Wealth Advisory Agent\n[Name 1], [Name 2]   Westminster International University in Tashkent", { x: M, y: 5.95, w: 11.5, h: 0.75, fontSize: 14, color: SEA_DIM, lineSpacingMultiple: 1.2 });
+  s.addNotes("Hello, we are [names] from Westminster International University in Tashkent. Our project for Topic B is Keel, an AI wealth advisor. It does two things differently: before a client invests, it lets them live through a market crash with the exact portfolio it recommends; and every number it shows can be traced to the code that computed it. In the next nine minutes we show how, and why it matters to a bank like WeBank.");
 }
 
 // ------------------------------------------------------------------ 2 problem
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Why advice cannot be checked" });
-  s.addText("Wealth advice today cannot be checked", { placeholder: "title" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "The problem" });
+  s.addText("Advice fails at the moment it matters", { placeholder: "title" });
   const items = [
-    ["Questionnaires", "Clients tick the answers that unlock the product they want", "Then they sell at the bottom of the first crash, lose money and complain of mis-selling."],
-    ["AI advisors", "Language models invent figures and can be talked into anything", "A confident wrong return estimate is a compliance incident, not a typo."],
-    ["“Explainable”", "Every product claims it. Nobody can verify it afterwards.", "Regulators, auditors and clients need evidence, not a promise."],
+    ["Questionnaires", "Clients pick the answers that unlock the product they want.", "Then they sell at the bottom of the first crash and lose money they would have kept by holding."],
+    ["AI advisors", "Language models invent figures and can be talked into anything.", "One confident but wrong return estimate is a compliance incident, not a typo."],
+    ["Explainability", "Every product claims it. Nobody can check it afterwards.", "Regulators, auditors and clients need evidence they can verify themselves."],
   ];
-  const cw = (W - 2 * M - 2 * 0.35) / 3;
+  const cw = (W - 2 * M) / 3;
   items.forEach(([label, head, body], i) => {
-    const x = M + i * (cw + 0.35);
-    card(s, x, 1.65, cw, 4.6, { name: `problem-${i + 1}` });
-    s.addShape(pres.shapes.OVAL, { x: x + 0.35, y: 1.95, w: 0.55, h: 0.55, fill: { color: C.accent1 }, line: { color: C.accent1 }, objectName: `problem-num-${i + 1}` });
-    text(s, String(i + 1), { x: x + 0.35, y: 1.95, w: 0.55, h: 0.55, fontSize: 18, bold: true, color: C.background1, align: "center", valign: "middle" });
-    text(s, label, { x: x + 1.05, y: 1.98, w: cw - 1.3, h: 0.5, fontSize: 15, bold: true, color: C.accent1, valign: "middle" });
-    text(s, head, { x: x + 0.35, y: 2.85, w: cw - 0.7, h: 1.6, fontFace: THEME.headFontFace, fontSize: 22, color: C.text1 });
-    text(s, body, { x: x + 0.35, y: 4.55, w: cw - 0.7, h: 1.4, fontSize: 15, color: C.accent5 });
+    const x = M + i * cw;
+    if (i) vrule(s, x, 1.75, 4.3, RULE, `problem-divider-${i}`);
+    const px = x + (i ? 0.4 : 0), pw = cw - 0.8;
+    text(s, label, { x: px, y: 1.75, w: pw, h: 0.4, fontSize: 14, bold: true, color: C.accent2 });
+    text(s, head, { x: px, y: 2.3, w: pw, h: 1.9, fontSize: 24, bold: true, color: C.text1, lineSpacingMultiple: 1.0 });
+    text(s, body, { x: px, y: 4.35, w: pw, h: 1.6, fontSize: 16, color: C.accent5 });
   });
-  text(s, "Topic B asks for compliant and explainable asset-allocation advice. We took both words literally.", { x: M, y: 6.45, w: W - 2 * M, h: 0.4, fontSize: 15, italic: true, color: C.accent5 });
-  s.addNotes("Three problems. First, risk questionnaires are easy to game: clients pick the answers that unlock the product they want, then panic-sell in the first crash. Second, language-model advisors invent numbers and can be jailbroken. Third, everyone says explainable, but nobody can verify a recommendation after the fact. Topic B asks for compliant and explainable advice; we took both words literally.");
+  rule(s, M, 6.25, W - 2 * M, RULE_STRONG, "problem-rule");
+  text(s, "Topic B asks for compliant and explainable allocation advice. Keel makes both claims checkable.", { x: M, y: 6.38, w: W - 2 * M, h: 0.4, fontSize: 16, color: C.text1 });
+  s.addNotes("Three problems. First, risk questionnaires are easy to game: clients choose the answers that unlock the product they want, then panic-sell in the first crash. Second, language-model advisors invent numbers and can be jailbroken. Third, everyone says their advice is explainable, but nobody can verify a recommendation after the fact. Topic B asks for compliant and explainable advice. We made both claims checkable.");
 }
 
-// ------------------------------------------------------------------ 3 workflow
+// ------------------------------------------------------------------ 3 statement
 pres.addSection({ title: "Keel" });
-{
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Keel" });
-  s.addText("A licensed advisor's workflow, in one conversation", { placeholder: "title" });
-  const steps = [["Fact-find", "chat or form, EN / 中文"], ["Profile", "C1–C5, lower of capacity and tolerance"], ["Rehearse", "live through 2008 first"], ["Allocate", "real funds, a reason per holding"], ["Plan", "goal odds from 5,000 futures"], ["Stress", "against the client's own limit"], ["Execute", "signed, held, on-chain"]];
-  const sw = (W - 2 * M - 6 * 0.15) / 7;
-  steps.forEach(([head, body], i) => {
-    const x = M + i * (sw + 0.15);
-    const dark = head === "Rehearse";
-    card(s, x, 1.55, sw, 1.75, { fill: dark ? C.text2 : C.background1, line: dark ? "07110F" : "D9E2DF", name: `step-${i + 1}` });
-    text(s, String(i + 1), { x: x + 0.18, y: 1.68, w: 0.6, h: 0.4, fontSize: 20, bold: true, color: dark ? C.accent2 : C.accent1 });
-    text(s, head, { x: x + 0.18, y: 2.1, w: sw - 0.3, h: 0.4, fontSize: 16, bold: true, color: dark ? C.background1 : C.text1 });
-    text(s, body, { x: x + 0.18, y: 2.5, w: sw - 0.3, h: 0.75, fontSize: 11.5, color: dark ? "BFD0CC" : C.accent5 });
-  });
-  s.addImage({ path: IMG("portfolio.png"), x: M + 1.4, y: 3.55, w: 9.3, h: 3.3, sizing: { type: "cover", w: 9.3, h: 3.3 }, altText: "Keel web app: recommended portfolio, every number linked to the function that computed it", objectName: "screenshot-portfolio" });
-  s.addNotes("Keel runs the same seven steps a licensed advisor follows: fact-find, risk profile, crash rehearsal, allocation, goal planning, stress test and execution. The client can do it in conversation, in English or Chinese, and the client file fills in live. Every underlined number opens its provenance: which function computed it and which audit record holds it.");
-}
-
-// ------------------------------------------------------------------ 4 statement
 {
   const s = pres.addSlide({ masterName: "DARK", sectionTitle: "Keel" });
   text(s, [
-    { text: "Every robo-advisor stress-tests the portfolio. ", options: { color: C.background1 } },
-    { text: "We stress-test the investor.", options: { color: C.accent2 } },
-  ], { x: M, y: 1.6, w: 11.5, h: 2.8, fontFace: THEME.headFontFace, fontSize: 48, valign: "bottom" });
-  text(s, "Before any money moves, the client lives through 2008 with the exact portfolio we recommend, and can press Sell at any moment.", { x: M, y: 4.7, w: 10, h: 1.0, fontSize: 20, color: "BFD0CC" });
-  s.addNotes("This is our core idea. Every robo-advisor stress-tests the portfolio. We stress-test the investor. Before any money moves, the client lives through 2008 with the exact portfolio we are about to recommend, month by month, and can press Sell at any moment.");
+    { text: "What clients say about risk ", options: { color: C.background1 } },
+    { text: "is not what they do in a crash.", options: { color: C.accent6 } },
+  ], { x: M, y: 1.4, w: 11.6, h: 2.9, fontSize: 52, bold: true, valign: "bottom", lineSpacingMultiple: 0.95 });
+  text(s, "So before any money moves, Keel has the client live through 2008 with the exact portfolio it recommends, and lets them press Sell at any moment.", { x: M, y: 4.75, w: 10.6, h: 1.1, fontSize: 21, color: SEA_DIM });
+  s.addNotes("This is our core insight. What clients say about risk in a questionnaire is not what they do in a crash. So before any money moves, Keel has the client live through 2008 with the exact portfolio it is about to recommend, month by month, and lets them press Sell at any moment.");
+}
+
+// ------------------------------------------------------------------ 4 workflow
+{
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Keel" });
+  s.addText("A licensed advisor's workflow, in five steps", { placeholder: "title" });
+  const steps = [["Risk profile", "C1 to C5, the lower of loss capacity and risk tolerance"], ["Portfolio", "real funds, a reason for every holding"], ["Rehearse", "live through 2008 before investing"], ["Goal", "the chance of reaching it, from 5,000 futures"], ["Invest", "signed, held to confirm, recorded on chain"]];
+  const sw = (W - 2 * M) / 5;
+  rule(s, M, 1.55, W - 2 * M, RULE_STRONG, "steps-top");
+  steps.forEach(([head, body], i) => {
+    const x = M + i * sw;
+    if (i) vrule(s, x, 1.55, 1.25, RULE, `step-divider-${i}`);
+    const key = head === "Rehearse";
+    const px = x + (i ? 0.2 : 0);
+    text(s, String(i + 1), { x: px, y: 1.72, w: 0.5, h: 0.35, fontSize: 14, bold: true, color: key ? C.accent2 : C.accent5 });
+    text(s, head, { x: px + 0.35, y: 1.72, w: sw - 0.6, h: 0.35, fontSize: 16, bold: true, color: key ? C.accent2 : C.text1 });
+    text(s, body, { x: px, y: 2.15, w: sw - 0.35, h: 0.6, fontSize: 12, color: C.accent5 });
+  });
+  rule(s, M, 2.8, W - 2 * M, RULE, "steps-bottom");
+  const h = shot(s, "portfolio.png", M, 3.1, 6.0, "Keel web app: recommended portfolio of real Chinese funds; a popover shows the function that computed a figure", "screenshot-portfolio");
+  const rx = M + 6.5, rw = W - M - rx;
+  const notes = [
+    ["Chat or form", "The client can talk in English or 中文, or answer eight short questions. Both fill the same client file."],
+    ["Every number has a source", "Tap any figure to see the function that computed it and its audit record."],
+    ["Two optional tools", "Compare products and Past crises stay off the main path."],
+  ];
+  notes.forEach(([head, body], i) => {
+    const y = 3.1 + i * (h / 3);
+    if (i) rule(s, rx, y - 0.12, rw, RULE, `workflow-note-rule-${i}`);
+    text(s, head, { x: rx, y, w: rw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
+    text(s, body, { x: rx, y: y + 0.38, w: rw, h: 0.7, fontSize: 13, color: C.accent5 });
+  });
+  s.addNotes("Keel follows the five steps a licensed advisor follows: risk profile, portfolio, a crash rehearsal, goal planning and investing. The client can do it in conversation, in English or Chinese, or with a two-minute questionnaire; both fill the same client file. Every underlined number opens its source: which function computed it and which audit record holds it.");
 }
 
 // ------------------------------------------------------------------ 5 crash rehearsal
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Keel" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Keel" });
   s.addText("Crash Rehearsal: what clients do, not what they say", { placeholder: "title" });
-  s.addImage({ path: IMG("rehearsal.png"), x: M, y: 1.55, w: 6.6, h: 4.15, sizing: { type: "cover", w: 6.6, h: 4.15 }, altText: "Crash Rehearsal screen: the client's portfolio falling to 88,033 in September 2008 with the Lehman headline and a Sell everything button", objectName: "screenshot-rehearsal" });
-  const rx = M + 7.0, rw = W - M - rx;
+  const h = shot(s, "rehearsal.png", M, 1.55, 6.6, "Crash Rehearsal: the client's portfolio replayed through 2008 with headlines and a Sell everything button that shows the loss it would lock in", "screenshot-rehearsal");
+  const rx = M + 7.1, rw = W - M - rx;
   const rows = [
-    ["Real history", "Oct 2007 – Mar 2013, month by month. Kenneth R. French, FRED and World Bank data; the headlines of the time."],
-    ["Revealed tolerance", "Where the client sells sets the class the behaviour supports: below 5% C1 … below 25% C4."],
-    ["Only ever safer", "New class = lower of stated and revealed. Holding never raises it. Logged and on the client's report."],
+    ["Real history", "October 2007 to March 2013, month by month, on Kenneth R. French, FRED and World Bank data, with the headlines of the time."],
+    ["Revealed tolerance", "Where the client sells sets the risk class their behaviour supports."],
+    ["Only ever safer", "The new class is the lower of stated and revealed. Holding never raises it. The result is logged and printed on the client's report."],
   ];
   rows.forEach(([head, body], i) => {
-    const y = 1.55 + i * 1.12;
-    text(s, head, { x: rx, y, w: rw, h: 0.35, fontSize: 16, bold: true, color: C.accent1 });
-    text(s, body, { x: rx, y: y + 0.36, w: rw, h: 0.7, fontSize: 13.5, color: C.text1 });
+    const y = 1.55 + i * (h / 3);
+    if (i) rule(s, rx, y - 0.12, rw, RULE, `rehearsal-rule-${i}`);
+    text(s, head, { x: rx, y, w: rw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
+    text(s, body, { x: rx, y: y + 0.38, w: rw, h: 0.9, fontSize: 13, color: C.accent5 });
   });
-  card(s, M, 5.95, W - 2 * M, 0.85, { fill: C.text2, line: "07110F", name: "rehearsal-example" });
+  rule(s, M, 5.95, W - 2 * M, RULE_STRONG, "rehearsal-example-rule");
   text(s, [
-    { text: "Real session:  ", options: { bold: true, color: C.accent6 } },
-    { text: "said “I would buy more”  ·  sold in Sept 2008 at −13.5%  ·  class C5 → C3  ·  ", options: { color: C.background1 } },
-    { text: "cost of panic −42,329 on 100,000", options: { bold: true, color: C.accent2 } },
-  ], { x: M + 0.3, y: 5.95, w: W - 2 * M - 0.6, h: 0.85, fontSize: 16, valign: "middle" });
-  s.addNotes("Here is the rehearsal. The screen turns into a trading terminal; the client's own portfolio falls month by month on real data, the headlines of the time scroll by, and the Sell button pulses at the bottom. In our test, a client who said they would buy more in a crash sold in September 2008 at minus 13.5 percent. Holding would have ended at 130,715; selling ended at 88,386. The class drops from C5 to C3, and that is written to the audit log and to the client's report. Behaviour can only make the advice safer, never riskier.");
+    { text: "Evidence session 02:  ", options: { bold: true, color: C.text1 } },
+    { text: "the client said they would buy more in a fall, then sold in September 2008, 12.5% below the peak. Holding would have ended at 133,266 on 100,000; selling ended at 89,601. Class lowered from C5 to C3, and the old C5 portfolio was refused.", options: { color: C.accent5 } },
+  ], { x: M, y: 6.1, w: W - 2 * M, h: 0.75, fontSize: 14 });
+  s.addNotes("Here is the rehearsal. The screen goes dark; the client's own portfolio moves month by month on real data, the headlines of the time appear, and the Sell button always shows the loss it would lock in. In one of our recorded evidence sessions, a client who said they would buy more in a crash sold in September 2008, 12.5 percent below the peak. Holding would have ended at 133,266 on 100,000; selling ended at 89,601. Keel lowered the class from C5 to C3 and refused the old portfolio. Behaviour can only make the advice safer, never riskier.");
 }
 
-// ------------------------------------------------------------------ 6 proof
+// ------------------------------------------------------------------ 6 model talks, code decides
 pres.addSection({ title: "Proof" });
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Proof" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Proof" });
   s.addText("The model talks. Code decides.", { placeholder: "title" });
-  const head = { bold: true, color: C.background1, fill: { color: C.accent1 }, fontSize: 14 };
+  const head = { bold: true, color: C.accent5, fontSize: 12, border: [{ type: "none" }, { type: "none" }, { pt: 1, color: RULE_STRONG }, { type: "none" }] };
+  const cell = (t, extra = {}) => ({ text: t, options: { border: [{ type: "none" }, { type: "none" }, { pt: 0.75, color: RULE }, { type: "none" }], ...extra } });
   const rows = [
     [{ text: "Concern", options: head }, { text: "Owned by", options: head }, { text: "Why", options: head }],
-    ["Conversation, explanations", "Language model (Groq)", "Language is what models are good at"],
-    ["Risk class, weights, returns, fees, stress, goal odds", "Deterministic, tested Python", "Reproducible; no invented figures"],
-    ["Suitability C ≥ R, liquidity, limits, cooling-off", "Server code", "Cannot be talked around"],
-    ["Placing an order", "The client only, one-time token", "The model has no tool that can trade"],
-    ["Record of what happened", "Hash-chained log on FISCO BCOS", "Tamper-evident, independently checkable"],
+    [cell("Conversation and explanations"), cell("Language model (Groq)"), cell("Language is what models do well")],
+    [cell("Risk class, weights, returns, fees, stress losses, goal odds"), cell("Deterministic, tested Python"), cell("Reproducible, no invented figures")],
+    [cell("Suitability, liquidity, limits, cooling-off"), cell("Server code"), cell("Cannot be talked around")],
+    [cell("Placing an order"), cell("The client only, with a one-time token", { bold: true, color: C.accent2 }), cell("The model has no tool that can trade")],
+    [cell("Record of what happened"), cell("Hash-chained log, anchored on FISCO BCOS"), cell("Tamper-evident, checkable by anyone")],
   ];
-  s.addTable(rows, { x: M, y: 1.55, w: 7.6, colW: [2.8, 2.4, 2.4], fontSize: 13, color: C.text1, fill: { color: C.background1 }, border: { type: "solid", pt: 0.75, color: "D9E2DF" }, margin: 0.08, valign: "middle", rowH: 0.62, objectName: "boundary-table" });
-  const px = M + 8.0, pw = W - M - px;
-  card(s, px, 1.55, pw, 4.9, { name: "provenance-card" });
-  text(s, "Every number shows its source", { x: px + 0.3, y: 1.8, w: pw - 0.6, h: 0.45, fontSize: 17, bold: true, color: C.accent1 });
-  text(s, "Tap 7.39% → “Computed by allocation.build_allocation() · audit record 1d99…”.\n\nThe audit-chain head is written to an AuditAnchor smart contract on WeBank's FISCO BCOS after every trade; Verify recomputes the log and compares. Edit one record: ✗.\n\nThe client's Advice Report carries its own SHA-256 in the chain.", { x: px + 0.3, y: 2.35, w: pw - 0.6, h: 3.9, fontSize: 14, color: C.text1 });
-  s.addNotes("Our design rule: the model talks, code decides. The language model handles conversation. Every figure, the risk class, suitability, limits and the order path live in deterministic server code the model cannot reach. Every number in the interface links to the function that computed it, and every decision goes into a hash-chained audit log whose head we write to a smart contract on WeBank's FISCO BCOS. Change one record and verification fails.");
+  s.addTable(rows, { x: M, y: 1.55, w: 7.7, colW: [2.9, 2.5, 2.3], fontSize: 13, color: C.text1, fontFace: THEME.bodyFontFace, margin: [0.06, 0.12, 0.06, 0], valign: "middle", rowH: 0.62, objectName: "boundary-table" });
+  const px = M + 8.3, pw = W - M - px;
+  vrule(s, px - 0.3, 1.55, 4.6, RULE, "proof-divider");
+  const blocks = [
+    ["Every number shows its source", "Tap 7.43% and Keel shows: computed by allocation.build_allocation(), audit record cfbe5d57."],
+    ["No ungrounded figures", "An output guard checks each number in a reply against this session's tool results, and blocks promises such as \"guaranteed\"."],
+    ["Verifiable afterwards", "The audit-log head is written to a smart contract on WeBank's FISCO BCOS. Verify recomputes the log; one edited record fails."],
+  ];
+  blocks.forEach(([h2, body], i) => {
+    const y = 1.55 + i * 1.55;
+    if (i) rule(s, px, y - 0.15, pw, RULE, `proof-rule-${i}`);
+    text(s, h2, { x: px, y, w: pw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
+    text(s, body, { x: px, y: y + 0.4, w: pw, h: 1.0, fontSize: 13, color: C.accent5 });
+  });
+  s.addNotes("Our design rule: the model talks, code decides. The language model handles the conversation. Every figure, the risk class, suitability, limits and the order path live in deterministic server code the model cannot reach. Every number in the interface links to the function that computed it. An output guard checks each number in a reply against the session's tool results. And every decision goes into a hash-chained audit log whose head we write to a smart contract on WeBank's FISCO BCOS; change one record and verification fails.");
 }
 
 // ------------------------------------------------------------------ 7 real products
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Proof" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Proof" });
   s.addText("Advice on 24 real Chinese public funds", { placeholder: "title" });
   const facts = [
-    ["Open data", "East Money / Tiantian Fund pages, the source the AkShare library uses"],
-    ["Real risk levels", "Distributor labels 低风险 … 高风险 mapped to R1 … R5"],
-    ["Real costs", "Management, custody and sales-service fees per fund"],
-    ["Honest estimates", "10-year NAV volatility; returns shrunk halfway to an asset-class prior"],
+    ["Public data", "Fund pages on East Money and Tiantian Fund, the source the open-source AkShare library uses."],
+    ["Real risk levels", "Distributor labels 低风险 to 高风险, mapped to R1 to R5."],
+    ["Real costs", "Management, custody and sales-service fees for every fund."],
+    ["Honest estimates", "Ten years of NAV volatility; returns shrunk halfway to an asset-class prior."],
   ];
   facts.forEach(([head, body], i) => {
-    const y = 1.6 + i * 1.2;
-    s.addShape(pres.shapes.OVAL, { x: M, y: y + 0.05, w: 0.32, h: 0.32, fill: { color: C.accent1 }, line: { color: C.accent1 }, objectName: `fact-dot-${i + 1}` });
-    text(s, head, { x: M + 0.5, y, w: 5.2, h: 0.4, fontSize: 16, bold: true, color: C.text1 });
-    text(s, body, { x: M + 0.5, y: y + 0.4, w: 5.2, h: 0.7, fontSize: 13.5, color: C.accent5 });
+    const y = 1.55 + i * 1.18;
+    if (i) rule(s, M, y - 0.14, 5.4, RULE, `fact-rule-${i}`);
+    text(s, head, { x: M, y, w: 5.4, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
+    text(s, body, { x: M, y: y + 0.38, w: 5.4, h: 0.7, fontSize: 13, color: C.accent5 });
   });
-  const head = { bold: true, color: C.background1, fill: { color: C.accent1 }, fontSize: 14, align: "center" };
+  const hdr = (t, align) => ({ text: t, options: { bold: true, color: C.accent5, fontSize: 12, align, border: [{ type: "none" }, { type: "none" }, { pt: 1, color: RULE_STRONG }, { type: "none" }] } });
+  const c = (t, align, extra = {}) => ({ text: t, options: { align, border: [{ type: "none" }, { type: "none" }, { pt: 0.75, color: RULE }, { type: "none" }], ...extra } });
   const ladder = [
-    [{ text: "Class", options: head }, { text: "Expected return", options: head }, { text: "Volatility", options: head }, { text: "Worst historical loss", options: head }],
-    ["C1 Conservative", "1.1%", "0.2%", "0.0%"],
-    ["C2", "2.6%", "1.5%", "8.2%"],
-    ["C3 Balanced", "3.2%", "2.8%", "10.0%"],
-    ["C4", "7.4%", "8.4%", "21.3%"],
-    ["C5 Aggressive", "8.2%", "10.0%", "24.5%"],
-  ].map((row, r) => r === 0 ? row : row.map((v, c) => ({ text: v, options: { align: c === 0 ? "left" : "right" } })));
-  s.addTable(ladder, { x: M + 6.1, y: 1.6, w: 6.03, colW: [1.83, 1.4, 1.2, 1.6], fontSize: 14, color: C.text1, fill: { color: C.background1 }, border: { type: "solid", pt: 0.75, color: "D9E2DF" }, margin: 0.08, rowH: 0.55, valign: "middle", objectName: "class-ladder" });
-  text(s, "Model portfolios of 100,000 built from the real catalog, net of fees. Worst of the 2008, 2020 and 2022 shocks.", { x: M + 6.1, y: 5.05, w: 6.03, h: 0.7, fontSize: 12, color: C.accent5 });
-  s.addNotes("We replaced a mock catalog with 24 real Chinese public mutual funds: money market including Yu'E Bao, bond and balanced funds, CSI 300 and 500, Hang Seng, S&P 500, Nasdaq-100, gold and US real estate, the kind of products WeBank distributes. Risk levels R1 to R5 come from the distributor labels, fees are the real fees, volatility is ten years of NAV history. The table shows the resulting ladder: from 1.1 percent for C1 to 8.2 percent for C5, each with its worst historical loss.");
+    [hdr("Risk class", "left"), hdr("Expected return", "right"), hdr("Typical swing", "right"), hdr("Worst historical loss", "right")],
+    ...[["C1 Conservative", "1.1%", "0.2%", "0.0%"], ["C2", "2.4%", "1.0%", "8.2%"], ["C3 Balanced", "2.6%", "1.1%", "10.0%"], ["C4", "7.1%", "8.2%", "21.3%"], ["C5 Aggressive", "8.0%", "9.9%", "24.5%"]]
+      .map(([a, b, d, e]) => [c(a, "left"), c(b, "right", { color: C.accent1, bold: true }), c(d, "right"), c(e, "right")]),
+  ];
+  const tx = M + 6.2;
+  s.addTable(ladder, { x: tx, y: 1.55, w: W - M - tx, colW: [2.0, 1.45, 1.35, 1.633], fontSize: 14, color: C.text1, fontFace: THEME.bodyFontFace, margin: [0.06, 0.1, 0.06, 0], rowH: 0.56, valign: "middle", objectName: "class-ladder" });
+  text(s, "Model portfolios of 100,000 from the real catalog, after fees, before the client's own loss limit is applied. Worst of the 2008, 2020 and 2022 shocks.", { x: tx, y: 5.15, w: W - M - tx, h: 0.7, fontSize: 12, color: C.accent5 });
+  s.addNotes("The products are 24 real Chinese public mutual funds: money market, bond and balanced funds, CSI 300 and 500, Hang Seng, S&P 500, Nasdaq-100, gold and US real estate, the kind of products a digital bank distributes. Risk levels R1 to R5 come from the distributor labels, fees are the real fees, and volatility comes from ten years of NAV history. The table shows the resulting ladder, from 1.1 percent a year for C1 to 8 percent for C5, each with its worst historical loss.");
 }
 
 // ------------------------------------------------------------------ 8 security
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Proof" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Proof" });
   s.addText("Security enforced in code, not in prompts", { placeholder: "title" });
-  const tiers = [["T0 Info", "education, product facts"], ["T1 Advise", "default: profile, portfolio, stress, goals"], ["T2 Propose", "draft orders after pre-trade checks"], ["T3 Execute", "only with the client's one-time token"]];
+  const tiers = [["T0 Info", "education and product facts"], ["T1 Advise", "the default: profile, portfolio, stress tests, goals"], ["T2 Propose", "draft orders after pre-trade checks"], ["T3 Execute", "only with the client's one-time token"]];
+  rule(s, M, 1.55, 5.8, RULE_STRONG, "tiers-top");
   tiers.forEach(([head, body], i) => {
-    const y = 1.6 + i * 1.08;
+    const y = 1.55 + i * 0.85;
     const strong = i === 3;
-    card(s, M, y, 5.6, 0.88, { fill: strong ? C.accent1 : C.background1, line: strong ? "17695A" : "D9E2DF", name: `tier-${i}` });
-    text(s, head, { x: M + 0.25, y, w: 1.6, h: 0.88, fontSize: 15, bold: true, color: strong ? C.background1 : C.accent1, valign: "middle" });
-    text(s, body, { x: M + 1.9, y, w: 3.55, h: 0.88, fontSize: 13, color: strong ? C.background1 : C.text1, valign: "middle" });
+    text(s, head, { x: M, y: y + 0.12, w: 1.6, h: 0.6, fontSize: 15, bold: true, color: strong ? C.accent2 : C.text1, valign: "middle" });
+    text(s, body, { x: M + 1.7, y: y + 0.12, w: 4.1, h: 0.6, fontSize: 14, color: strong ? C.accent2 : C.accent5, valign: "middle" });
+    rule(s, M, y + 0.85, 5.8, RULE, `tier-rule-${i}`);
   });
-  text(s, "Signed risk disclosure → hold 1.5 s → 5 s undo. Tokens: hashed, bound to the exact order, single use, 5-minute expiry. Kill switch caps every session at T1.", { x: M, y: 5.95, w: 5.6, h: 0.9, fontSize: 12.5, color: C.accent5 });
-  const bx = M + 6.1;
-  text(s, NUMBERS.redteam, { x: bx, y: 1.5, w: 6, h: 1.1, fontFace: THEME.headFontFace, fontSize: 60, color: C.accent1 });
-  text(s, "red-team attacks stopped, and 8 / 8 harmless requests answered normally", { x: bx, y: 2.6, w: 6, h: 0.5, fontSize: 15, color: C.text1 });
-  const cats = ["Prompt injection, 10", "Chinese, Russian, Uzbek, Spanish, 5", "Obfuscated (base64, leetspeak), 4", "Role-play jailbreaks, 3", "Injection inside fund data, 5", "Personal data leaks, 10", "Unsafe claims and invented numbers, 6", "Suitability bypass, 4", "Execution without consent, 6", "Audit tampering and abuse, 4"];
-  text(s, cats.map((c, i) => ({ text: c, options: { bullet: true, breakLine: i < cats.length - 1 } })), { x: bx, y: 3.3, w: 6, h: 3.3, fontSize: 13, color: C.text1, paraSpaceAfter: 4 });
-  s.addNotes("Security is thirty percent of the score, so we enforce it in code. Four permission tiers; a session starts at Advise. Trading needs a signed risk disclosure, and every order needs a one-time token that only the person holding the confirm button receives; the model has no tool that can obtain it. Personal data is masked before any model call. Our red-team suite stops all 57 attacks, in five languages, while answering all 8 harmless control requests normally.");
+  text(s, "Trading needs a signed risk disclosure, a 1.5-second hold and a 5-second undo window. Tokens are hashed, bound to the exact order, single use and expire in five minutes. A kill switch caps every session at T1. Personal data is masked before any model call.", { x: M, y: 5.15, w: 5.8, h: 1.4, fontSize: 13, color: C.accent5 });
+  const bx = M + 6.6, bw = W - M - bx;
+  vrule(s, bx - 0.35, 1.55, 5.0, RULE, "security-divider");
+  text(s, NUMBERS.redteam, { x: bx, y: 1.45, w: bw, h: 1.1, fontSize: 64, bold: true, color: C.accent1 });
+  text(s, `red-team attacks stopped, and ${NUMBERS.benign} harmless requests still answered normally`, { x: bx, y: 2.6, w: bw, h: 0.6, fontSize: 15, color: C.text1 });
+  const cats = ["Prompt injection (10)", "Injection in Chinese, Russian, Uzbek, Spanish (5)", "Obfuscated: base64, leetspeak, acrostic (4)", "Role-play jailbreaks (3)", "Injection hidden in fund data (5)", "Personal data leaks (10)", "Unsafe claims and invented numbers (6)", "Suitability bypass (4)", "Execution without consent (6)", "Audit tampering and abuse (4)"];
+  text(s, cats.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < cats.length - 1 } })), { x: bx, y: 3.4, w: bw, h: 3.2, fontSize: 12.5, color: C.accent5, paraSpaceAfter: 3 });
+  s.addNotes("Security is thirty percent of the score, so we enforce it in code, not in prompts. There are four permission tiers, and every session starts at Advise. Trading needs a signed risk disclosure, and every order needs a one-time token that only the person holding the confirm button receives; the model has no tool that can obtain one. Personal data is masked before any model call. Our red-team suite stops all 57 attacks, in five languages, and still answers all 8 harmless control requests normally.");
 }
 
 // ------------------------------------------------------------------ 9 results
 pres.addSection({ title: "Results and fit" });
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Results and fit" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Results and fit" });
   s.addText("Measured, not claimed", { placeholder: "title" });
   const stats = [
-    [NUMBERS.journeys, "client journeys completed end to end on a live model (30 personas, C1–C5, 1 in 5 in Chinese)"],
-    [NUMBERS.redteam, "red-team attacks stopped across 12 categories"],
-    [NUMBERS.tests, "automated tests, including a live FISCO BCOS round trip"],
-    [NUMBERS.backtest, "model portfolios inside their volatility band, 2008–2026"],
+    [NUMBERS.journeys, "client journeys completed end to end on a live model: 30 scripted clients across C1 to C5, one in five in Chinese"],
+    [NUMBERS.redteam, "red-team attacks stopped across 12 categories, with no harmless request refused"],
+    [NUMBERS.tests, "automated tests, run offline in CI; a FISCO BCOS round trip runs when the chain is up"],
+    [NUMBERS.backtest, "risk classes stayed inside their volatility band from 2008 to 2026"],
   ];
-  const tw = (W - 2 * M - 3 * 0.3) / 4;
+  const tw = (W - 2 * M) / 4;
+  rule(s, M, 1.55, W - 2 * M, RULE_STRONG, "stats-top");
   stats.forEach(([n, label], i) => {
-    const x = M + i * (tw + 0.3);
-    card(s, x, 1.6, tw, 2.6, { name: `stat-${i + 1}` });
-    text(s, n, { x: x + 0.25, y: 1.8, w: tw - 0.5, h: 0.95, fontFace: THEME.headFontFace, fontSize: 40, color: C.accent1 });
-    text(s, label, { x: x + 0.25, y: 2.8, w: tw - 0.5, h: 1.3, fontSize: 13, color: C.text1 });
+    const x = M + i * tw;
+    if (i) vrule(s, x, 1.55, 2.55, RULE, `stat-divider-${i}`);
+    const px = x + (i ? 0.3 : 0);
+    text(s, n, { x: px, y: 1.75, w: tw - 0.5, h: 0.9, fontSize: 40, bold: true, color: C.accent1 });
+    text(s, label, { x: px, y: 2.7, w: tw - 0.55, h: 1.3, fontSize: 12.5, color: C.accent5 });
   });
-  card(s, M, 4.55, W - 2 * M, 1.95, { fill: C.text2, line: "07110F", name: "backtest-insight" });
-  text(s, "What the backtest taught us", { x: M + 0.35, y: 4.75, w: 6, h: 0.4, fontSize: 15, bold: true, color: C.accent6 });
-  text(s, "Every class kept its volatility target for 18 years, yet every class's worst fall was deeper than that number suggests: C5's 2008 drawdown was 34%. A volatility figure does not tell a client what 2008 feels like. That is why Keel enforces the client's own loss limit and makes them rehearse the crash.", { x: M + 0.35, y: 5.2, w: W - 2 * M - 0.7, h: 1.2, fontSize: 15, color: C.background1 });
-  s.addNotes("Numbers we measured. 29 of 30 scripted clients completed the whole journey on a live model. All 57 red-team attacks stopped. 89 automated tests. And a backtest from 2008 to 2026: every model portfolio stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why we enforce the client's own loss limit and make them rehearse the crash.");
+  rule(s, M, 4.1, W - 2 * M, RULE, "stats-bottom");
+  text(s, "What the backtest taught us", { x: M, y: 4.45, w: 6, h: 0.4, fontSize: 15, bold: true, color: C.accent2 });
+  text(s, "Every class kept its volatility target for 18 years, yet every class fell further than that number suggests: C5 lost 34% in 2008. A volatility figure does not tell a client what 2008 feels like. That is why Keel enforces the client's own loss limit and has them rehearse the crash.", { x: M, y: 4.9, w: W - 2 * M - 1, h: 1.3, fontSize: 17, color: C.text1 });
+  s.addNotes("Here is what we measured. Twenty-nine of thirty scripted clients completed the whole journey on a live model. All 57 red-team attacks were stopped. 129 automated tests run offline in continuous integration. And a backtest from 2008 to 2026: every risk class stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why Keel enforces the client's own loss limit and makes them rehearse the crash.");
 }
 
 // ------------------------------------------------------------------ 10 architecture
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Results and fit" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Results and fit" });
   s.addText("Architecture", { placeholder: "title" });
-  const box = (x, y, w, h, title, body, opts = {}) => {
-    card(s, x, y, w, h, { fill: opts.fill, line: opts.line, name: opts.name });
-    text(s, title, { x: x + 0.2, y: y + 0.15, w: w - 0.4, h: 0.38, fontSize: 14, bold: true, color: opts.titleColor || C.accent1 });
-    text(s, body, { x: x + 0.2, y: y + 0.55, w: w - 0.4, h: h - 0.65, fontSize: 11.5, color: opts.bodyColor || C.text1 });
-  };
-  box(M, 1.6, 2.6, 1.6, "Web app", "Chat + client file, EN / 中文, provenance on every number", { name: "arch-ui" });
-  box(M + 3.1, 1.6, 3.4, 1.6, "Advisor session", "Input guard (PII, injection) → agent loop with stage-aware tools → output guard (grounded numbers)", { name: "arch-session" });
-  box(M + 7.0, 1.6, 2.4, 1.6, "Groq LLMs", "gpt-oss-120b, fallbacks, Prompt Guard; replay offline", { name: "arch-llm" });
-  box(M + 3.1, 3.75, 3.4, 1.9, "Deterministic engine", "Profiling · Crash Rehearsal · allocation (Ledoit-Wolf, stress limit) · stress · goal Monte Carlo", { name: "arch-engine" });
-  box(M + 7.0, 3.75, 2.4, 1.9, "Real data", "24 Chinese funds · French · FRED · World Bank", { name: "arch-data" });
-  box(M, 3.75, 2.6, 1.9, "Execution", "Tiers T0–T3, one-time tokens, simulated account, T+2", { name: "arch-exec" });
-  box(M + 9.9, 1.6, 2.23, 4.05, "FISCO BCOS", "AuditAnchor contract on a 4-node consortium chain. Hash-chained audit log; Verify recomputes and compares.", { fill: C.text2, line: "07110F", titleColor: C.accent6, bodyColor: C.background1, name: "arch-chain" });
-  const arrow = (x, y, w) => s.addShape(pres.shapes.RIGHT_ARROW, { x, y, w, h: 0.3, fill: { color: C.accent5 }, line: { color: C.accent5 }, objectName: "arch-arrow" });
-  arrow(M + 2.65, 2.25, 0.4);
-  arrow(M + 6.55, 2.25, 0.4);
-  arrow(M + 9.45, 3.5, 0.4);
-  s.addShape(pres.shapes.DOWN_ARROW, { x: M + 4.6, y: 3.25, w: 0.3, h: 0.45, fill: { color: C.accent5 }, line: { color: C.accent5 }, objectName: "arch-down" });
-  text(s, "Python 3.12 · FastAPI · NumPy · web3.py + Solidity · plain HTML/CSS/JS · one command: uv run wealth-advisor-ui", { x: M, y: 6.0, w: W - 2 * M, h: 0.4, fontSize: 12.5, color: C.accent5 });
-  s.addNotes("The architecture in one picture. The web app talks to an advisor session. Every message passes an input guard that masks personal data and catches injection, then a bounded agent loop that only sees the tools valid for the current stage, then an output guard that refuses numbers no tool produced. The tools call a deterministic engine on real data. Execution sits behind permission tiers and one-time tokens. Everything is written to a hash-chained audit log anchored on FISCO BCOS.");
+  const iw = 7.4, ih = iw * 0.7;
+  s.addImage({ path: ASSET("architecture.png"), x: M, y: 1.45, w: iw, h: ih, altText: "Architecture: web UI and FastAPI server; advisory core with input guard, agent loop, output guard and tool dispatcher; untrusted language model; deterministic engine; client-only actions; audit log anchored on FISCO BCOS", objectName: "architecture" });
+  const rx = M + iw + 0.5, rw = W - M - rx;
+  vrule(s, rx - 0.25, 1.55, 5.0, RULE, "arch-divider");
+  const notes = [
+    ["The model is untrusted", "It can only talk and request tools. It never sees personal data and cannot reach the account."],
+    ["Stage-aware tools", "Each stage exposes only the tools that are valid there; at most eight steps per turn."],
+    ["Runs anywhere", "Python 3.12, FastAPI, NumPy, web3.py and Solidity. One command starts it; tests run offline without a key."],
+  ];
+  notes.forEach(([h2, body], i) => {
+    const y = 1.55 + i * 1.65;
+    if (i) rule(s, rx, y - 0.15, rw, RULE, `arch-rule-${i}`);
+    text(s, h2, { x: rx, y, w: rw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
+    text(s, body, { x: rx, y: y + 0.4, w: rw, h: 1.1, fontSize: 13, color: C.accent5 });
+  });
+  s.addNotes("The architecture in one picture. The language model sits outside the decision path: it can only talk and request tools. Every message passes an input guard that masks personal data and catches injection, then a bounded agent loop that only sees the tools valid for the current stage, then an output guard that refuses numbers no tool produced. Numbers come from the deterministic engine; money moves only through client actions with a one-time token; and everything lands in an audit log anchored on FISCO BCOS.");
 }
 
 // ------------------------------------------------------------------ 11 WeBank fit
 {
-  const s = pres.addSlide({ masterName: "LIGHT_CONTENT", sectionTitle: "Results and fit" });
+  const s = pres.addSlide({ masterName: "LIGHT", sectionTitle: "Results and fit" });
   s.addText("Built for a bank like WeBank", { placeholder: "title" });
   const items = [
-    ["FISCO BCOS", "Built", "Advisory records anchored on WeBank's consortium chain. In production, nodes run by the bank, an auditor and the regulator."],
-    ["FATE federated learning", "Next", "Crash Rehearsal creates a new signal: revealed risk tolerance. Banks could learn to predict it from questionnaires with FATE, without pooling client data."],
-    ["Fund distribution", "Built", "Real public funds with distributor risk levels, the products a digital bank already sells."],
-    ["Shenzhen, APEC 2026", "Built", "Bilingual English / 简体中文 interface; clients from across the region."],
+    ["FISCO BCOS", "Built", "Advisory records anchored on WeBank's consortium chain. In production the nodes would be run by the bank, an auditor and the regulator."],
+    ["FATE federated learning", "Next", "Crash Rehearsal creates a new signal, revealed risk tolerance. Banks could learn to predict it from questionnaires with FATE without pooling client data."],
+    ["Fund distribution", "Built", "Real public funds with distributor risk levels: the products a digital bank already sells."],
+    ["Bilingual by design", "Built", "English and 简体中文 throughout, for Shenzhen and clients across the region."],
   ];
-  const cw = (W - 2 * M - 0.3) / 2;
+  const cw = (W - 2 * M) / 2;
+  rule(s, M, 1.55, W - 2 * M, RULE_STRONG, "fit-top");
+  rule(s, M, 4.0, W - 2 * M, RULE, "fit-middle");
+  vrule(s, M + cw, 1.55, 4.9, RULE, "fit-divider");
   items.forEach(([head, status, body], i) => {
-    const x = M + (i % 2) * (cw + 0.3), y = 1.6 + Math.floor(i / 2) * 2.45;
-    card(s, x, y, cw, 2.2, { name: `fit-${i + 1}` });
-    text(s, head, { x: x + 0.3, y: y + 0.25, w: cw - 2, h: 0.45, fontSize: 18, bold: true, color: C.text1 });
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: x + cw - 1.3, y: y + 0.27, w: 1.0, h: 0.4, rectRadius: 0.2, fill: { color: status === "Built" ? C.accent1 : C.background2 }, line: { color: status === "Built" ? "17695A" : "D9E2DF" }, objectName: `fit-status-${i + 1}` });
-    text(s, status, { x: x + cw - 1.3, y: y + 0.27, w: 1.0, h: 0.4, fontSize: 12, bold: true, color: status === "Built" ? C.background1 : C.accent5, align: "center", valign: "middle" });
-    text(s, body, { x: x + 0.3, y: y + 0.85, w: cw - 0.6, h: 1.2, fontSize: 14, color: C.accent5 });
+    const x = M + (i % 2) * cw + (i % 2 ? 0.4 : 0), y = 1.8 + Math.floor(i / 2) * 2.45;
+    const w = cw - 0.6;
+    text(s, head, { x, y, w: w - 1.2, h: 0.4, fontSize: 18, bold: true, color: C.text1 });
+    text(s, status, { x: x + w - 1.0, y, w: 1.0, h: 0.4, fontSize: 13, bold: true, color: status === "Built" ? C.accent1 : C.accent2, align: "right" });
+    text(s, body, { x, y: y + 0.55, w, h: 1.4, fontSize: 14, color: C.accent5 });
   });
-  s.addNotes("Why this fits WeBank. The audit records already go to FISCO BCOS, the chain WeBank built. Next, FATE: Crash Rehearsal produces a new signal, revealed risk tolerance, and banks could learn to predict it from questionnaire answers with federated learning without pooling client data. The products are real public funds like those a digital bank distributes, and the interface is bilingual for Shenzhen and the APEC region.");
+  s.addNotes("Why this fits WeBank. The audit records already go to FISCO BCOS, the chain WeBank built. Next comes FATE: Crash Rehearsal produces a new signal, revealed risk tolerance, and banks could learn to predict it from questionnaire answers with federated learning, without pooling client data. The products are real public funds like those a digital bank distributes, and the whole interface is bilingual.");
 }
 
 // ------------------------------------------------------------------ 12 close
 {
   const s = pres.addSlide({ masterName: "DARK", sectionTitle: "Results and fit" });
-  text(s, "Advice you can prove.", { x: M, y: 2.0, w: 11, h: 1.4, fontFace: THEME.headFontFace, fontSize: 60, color: C.background1, valign: "bottom" });
-  text(s, "Rehearse the crash. Ground every number. Let only the client move money. Anchor the record on chain.", { x: M, y: 3.6, w: 10.5, h: 1.0, fontSize: 20, color: "BFD0CC" });
-  text(s, "Code and documentation: github.com/[account]/[repository]  ·  Demo video: [link]\n[Name 1], [Name 2] · Westminster International University in Tashkent", { x: M, y: 5.8, w: 11.5, h: 0.8, fontSize: 14, color: "BFD0CC" });
-  s.addNotes("Keel: advice you can prove. We rehearse the crash before the client invests, every number is grounded in audited code, only the client can move money, and the record lives on chain. Thank you; we are happy to take questions and to show the live demo.");
+  s.addImage({ path: ASSET("mark_light.png"), x: M, y: 0.7, w: 0.5, h: 0.5, altText: "Keel logo", objectName: "logo-close" });
+  text(s, "Advice you can check.", { x: M, y: 1.9, w: 11, h: 1.4, fontSize: 60, bold: true, color: C.background1, valign: "bottom" });
+  text(s, "Rehearse the crash before investing. Ground every number in code. Let only the client move money. Anchor the record on chain.", { x: M, y: 3.6, w: 10.8, h: 1.1, fontSize: 21, color: SEA_DIM });
+  rule(s, M, 5.75, W - 2 * M, SEA_RULE, "close-rule");
+  text(s, "Code and documentation: github.com/[account]/[repository]\n[Name 1], [Name 2]   Westminster International University in Tashkent", { x: M, y: 5.95, w: 11.5, h: 0.75, fontSize: 14, color: SEA_DIM, lineSpacingMultiple: 1.2 });
+  s.addNotes("Keel: advice you can check. We rehearse the crash before the client invests, every number is grounded in audited code, only the client can move money, and the record lives on chain. Thank you; we are happy to take questions and to show the live demo.");
 }
 
 (async () => {
   await pres.writeFile({ fileName: OUT });
-  if (SKILL_THEME) {
-    const { applyTheme } = require(SKILL_THEME);
-    await applyTheme(OUT, THEME);
-  }
+  await applyTheme(OUT, THEME);
   console.log("wrote", OUT);
 })();
