@@ -1,5 +1,7 @@
 """Web UI API contract: suitability is enforced server-side and numbers carry provenance."""
 
+import pytest
+
 from fastapi.testclient import TestClient
 
 from wealth_advisor.ui.server import app
@@ -153,6 +155,35 @@ def test_live_market_endpoints_are_stale_and_provenanced_when_disabled(tmp_path,
     assert funds.status_code == 200 and funds.json()["quotes"]
     assert all(quote["stale"] for quote in funds.json()["quotes"])
     assert client.post("/api/market/check-live").status_code == 409
+
+
+def test_cautious_cn_client_gets_fixed_income_plan_and_live_check(tmp_path, monkeypatch):
+    monkeypatch.setenv("WEALTH_ADVISOR_CATALOG", "cn")
+    client = _client(tmp_path, monkeypatch)
+    answers = {
+        "horizon": "3_7y",
+        "liquidity_need": "over_30d",
+        "income_stability": "stable",
+        "emergency_fund": "over_6_months",
+        "invested_share": "under_25",
+        "drawdown_reaction": "sell_all",
+        "experience": "none",
+        "goal": "preserve",
+    }
+    profile = client.post(
+        "/api/profile",
+        json={"answers": answers, "age": 60, "amount": 800_000, "horizon_years": 5, "max_loss": 0.05},
+    )
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["profile"]["investor_class"] == 1
+    allocation = client.post("/api/allocation", json={})
+    assert allocation.status_code == 200, allocation.text
+    allocation_view = allocation.json()["allocation"]
+    assert any(item["product_id"].startswith(("dep-", "lcd-", "sb-")) for item in allocation_view["holdings"])
+    assert len(allocation_view["holdings"]) >= 4
+    live_check = client.post("/api/market/check-live")
+    assert live_check.status_code == 200, live_check.text
+    assert live_check.json()["check"]["value_after"] == pytest.approx(800_000)
 
 
 def test_security_headers_and_health(tmp_path, monkeypatch):

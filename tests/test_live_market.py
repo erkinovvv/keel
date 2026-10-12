@@ -65,3 +65,8 @@ def test_disabled_or_failed_network_returns_stale_dated_snapshot():
 def test_fund_allowlist_rejects_unknown_id():
     with pytest.raises(ValueError, match="allowlist"):
         LiveMarket(enabled=False).funds(["CN-999999"])
+
+
+def test_funds_skips_fixed_income_product_ids():
+    market = LiveMarket(enabled=False)
+    assert market.funds(["dep-big6-1y", "lcd-big6-3y"]) == []

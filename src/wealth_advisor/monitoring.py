@@ -85,9 +85,12 @@ def check_live_market(
 
     values: dict[str, float] = {}
     for holding in allocation.holdings:
-        if holding.product_id not in fund_changes_pct:
+        if holding.product_id.startswith(("dep-", "lcd-", "sb-")):
+            change = 0.0
+        elif holding.product_id not in fund_changes_pct:
             raise ValueError(f"current NAV change unavailable for {holding.product_id}")
-        change = float(fund_changes_pct[holding.product_id])
+        else:
+            change = float(fund_changes_pct[holding.product_id])
         if not math.isfinite(change) or abs(change) > 30:
             raise ValueError("fund NAV change outside sanity bounds")
         values[holding.asset_class] = values.get(holding.asset_class, 0.0) + holding.amount * (1 + change / 100)

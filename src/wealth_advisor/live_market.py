@@ -170,7 +170,7 @@ class LiveMarket:
         self._meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {"as_of": SNAPSHOT_DATE, "funds": {}}
 
     def _network_enabled(self) -> bool:
-        return self.enabled if self.enabled is not None else os.getenv("LIVE_MARKET", "0") == "1"
+        return self.enabled if self.enabled is not None else os.getenv("LIVE_MARKET", "1") == "1"
 
     def _fetch(self, provider: str, symbol: str) -> bytes:
         url, headers = _request_spec(provider, symbol)
@@ -216,6 +216,9 @@ class LiveMarket:
 
     def funds(self, ids: list[str] | None = None, audit: Any = None) -> list[MarketQuote]:
         selected = ids if ids is not None else list(self._funds)
-        if any(key not in self._funds or not _FUND_CODE.fullmatch(key) for key in selected):
+        selected = [key for key in selected if key in self._funds]
+        requested = set(ids or ())
+        unknown = requested - set(self._funds) - {key for key in requested if key.startswith(("dep-", "lcd-", "sb-"))}
+        if unknown:
             raise ValueError("fund is not in the CN catalog allowlist")
         return [self._quote(key, audit) for key in dict.fromkeys(selected)]

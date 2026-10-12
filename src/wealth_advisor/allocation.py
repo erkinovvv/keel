@@ -283,7 +283,25 @@ def _refine_class_weights(
     }
 
 
+def _worst_stress_loss_holdings(holdings: Sequence[Holding], catalog_by_id: Mapping[str, Product]) -> float:
+    from .stress import SCENARIOS
+
+    return max(
+        max(
+            0.0,
+            -sum(
+                holding.weight
+                * (0.0 if catalog_by_id[holding.product_id].kind in {"deposit", "large_cd", "savings_bond"} else shocks[holding.asset_class])
+                for holding in holdings
+            ),
+        )
+        for shocks in SCENARIOS.values()
+    )
+
+
 def _worst_stress_loss(weights: dict[str, float]) -> float:
+    """Return the class-level stress loss used while moving strategic weights."""
+
     from .stress import SCENARIOS
 
     return max(max(0.0, -sum(weight * shocks[asset] for asset, weight in weights.items())) for shocks in SCENARIOS.values())
@@ -374,12 +392,29 @@ def build_allocation(
     strategic = _refine_class_weights(strategic, eligible_by_class, investor_class, market_estimate, use_black_litterman, bl_tau, bl_views)
     if liquidity_policy:
         strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
-    stress_before = _worst_stress_loss(strategic) if max_tolerable_loss is not None else None
+    catalog_by_id = {product.id: product for product in catalog}
+
+    def selected_holdings(weights: dict[str, float]) -> list[Holding]:
+        preview: list[Holding] = []
+        for asset_class, target in weights.items():
+            if target:
+                preview.extend(
+                    _select_holdings(
+                        eligible_by_class[asset_class], asset_class, target, amount, investor_class, cash_rate,
+                        max_liquid_days if liquidity_policy and asset_class == "cash" else None,
+                    )
+                )
+        return preview
+
+    def stress_for_weights(weights: dict[str, float]) -> float:
+        return _worst_stress_loss_holdings(selected_holdings(weights), catalog_by_id)
+
+    stress_before = stress_for_weights(strategic) if max_tolerable_loss is not None else None
     if max_tolerable_loss is not None and stress_before > max_tolerable_loss + 1e-10:
         strategic = _constrain_stress_weights(strategic, class_base, max_tolerable_loss)
         if liquidity_policy:
             strategic = _enforce_liquidity_sleeve(strategic, eligible_by_class, *liquidity_policy)
-        if _worst_stress_loss(strategic) > max_tolerable_loss + 1e-10:
+        if stress_for_weights(strategic) > max_tolerable_loss + 1e-10:
             if investor_class == 1:
                 raise ValueError("no suitable allocation satisfies the client's maximum historical stress loss")
             lower = build_allocation(
@@ -393,7 +428,10 @@ def build_allocation(
                 lower,
                 reason_codes=("STRESS_LIMIT_APPLIED",),
                 stress_limit_before=stress_before,
-                stress_limit_after=_worst_stress_loss(lower.strategic_weights),
+                stress_limit_after=_worst_stress_loss_holdings(
+                    lower.holdings,
+                    {product.id: product for product in catalog},
+                ),
             )
     holdings: list[Holding] = []
     for asset_class, target in strategic.items():
@@ -465,5 +503,5 @@ def build_allocation(
         volatility_band=VOLATILITY_BANDS[investor_class],
         reason_codes=tuple(code for code, active in (("STRESS_LIMIT_APPLIED", stress_applied), ("DEPOSIT_INSURANCE_SPLIT", insurance_split)) if active),
         stress_limit_before=stress_before if stress_applied else None,
-        stress_limit_after=_worst_stress_loss({asset: float(weight) for asset, weight in zip(classes, class_weights)}) if stress_applied else None,
+        stress_limit_after=_worst_stress_loss_holdings(holdings, by_id) if stress_applied else None,
     )

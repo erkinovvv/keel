@@ -544,7 +544,8 @@ def check_live(response: Response, wa_sid: str | None = Cookie(default=None)) ->
         quotes = file.session.market.funds([holding.product_id for holding in allocation.holdings], file.session.audit)
     except ValueError as exc:
         raise HTTPException(409, str(exc)) from exc
-    if any(quote.stale or quote.change_pct is None for quote in quotes):
+    fund_ids = {holding.product_id for holding in allocation.holdings if not holding.product_id.startswith(("dep-", "lcd-", "sb-"))}
+    if any(quote.stale or quote.change_pct is None for quote in quotes if quote.id in fund_ids):
         raise HTTPException(503, "Current NAV changes are unavailable for every holding; no live check was computed.")
     changes = {quote.id: quote.change_pct for quote in quotes if quote.change_pct is not None}
     check = check_live_market(allocation, changes, loss_limit=_client(file).get("max_loss"), rehearsal=file.rehearsals[-1] if file.rehearsals else None)
