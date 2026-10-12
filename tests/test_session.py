@@ -35,8 +35,19 @@ def test_session_tools_use_stored_profile_and_allocation_ids(tmp_path):
     allocation = session.dispatcher.dispatch("build_allocation", {"amount": 100_000})
     assert allocation["allocation_id"] == "allocation-1"
     stress = session.dispatcher.dispatch("stress_test", {"allocation_id": "latest"})
-    assert stress["allocation_id"] == "latest"
+    assert stress["allocation_id"] == "allocation-1"
     assert "allocation" not in stress
+
+
+def test_invented_allocation_id_resolves_to_latest(tmp_path):
+    # The model never sees allocation ids; a guessed id must not send it into a retry loop.
+    session = make_session(tmp_path)
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+    with pytest.raises(ValueError, match="build an allocation first"):
+        session.dispatcher.dispatch("stress_test", {"allocation_id": "portfolio_1"})
+    session.dispatcher.dispatch("build_allocation", {"amount": 100_000})
+    stress = session.dispatcher.dispatch("stress_test", {"allocation_id": "portfolio_1"})
+    assert stress["allocation_id"] == "allocation-1"
 
 
 def test_session_rejects_missing_or_expired_profile(tmp_path):

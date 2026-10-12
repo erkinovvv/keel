@@ -241,6 +241,12 @@ class ToolDispatcher:
             raise ValueError("profile expired: reassess the investor before requesting advice")
         return self.session.state.profile.investor_class
 
+    def _allocation_id(self, allocation_id: str) -> str:
+        # The model never sees allocation ids, so an id it invents means the client's latest allocation.
+        if allocation_id in self.session.state.allocations:
+            return allocation_id
+        return self.session.state.latest_allocation_id or "latest"
+
     def dispatch(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if name == "record_client_facts":
             if self.session:
@@ -328,20 +334,21 @@ class ToolDispatcher:
             args = _validated(StressArgs, arguments)
             if not self.session:
                 raise ValueError("stress_test requires a server-side AdvisorSession")
-            allocation = self.session.stored_allocation(args.allocation_id)
+            allocation_id = self._allocation_id(args.allocation_id)
+            allocation = self.session.stored_allocation(allocation_id)
             max_loss = args.max_tolerable_loss_fraction
             if max_loss is None and self.session:
                 max_loss = self.session.state.client.max_loss
             stress_result = stress_test(allocation, scenario=args.scenario, custom_shocks=args.custom_shocks, max_tolerable_loss=max_loss if max_loss is not None else 0.20)
             stress_id = f"stress-{len(self.session.state.stress_results) + 1}"
             self.session.state.stress_results[stress_id] = stress_result
-            result = {"stress_id": stress_id, "allocation_id": args.allocation_id, **stress_result.as_dict()}
+            result = {"stress_id": stress_id, "allocation_id": allocation_id, **stress_result.as_dict()}
         elif name == "create_draft_orders":
             if not self.session:
                 raise ValueError("create_draft_orders requires a server-side AdvisorSession")
             require_tier(self.session.tier, PermissionTier.PROPOSE)
             args = DraftOrderArgs.model_validate(arguments)
-            result = {"orders": self.session.create_draft_orders(args.allocation_id)}
+            result = {"orders": self.session.create_draft_orders(self._allocation_id(args.allocation_id))}
         else:
             raise ValueError(f"unknown tool: {name}")
         if self.audit:
