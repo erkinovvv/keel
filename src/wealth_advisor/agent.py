@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -14,33 +15,40 @@ from .security import tool_output_guard
 from .tools import TOOL_SCHEMAS, ToolDispatcher, compact_tool_result
 
 
-MAX_REPLY_WORDS = 70
+MAX_REPLY_WORDS = 100
+MAX_REPLY_CJK_CHARACTERS = 180
 MAX_REPLY_PARAGRAPHS = 3
+_SENTENCE_RE = re.compile(r"[^.!?。！？]+[.!?。！？]|[^.!?。！？]+$")
 
 
 def shape_reply(content: str, max_words: int = MAX_REPLY_WORDS, max_paragraphs: int = MAX_REPLY_PARAGRAPHS) -> str:
-    """Apply deterministic length and paragraph limits to model text."""
+    """Apply deterministic whole-sentence and paragraph limits to model text."""
 
     paragraphs = [
         " ".join(paragraph.split())
-        for paragraph in content.splitlines()
+        for paragraph in re.split(r"\n\s*\n", content)
         if paragraph.strip()
     ][:max_paragraphs]
     shaped: list[str] = []
-    remaining = max_words
+    cjk = any("\u4e00" <= character <= "\u9fff" for character in content)
+    limit = MAX_REPLY_CJK_CHARACTERS if cjk else max_words
+    sentence_separator = "" if cjk else " "
+    used = 0
+    first_sentence = True
     for paragraph in paragraphs:
-        words = paragraph.split()
-        if not words or remaining <= 0:
-            break
-        selected = words[:remaining]
-        shaped.append(" ".join(selected))
-        remaining -= len(selected)
-        if len(selected) < len(words):
-            break
-    result = "\n\n".join(shaped).strip()
-    if len(result.split()) < sum(len(paragraph.split()) for paragraph in paragraphs):
-        result = result.rstrip(" ,;:") + "…"
-    return result
+        sentences = [match.group(0).strip() for match in _SENTENCE_RE.finditer(paragraph)]
+        selected: list[str] = []
+        for sentence in sentences:
+            size = len(sentence) if cjk else len(sentence.split())
+            if first_sentence or used + size <= limit:
+                selected.append(sentence)
+                used += size
+                first_sentence = False
+                continue
+            return "\n\n".join(shaped + ([sentence_separator.join(selected)] if selected else [])).strip()
+        if selected:
+            shaped.append(sentence_separator.join(selected))
+    return "\n\n".join(shaped).strip()
 
 
 @dataclass(frozen=True)

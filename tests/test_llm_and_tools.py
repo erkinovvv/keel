@@ -1,6 +1,6 @@
 import json
 
-from wealth_advisor.agent import AdvisorAgent
+from wealth_advisor.agent import AdvisorAgent, shape_reply
 from wealth_advisor.audit import AuditLogger
 from wealth_advisor.allocation import build_allocation
 from wealth_advisor.config import Settings
@@ -27,16 +27,32 @@ def test_replay_unavailable_message_uses_client_language(tmp_path):
     assert "离线运行" in response.content
 
 
-def test_replay_reply_is_shaped_to_three_paragraphs_and_70_words(tmp_path):
+def test_replay_reply_is_shaped_to_three_paragraphs_and_100_words(tmp_path):
     fixture = tmp_path / "replay.json"
     fixture.write_text(
-        '{"responses": [{"content": "' + " ".join(["word"] * 85) + '", "tool_calls": []}]}',
+        '{"responses": [{"content": "' + " ".join(["word"] * 98) + '. Second sentence is omitted.", "tool_calls": []}]}',
         encoding="utf-8",
     )
     settings = Settings(llm_mode="replay", replay_file=fixture)
     result = AdvisorAgent(LLMClient(settings), ToolDispatcher(), max_steps=1).run("hello")
-    assert len(result.split()) <= 70
+    assert len(result.split()) <= 100
     assert len([paragraph for paragraph in result.split("\n\n") if paragraph]) <= 3
+    assert result.endswith(".")
+    assert "Second sentence" not in result
+
+
+def test_reply_shaping_keeps_a_long_first_sentence_without_ellipsis():
+    result = shape_reply("".join(["long "] * 120) + ". Next sentence is omitted.")
+    assert result.endswith(".")
+    assert "Next sentence" not in result
+    assert "…" not in result
+
+
+def test_reply_shaping_counts_chinese_characters_and_keeps_sentences():
+    result = shape_reply("第一句已经完整。" + "这是一段很长的中文内容。" * 20 + "第二句不应出现。")
+    assert len(result) <= 180
+    assert result.endswith("。")
+    assert "第二句不应出现" not in result
 
 
 def test_tool_dispatcher_validates_and_returns_json_ready_values(tmp_path):
