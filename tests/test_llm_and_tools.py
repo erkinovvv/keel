@@ -27,6 +27,18 @@ def test_replay_unavailable_message_uses_client_language(tmp_path):
     assert "离线运行" in response.content
 
 
+def test_replay_reply_is_shaped_to_three_paragraphs_and_70_words(tmp_path):
+    fixture = tmp_path / "replay.json"
+    fixture.write_text(
+        '{"responses": [{"content": "' + " ".join(["word"] * 85) + '", "tool_calls": []}]}',
+        encoding="utf-8",
+    )
+    settings = Settings(llm_mode="replay", replay_file=fixture)
+    result = AdvisorAgent(LLMClient(settings), ToolDispatcher(), max_steps=1).run("hello")
+    assert len(result.split()) <= 70
+    assert len([paragraph for paragraph in result.split("\n\n") if paragraph]) <= 3
+
+
 def test_tool_dispatcher_validates_and_returns_json_ready_values(tmp_path):
     dispatcher = ToolDispatcher(AuditLogger(tmp_path / "audit.jsonl"))
     result = dispatcher.dispatch("profile_investor", {"answers": {

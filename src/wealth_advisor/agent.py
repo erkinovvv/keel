@@ -14,6 +14,35 @@ from .security import tool_output_guard
 from .tools import TOOL_SCHEMAS, ToolDispatcher, compact_tool_result
 
 
+MAX_REPLY_WORDS = 70
+MAX_REPLY_PARAGRAPHS = 3
+
+
+def shape_reply(content: str, max_words: int = MAX_REPLY_WORDS, max_paragraphs: int = MAX_REPLY_PARAGRAPHS) -> str:
+    """Apply deterministic length and paragraph limits to model text."""
+
+    paragraphs = [
+        " ".join(paragraph.split())
+        for paragraph in content.splitlines()
+        if paragraph.strip()
+    ][:max_paragraphs]
+    shaped: list[str] = []
+    remaining = max_words
+    for paragraph in paragraphs:
+        words = paragraph.split()
+        if not words or remaining <= 0:
+            break
+        selected = words[:remaining]
+        shaped.append(" ".join(selected))
+        remaining -= len(selected)
+        if len(selected) < len(words):
+            break
+    result = "\n\n".join(shaped).strip()
+    if len(result.split()) < sum(len(paragraph.split()) for paragraph in paragraphs):
+        result = result.rstrip(" ,;:") + "…"
+    return result
+
+
 @dataclass(frozen=True)
 class AgentTurn:
     content: str
@@ -76,8 +105,9 @@ class AdvisorAgent:
             for key in usage:
                 usage[key] += int(response.usage.get(key, 0))
             if not response.tool_calls:
-                messages.append({"role": "assistant", "content": response.content})
-                return AgentTurn(response.content, messages, tool_results, usage, (time.perf_counter() - started) * 1000)
+                content = shape_reply(response.content)
+                messages.append({"role": "assistant", "content": content})
+                return AgentTurn(content, messages, tool_results, usage, (time.perf_counter() - started) * 1000)
             messages.append({"role": "assistant", "content": response.content or None, "tool_calls": [
                 {"id": call.id, "type": "function", "function": {"name": call.name, "arguments": json.dumps(call.arguments)}}
                 for call in response.tool_calls
