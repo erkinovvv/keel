@@ -94,6 +94,17 @@ LLM_MODE=live uv run python evals/journeys/run.py      # 30 client personas on t
 | Red-team, benign requests handled correctly | 8 / 8 |
 | Client journeys completed on the live model | **29 / 30** (97%; 30 personas across C1–C5, 6 in Chinese; profile class correct 29/30, suitable allocation 30/30) |
 
+## Submission checklist
+
+| Rules item | In this repository |
+|---|---|
+| 1. Technical documentation (architecture, core algorithms, security design) | [`submission/Keel_Technical_Documentation.pdf`](submission/Keel_Technical_Documentation.pdf), built from the docs below by `scripts/build_docs_pdf.py` |
+| 2. Presentation deck | `submission/` (final deck) |
+| 3. Demo video | [`submission/Keel_Demo.mp4`](submission/Keel_Demo.mp4), recorded end to end by `scripts/record_demo.py` |
+| 4. Source code, README, deployment, tests | this repository; Quick start above; `tests/`, `evals/`; `Dockerfile`; CI in `.github/workflows/ci.yml` |
+| 5. Security self-assessment | [`submission/Keel_Security_Self_Assessment.pdf`](submission/Keel_Security_Self_Assessment.pdf) |
+| 6. Execution evidence | [`evidence/`](evidence/INDEX.md): simulated-account sessions with hash-chained audit logs and FISCO BCOS transaction hashes |
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) — components, the model/code boundary, one chat turn, data model, permission tiers
