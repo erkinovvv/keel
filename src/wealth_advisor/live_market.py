@@ -134,6 +134,9 @@ def _parse_fund(provider: str, code: str, payload: bytes, product: Product | Non
             raise ValueError("East Money rejected fund lookup")
         rows = body["Data"]["LSJZList"]
         latest = rows[0]
+        if product is not None and product.asset_class == "cash":
+            # Money-market products report income per 10,000 units, not a NAV.
+            return product.nav, None, latest["FSRQ"]
         change = latest.get("JZZZL")
         if change in (None, "") and len(rows) > 1:
             previous = float(rows[1]["DWJZ"])
@@ -213,14 +216,23 @@ class LiveMarket:
             providers = (("eastmoney", meta["code"]), ("tencent", f"jj{meta['code']}"))
         result = snapshot
         if self._network_enabled():
-            for provider, symbol in providers:
-                try:
-                    payload = self._fetch(provider, symbol)
-                    price, change, as_of = _parse_index(provider, symbol, payload) if key in _INDICES else _parse_fund(provider, symbol.removeprefix("jj"), payload, product)
-                    result = MarketQuote(key, name_en, name_zh, price, change, as_of, provider)
-                    break
-                except (ValueError, TypeError, KeyError, IndexError, UnicodeError, OSError, TimeoutError):
-                    continue
+            def fetch_quote(provider: str, symbol: str) -> tuple[float, float | None, str]:
+                payload = self._fetch(provider, symbol)
+                return (_parse_index(provider, symbol, payload) if key in _INDICES else _parse_fund(
+                    provider, symbol.removeprefix("jj"), payload, product
+                ))
+
+            # Start the primary and fallback together so a slow provider cannot
+            # consume the full timeout before the fallback gets a chance.
+            with ThreadPoolExecutor(max_workers=len(providers)) as executor:
+                futures = [executor.submit(fetch_quote, provider, symbol) for provider, symbol in providers]
+                for (provider, _), future in zip(providers, futures):
+                    try:
+                        price, change, as_of = future.result()
+                        result = MarketQuote(key, name_en, name_zh, price, change, as_of, provider)
+                        break
+                    except (ValueError, TypeError, KeyError, IndexError, UnicodeError, OSError, TimeoutError):
+                        continue
         self._cache[key] = (self.clock(), result)
         if self._process_cache:
             with _PROCESS_CACHE_LOCK:

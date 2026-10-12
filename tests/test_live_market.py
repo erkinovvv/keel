@@ -79,3 +79,17 @@ def test_tencent_money_market_quote_uses_nav_not_income_per_ten_thousand():
     price, change, _ = _parse_fund("tencent", "000198", payload, product)
     assert price == product.nav == 1.0
     assert change is None
+
+
+def test_eastmoney_money_market_quote_uses_nav_not_income_per_ten_thousand():
+    product = next(product for product in load_catalog(FIXTURES.parents[2] / "src" / "wealth_advisor" / "data" / "products_cn.json") if product.id == "CN-000198")
+    payload = json.dumps({
+        "ErrCode": 0,
+        "Data": {"LSJZList": [
+            {"DWJZ": "0.3543", "JZZZL": "0.00", "FSRQ": "2026-10-12"},
+            {"DWJZ": "0.3539", "JZZZL": "0.00", "FSRQ": "2026-10-11"},
+        ]},
+    }).encode()
+    price, change, as_of = _parse_fund("eastmoney", "000198", payload, product)
+    assert price == product.nav == 1.0
+    assert change is None and as_of == "2026-10-12"
