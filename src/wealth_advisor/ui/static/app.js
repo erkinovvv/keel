@@ -64,7 +64,11 @@ document.addEventListener("click", (e) => {
   popover.style.left = `${left}px`;
   popover.style.top = `${top}px`;
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { popover.hidden = true; closeDrawer(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  popover.hidden = true;
+  if (document.body.classList.contains("chat-open")) closeChat(); else closeDrawer();
+});
 
 // ---------------------------------------------------------------- advisor thread
 
@@ -75,7 +79,40 @@ function say(paragraphs) {
   li.innerHTML = `${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
   thread.append(li);
   thread.scrollTop = thread.scrollHeight;
+  notifyChat(li);
 }
+
+// On phones the chat is a full-screen sheet; while it is closed, new advisor messages show as a
+// short preview under the top bar and a count on the chat button.
+const phone = window.matchMedia("(max-width: 920px)");
+const toast = $("#toast");
+let unread = 0, toastTimer;
+function notifyChat(li) {
+  if (!phone.matches || document.body.classList.contains("chat-open")) return;
+  unread += 1;
+  $("#chatBadge").textContent = unread;
+  $("#chatBadge").hidden = false;
+  toast.innerHTML = `<span class="avatar" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 13h16M16 13v11M12.5 24h7"/></svg></span><span><b>${t("Your advisor")}</b>${esc([...li.querySelectorAll("p")].map((x) => x.textContent).join(" ").replace(/\s+/g, " ").trim())}</span>`;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (toast.hidden = true), 6000);
+}
+function openChat() {
+  document.body.classList.add("chat-open");
+  $("#chatBtn").setAttribute("aria-expanded", "true");
+  unread = 0;
+  $("#chatBadge").hidden = true;
+  toast.hidden = true;
+  thread.scrollTop = thread.scrollHeight;
+}
+function closeChat() {
+  document.body.classList.remove("chat-open");
+  $("#chatBtn").setAttribute("aria-expanded", "false");
+  $("#chatBtn").focus();
+}
+$("#chatBtn").onclick = openChat;
+$("#advisorClose").onclick = closeChat;
+toast.onclick = openChat;
 function clientSays(text) {
   const li = document.createElement("li");
   li.className = "msg-client";
@@ -199,7 +236,11 @@ function go(step) {
   popover.hidden = true;
   ({ profile: renderProfile, portfolio: renderPortfolio, rehearse: renderRehearse, goal: renderGoal, compare: renderCompare, stress: renderStress, execute: renderExecute })[step]();
   panel.scrollTop = 0;
+  if (phone.matches) window.scrollTo(0, 0);
 }
+
+const CURRENCY_SIGN = { CNY: "¥", USD: "$", EUR: "€", HKD: "HK$" };
+const currency = () => state.catalog?.currency || "";
 
 // ---------------------------------------------------------------- 1. profile
 
@@ -209,40 +250,45 @@ const HORIZON_YEARS = { under_1y: 1, "1_3y": 2, "3_7y": 5, "7_10y": 8, over_10y:
 function renderProfile() {
   const c = state.client || { amount: 100000, horizon_years: 10, max_loss: 0.2, age: 35 };
   const prev = state.answers || {};
+  // Once assessed, the result leads and the questionnaire stays below for changes.
+  const assessed = Boolean(state.profile);
   panel.innerHTML = `
     <h1>${t("Let's understand your situation")}</h1>
     <p class="lede">${t("Your risk class is the lower of two things: how much loss you can <em>afford</em> (capacity) and how much you are <em>comfortable</em> with (tolerance). Nothing here is shared outside this session.")}</p>
+    ${assessed ? `<div id="profileResult"></div><h3 class="change-head">${t("Change your answers")}</h3>` : ""}
     <form id="kyc">
+      <h3>${t("About you")}</h3>
       <div class="sheet">
         <div class="facts">
-          <div class="field"><label for="age">${t("Age")}</label><input id="age" type="number" min="18" max="100" value="${c.age}" required></div>
-          <div class="field"><label for="amount">${t("Amount to invest")}</label><input id="amount" type="number" min="1000" step="1000" value="${c.amount}" required></div>
+          <div class="field"><label for="age">${t("Age")}</label><input id="age" type="number" inputmode="numeric" min="18" max="100" value="${c.age}" required></div>
+          <div class="field"><label for="amount">${t("Amount to invest")}</label><div class="affix"><input id="amount" type="number" inputmode="numeric" min="1000" step="1000" value="${c.amount}" required>${currency() ? `<span>${esc(currency())}</span>` : ""}</div></div>
           <div class="field"><label for="maxloss">${t("Loss you could accept in a bad year")} <span class="range-value" id="maxlossV">${Math.round(c.max_loss * 100)}%</span></label><input id="maxloss" type="range" min="5" max="50" value="${Math.round(c.max_loss * 100)}"></div>
           <label class="check"><input id="borrowed" type="checkbox"> ${t("Part of this money is borrowed")}</label>
         </div>
       </div>
-      <div class="sheet">
-        <div class="questions">
-          ${state.questionnaire.map((q) => `
-            <fieldset class="q">
-              <legend data-missing="${t("Answer this question")}">${esc(q.question)}</legend>
-              <div class="chips">
-                ${q.options.map((o, i) => `
-                  <label class="chip"><input type="radio" name="${q.key}" value="${o.key}" ${prev[q.key] === o.key ? "checked" : ""}><span>${esc(o.label)}</span></label>`).join("")}
-              </div>
-            </fieldset>`).join("")}
-        </div>
+      <h3>${t("Your answers")}</h3>
+      <div class="questions">
+        ${state.questionnaire.map((q, n) => `
+          <fieldset class="q">
+            <legend data-missing="${t("Answer this question")}"><span class="qn">${n + 1}/${state.questionnaire.length}</span><span>${esc(q.question)}</span></legend>
+            <div class="chips">
+              ${q.options.map((o) => `
+                <label class="chip"><input type="radio" name="${q.key}" value="${o.key}" ${prev[q.key] === o.key ? "checked" : ""}><span>${esc(o.label)}</span></label>`).join("")}
+            </div>
+          </fieldset>`).join("")}
       </div>
-      <div class="actions">
+      <div class="actions submit-bar ${assessed ? "static" : ""}">
+        <div class="qprog"><span class="hint" id="answered"></span><div class="qbar" aria-hidden="true"><i id="qbarFill"></i></div></div>
         <button class="btn" type="submit" id="assess">${t("Assess my risk profile")}</button>
-        <span class="hint" id="answered"></span>
       </div>
       <div id="kycErr"></div>
     </form>
-    <div id="profileResult"></div>`;
+    ${assessed ? "" : `<div id="profileResult"></div>`}`;
   const progress = () => {
+    const total = state.questionnaire.length;
     const left = state.questionnaire.filter((q) => !$(`input[name="${q.key}"]:checked`)).length;
     $("#answered").textContent = left ? tn("1 question left", "{n} questions left", left) : t("Scored by fixed rules, not by AI.");
+    $("#qbarFill").style.width = `${((total - left) / total) * 100}%`;
   };
   $("#kyc").addEventListener("change", (e) => {
     progress();
@@ -298,12 +344,14 @@ function showProfile(narrate) {
   const prov = state.profileProv;
   const at = (cls) => `${(cls - 0.5) * 20}%`;
   $("#profileResult").innerHTML = `
-    <h3>${t("Your result")}</h3>
+    <h3 style="margin-top:0">${t("Your result")}</h3>
     <div class="sheet">
       <div class="verdict">
         <div>
-          <div class="class-code">${t("Risk class")} ${num(`C${p.investor_class}`, prov, t("Investor risk class"))}</div>
-          <div class="class-name">${esc(p.class_name)}</div>
+          <div class="verdict-main">
+            <div class="class-badge">${num(`C${p.investor_class}`, prov, t("Investor risk class"))}</div>
+            <div><div class="class-code">${t("Risk class")}</div><div class="class-name">${esc(p.class_name)}</div></div>
+          </div>
           <p>${t("You can be recommended products up to risk level <strong>R{n}</strong>. Profile valid until {date}.", { n: p.investor_class, date: longDate(p.expires_on) })}</p>
         </div>
         <div class="scale" aria-label="Capacity C${p.capacity_class}, tolerance C${p.tolerance_class}, final class C${p.investor_class}">
@@ -317,7 +365,7 @@ function showProfile(narrate) {
     </div>
     <h3>${t("Why this class")}</h3>
     <div class="sheet"><ul class="reasons">${p.reasons.map((r) => `<li>${esc(r.text)}</li>`).join("")}</ul></div>
-    <div class="actions"><button class="btn" id="toPortfolio" type="button">${t("See my recommended portfolio")}</button></div>`;
+    <div class="actions next-bar"><button class="btn" id="toPortfolio" type="button">${t("See my recommended portfolio")}</button></div>`;
   $("#toPortfolio").onclick = () => go("portfolio");
   if (narrate) {
     const vars = { c: p.capacity_class, t: p.tolerance_class };
@@ -351,6 +399,19 @@ async function loadAllocation(amount, level, narrate) {
       t("Before any money moves, I'd like you to live through 2008 with this exact portfolio. It takes 90 seconds and tells us both more than the questionnaire did. Open <strong>Rehearse</strong> when you're ready."),
     ]);
   }
+}
+
+// Asset mix as a ring: one arc per asset class with a small gap between arcs.
+function donut(parts, funds) {
+  const r = 70, c = 2 * Math.PI * r, gap = parts.length > 1 ? 3 : 0;
+  let offset = 0;
+  const arcs = parts.map(([k, w]) => {
+    const len = Math.max(0, w * c - gap);
+    const arc = `<circle r="${r}" cx="90" cy="90" stroke="var(--${k})" stroke-dasharray="${len.toFixed(2)} ${(c - len).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}"/>`;
+    offset += w * c;
+    return arc;
+  }).join("");
+  return `<div class="donut" role="img" aria-label="${parts.map(([k, w]) => `${ASSET_NAMES[k]} ${pct(w, 0)}`).join(", ")}"><svg viewBox="0 0 180 180">${arcs}</svg><div class="donut-center"><b>${funds}</b><span>${tn("fund", "funds", funds)}</span></div></div>`;
 }
 
 function limitNote(a) {
@@ -403,11 +464,14 @@ async function renderPortfolio() {
     ${staleBanner()}
     ${limitNote(a)}
     <div id="alertSlot">${state.alert ? alertCard(state.alert) : ""}</div>
-    <div class="sheet">
-      <div class="mixbar" role="img" aria-label="${mix.map((k) => `${ASSET_NAMES[k]} ${pct(a.by_asset_class[k], 0)}`).join(", ")}">
-        ${mix.map((k) => `<div style="flex-grow:${a.by_asset_class[k]};background:var(--${k})" title="${ASSET_NAMES[k]} ${pct(a.by_asset_class[k])}"></div>`).join("")}
+    <div class="hero">
+      <div class="hero-label">${t("Amount to invest")}</div>
+      <div class="hero-amount">${CURRENCY_SIGN[currency()] ? `<small>${CURRENCY_SIGN[currency()]}</small>` : ""}${money(a.amount)}</div>
+      <div class="hero-chips">
+        <span>${t("Risk class")} C${a.investor_class}${p.investor_class === a.investor_class ? `, ${esc(p.class_name)}` : ""}</span>
+        <span>${tn("1 fund", "{n} funds", a.holdings.length)}</span>
+        <span>${t("Products up to R{n}", { n: a.investor_class })}</span>
       </div>
-      <div class="legend">${mix.map((k) => `<span><i style="background:var(--${k})"></i>${ASSET_NAMES[k]} <b>${pct(a.by_asset_class[k], 0)}</b></span>`).join("")}</div>
     </div>
 
     <div class="kpis">
@@ -417,25 +481,32 @@ async function renderPortfolio() {
       <div class="kpi"><div class="k">${t("Bad-year loss")}</div><span class="v">${num(money(a.var_95_1y), prov, t("1-year 95% parametric value at risk"))}</span><div class="h">${t("1 year in 20 could be worse")}</div></div>
     </div>
 
+    <h3>${t("Asset mix")}</h3>
+    <div class="sheet alloc">
+      ${donut(mix.map((k) => [k, a.by_asset_class[k]]), a.holdings.length)}
+      <ul class="alloc-legend">
+        ${mix.map((k) => `<li><i style="background:var(--${k})"></i><span>${ASSET_NAMES[k]}</span><b>${pct(a.by_asset_class[k], 0)}</b><span>${money(a.amount * a.by_asset_class[k])}</span></li>`).join("")}
+      </ul>
+    </div>
+
     <h3>${t("Holdings")}</h3>
-    <div class="sheet">
-      <table>
-        <thead><tr><th>${t("Product")}</th><th>${t("Risk")}</th><th class="r">${t("Weight")}</th><th class="r">${t("Amount")}</th><th></th></tr></thead>
-        <tbody>
-          ${a.holdings.map((h, i) => `
-            <tr>
-              <td class="prod"><span class="swatch" style="background:var(--${h.asset_class})"></span>${esc(h.name)}<small>${ASSET_NAMES[h.asset_class]}</small></td>
-              <td><span class="risk">R${h.risk_class}</span></td>
-              <td class="r">${num(pct(h.weight, 1), prov, t("Weight of {name}", { name: h.name }))}</td>
-              <td class="r">${num(money(h.amount), prov, t("Amount in {name}", { name: h.name }))}</td>
-              <td class="r"><button class="why" type="button" data-why="${i}" aria-expanded="false">${t("Why?")}</button></td>
-            </tr>
-            <tr class="why-row" id="why${i}" hidden><td colspan="5"><ul>${h.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}${h.source ? `<li><a href="${esc(h.source)}" target="_blank" rel="noopener">${t("Fund page and documents")}</a></li>` : ""}</ul></td></tr>`).join("")}
-        </tbody>
-      </table>
+    <div class="sheet list">
+      ${a.holdings.map((h, i) => `
+        <div class="list-item">
+          <span class="li-icon" style="--c:var(--${h.asset_class})" aria-hidden="true">${esc(ASSET_NAMES[h.asset_class].slice(0, 1))}</span>
+          <div>
+            <div class="li-name">${esc(h.name)}</div>
+            <div class="li-sub">${ASSET_NAMES[h.asset_class]} · <span class="risk">R${h.risk_class}</span> · ${num(pct(h.weight, 1), prov, t("Weight of {name}", { name: h.name }))}</div>
+          </div>
+          <div class="li-right">
+            <div class="li-amt">${num(money(h.amount), prov, t("Amount in {name}", { name: h.name }))}</div>
+            <button class="why" type="button" data-why="${i}" aria-expanded="false">${t("Why?")}</button>
+          </div>
+        </div>
+        <div class="why-row" id="why${i}" hidden><ul>${h.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}${h.source ? `<li><a href="${esc(h.source)}" target="_blank" rel="noopener">${t("Fund page and documents")}</a></li>` : ""}</ul></div>`).join("")}
     </div>
     <h3>${t("Adjust")}</h3>
-    <div class="whatif">
+    <div class="sheet whatif">
       <div class="field"><label for="wiAmount">${t("What if I invest")}</label><input id="wiAmount" type="number" min="1000" step="1000" value="${a.amount}"></div>
       <div class="field">
         <span class="label">${t("What if I take less risk")}</span>
@@ -525,6 +596,7 @@ function sayAlert(paragraphs) {
   li.innerHTML = `<div class="sig">${t("Keel noticed a market move")}</div>${paragraphs.map((p) => `<p>${p}</p>`).join("")}`;
   thread.append(li);
   thread.scrollTop = thread.scrollHeight;
+  notifyChat(li);
 }
 
 function alertCard(c) {

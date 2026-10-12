@@ -12,6 +12,16 @@ document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";
 if (!document.cookie.includes("wa_lang=")) document.cookie = `wa_lang=${LANG}; path=/; samesite=strict`;
 
 const ZH = {
+  "About you": "关于您",
+  "Your answers": "您的回答",
+  "Change your answers": "修改您的回答",
+  "Asset mix": "资产配置",
+  "1 fund": "1只基金",
+  "{n} funds": "{n}只基金",
+  "fund": "只基金",
+  "funds": "只基金",
+  "Products up to R{n}": "产品风险不超过R{n}",
+  "Open chat with your advisor": "打开与顾问的对话",
   "No loss": "无亏损",
   "Invest": "投资",
   "Past crises": "历史危机",
