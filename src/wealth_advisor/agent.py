@@ -19,6 +19,8 @@ MAX_REPLY_WORDS = 100
 MAX_REPLY_CJK_CHARACTERS = 180
 MAX_REPLY_PARAGRAPHS = 3
 _SENTENCE_RE = re.compile(r"[^.!?。！？]+[.!?。！？]|[^.!?。！？]+$")
+_ALLOCATION_REQUEST = re.compile(r"\b(?:build|create|make|design)\b.{0,30}\b(?:portfolio|allocation)\b|\bportfolio\b", re.I)
+_STRESS_REQUEST = re.compile(r"\b(?:stress[- ]test|stress|crisis|drawdown)\b|\b2008\b|压力测试|危机|回撤", re.I)
 
 
 def shape_reply(content: str, max_words: int = MAX_REPLY_WORDS, max_paragraphs: int = MAX_REPLY_PARAGRAPHS) -> str:
@@ -95,6 +97,32 @@ class AdvisorAgent:
         state_text = json.dumps(client_state or {}, separators=(",", ":"), sort_keys=True)
         return {"role": "system", "content": f"{SYSTEM_PROMPT}\nClient state: {state_text}"}
 
+    def _required_tool(self, messages: list[dict[str, Any]], completed_tools: set[str]) -> str | None:
+        user_message = next(
+            (str(message.get("content", "")) for message in reversed(messages) if message.get("role") == "user"),
+            "",
+        )
+        session = self.dispatcher.session
+        if not session or not session.state.profile:
+            return None
+        if _ALLOCATION_REQUEST.search(user_message) and "build_allocation" not in completed_tools and not session.state.allocations:
+            return "build_allocation"
+        if _STRESS_REQUEST.search(user_message) and "stress_test" not in completed_tools and session.state.allocations:
+            return "stress_test"
+        return None
+
+    def _append_required_tool(self, messages: list[dict[str, Any]], tool_results: list[dict[str, Any]], name: str) -> None:
+        call_id = f"required-{name}-{len(tool_results) + 1}"
+        result = self.dispatcher.dispatch(name, {})
+        compact_result = compact_tool_result(name, result, self.dispatcher.catalog)
+        messages.append({
+            "role": "assistant",
+            "content": None,
+            "tool_calls": [{"id": call_id, "type": "function", "function": {"name": name, "arguments": "{}"}}],
+        })
+        messages.append({"role": "tool", "tool_call_id": call_id, "name": name, "content": json.dumps(compact_result, separators=(",", ":"))})
+        tool_results.append(compact_result)
+
     def run_turn(
         self,
         messages: list[dict[str, Any]],
@@ -104,6 +132,7 @@ class AdvisorAgent:
 
         messages = list(messages)
         tool_results: list[dict[str, Any]] = []
+        completed_tools: set[str] = set()
         failed_calls: dict[str, int] = {}
         usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
         started = time.perf_counter()
@@ -113,6 +142,11 @@ class AdvisorAgent:
             for key in usage:
                 usage[key] += int(response.usage.get(key, 0))
             if not response.tool_calls:
+                required_tool = self._required_tool(messages, completed_tools)
+                if required_tool:
+                    self._append_required_tool(messages, tool_results, required_tool)
+                    completed_tools.add(required_tool)
+                    continue
                 content = shape_reply(response.content)
                 messages.append({"role": "assistant", "content": content})
                 return AgentTurn(content, messages, tool_results, usage, (time.perf_counter() - started) * 1000)
@@ -121,6 +155,7 @@ class AdvisorAgent:
                 for call in response.tool_calls
             ]})
             for call in response.tool_calls:
+                completed_tools.add(call.name)
                 call_key = json.dumps({"name": call.name, "arguments": call.arguments}, sort_keys=True, separators=(",", ":"))
                 try:
                     if failed_calls.get(call_key, 0) >= 2:

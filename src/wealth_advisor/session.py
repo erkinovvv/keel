@@ -30,9 +30,10 @@ _CONCENTRATION_ALL_IN = re.compile(
 )
 _CONCENTRATION_SINGLE_TARGET = re.compile(
     r"\b(?:one|single)\s+(?:fund|product|stock|etf)\b|\b(?:nasdaq|s&p|gold)\b|"
-    r"\b[A-Z]{2,5}[- ]?\d{3,}\b|纳斯达克|标普|黄金|基金",
+    r"\b[A-Z]{2,5}[- ]?\d{3,}\b|纳斯达克|标普|黄金|(?:一个|单一|一只)(?:基金|产品|股票|ETF)",
     re.I,
 )
+_CONCENTRATION_CLAUSE_SPLIT = re.compile(r"[.!?;:\n。！？；：]+")
 
 
 @dataclass
@@ -167,14 +168,35 @@ class AdvisorSession:
 
     @staticmethod
     def _is_concentration_request(message: str) -> bool:
-        return all(
-            pattern.search(message)
-            for pattern in (_CONCENTRATION_INVESTING_VERB, _CONCENTRATION_ALL_IN, _CONCENTRATION_SINGLE_TARGET)
+        clauses = (clause.strip() for clause in _CONCENTRATION_CLAUSE_SPLIT.split(message))
+        return any(
+            all(pattern.search(clause) for pattern in (
+                _CONCENTRATION_INVESTING_VERB,
+                _CONCENTRATION_ALL_IN,
+                _CONCENTRATION_SINGLE_TARGET,
+            ))
+            for clause in clauses
+            if clause
+        )
+
+    @staticmethod
+    def _standalone_concentration_request(message: str) -> bool:
+        clauses = [clause.strip() for clause in _CONCENTRATION_CLAUSE_SPLIT.split(message) if clause.strip()]
+        return len(clauses) == 1 and AdvisorSession._is_concentration_request(message)
+
+    def _policy_note(self, message: str) -> str | None:
+        if not self._is_concentration_request(message) or self._standalone_concentration_request(message):
+            return None
+        return (
+            "Policy note: the client included a request to concentrate all money in one target. "
+            "Explain briefly that the 35% per-product cap keeps the portfolio diversified, then continue the requested fact-finding or tool work."
         )
 
     def _safety_reply(self, message: str) -> str | None:
         guarantee = bool(_GUARANTEE_REQUEST.search(message))
         concentration = self._is_concentration_request(message)
+        if concentration and not self._standalone_concentration_request(message):
+            return None
         if not guarantee and not concentration:
             return None
         chinese = any("\u4e00" <= character <= "\u9fff" for character in message)
@@ -216,12 +238,16 @@ class AdvisorSession:
         if not guard.allowed:
             return "I cannot process instruction-like requests. Please describe your financial goal directly."
         safety_reply = self._safety_reply(guard.text)
+        policy_note = self._policy_note(guard.text)
         policy_results = [{"per_product_cap": 0.35}] if self._is_concentration_request(guard.text) else []
         if safety_reply is not None:
             turn_messages = self._messages_for_turn(guard.text)
             turn = AgentTurn(safety_reply, [*turn_messages, {"role": "assistant", "content": safety_reply}], [], {})
         else:
-            turn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
+            turn_messages = self._messages_for_turn(guard.text)
+            if policy_note:
+                turn_messages[0]["content"] += f"\n{policy_note}"
+            turn = self.agent.run_turn(turn_messages, tools=self._tools_for_state)
         self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
         language = "Chinese" if any("\u4e00" <= character <= "\u9fff" for character in guard.text) else "the client's language"

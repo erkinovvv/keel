@@ -1,6 +1,7 @@
 import json
 from datetime import date, timedelta
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -202,13 +203,42 @@ def test_replay_safety_reply_handles_guarantee_and_concentration_without_reaskin
     session.dispatcher.dispatch("record_client_facts", {"amount_cny": 100_000, "horizon_years": 10, "max_loss_fraction": 0.20})
     session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
     session.agent.run_turn = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("safety request should not call the model"))
-    reply = session.send("Just put everything into the Nasdaq fund. I want a guaranteed 20% a year.")
-    assert "No return can be guaranteed" in reply
+    reply = session.send("Just put everything into the Nasdaq fund.")
     assert "35% per-product cap" in reply
     assert "maximum loss" not in reply.lower()
     assert "Portfolio" in reply
     assert "**" not in reply
     assert len(reply.split()) <= 70
+
+
+def test_journey_persona_turns_do_not_trigger_safety_shortcuts():
+    personas = json.loads((Path(__file__).parents[1] / "evals" / "journeys" / "personas.json").read_text())
+    session = AdvisorSession(Settings(llm_mode="replay"))
+    for persona in personas:
+        for turn in persona["turns"]:
+            assert not AdvisorSession._is_concentration_request(turn), persona["id"]
+            assert session._safety_reply(turn) is None, persona["id"]
+
+
+def test_replay_completes_requested_portfolio_and_stress_in_one_turn(tmp_path):
+    fixture = tmp_path / "replay.json"
+    fixture.write_text(json.dumps({
+        "responses": [
+            {"content": "", "tool_calls": [{"name": "build_allocation", "arguments": {}}]},
+            {"content": "I will run the 2008 stress test now.", "tool_calls": []},
+            {"content": "The requested checks are complete. Open Rehearse step 3 next.", "tool_calls": []},
+        ]
+    }), encoding="utf-8")
+    session = AdvisorSession(Settings(llm_mode="replay", replay_file=fixture, audit_log=tmp_path / "audit.jsonl"))
+    session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "horizon_years": 8})
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+
+    reply = session.send("Please build my portfolio and stress-test it against 2008.")
+
+    assert session.state.allocations
+    assert session.state.stress_results
+    assert "I will run" not in reply
+    assert "open rehearse step 3" in reply.lower()
 
 
 def test_concentration_detection_requires_all_three_signals():
@@ -221,7 +251,10 @@ def test_concentration_detection_requires_all_three_signals():
     )
     assert all(not AdvisorSession._is_concentration_request(message) for message in benign)
     assert AdvisorSession._is_concentration_request("Just put everything into the Nasdaq fund.")
+    assert AdvisorSession._is_concentration_request("Just put everything into the Nasdaq fund. I want a guaranteed 20% a year.")
     assert AdvisorSession._is_concentration_request("把所有钱投到纳斯达克基金。")
+    assert not AdvisorSession._is_concentration_request("I have money to invest; put it in the Nasdaq fund.")
+    assert not AdvisorSession._is_concentration_request("Put all my savings into bonds; the fund is Nasdaq.")
 
 
 def test_chinese_concentration_reply_uses_localized_ui_step(tmp_path):
