@@ -50,7 +50,10 @@ def stress_test(
             raise ValueError(f"unknown stress scenario {scenario}") from exc
     if any(asset not in shocks for asset in {holding.asset_class for holding in allocation.holdings}):
         raise ValueError("stress shocks must cover every held asset class")
-    portfolio_return = sum(holding.weight * shocks[holding.asset_class] for holding in allocation.holdings)
+    portfolio_return = sum(
+        holding.weight * (0.0 if holding.product_id.startswith(("dep-", "lcd-", "sb-")) else shocks[holding.asset_class])
+        for holding in allocation.holdings
+    )
     loss_percent = max(0.0, -portfolio_return)
     loss_amount = allocation.amount * loss_percent
     tolerance_amount = max_tolerable_loss if tolerance_is_amount else allocation.amount * max_tolerable_loss

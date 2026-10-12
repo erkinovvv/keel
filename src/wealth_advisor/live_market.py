@@ -29,6 +29,7 @@ _SNAPSHOT_PRICES = {
     "nasdaq100": (30763.615, -0.387),
     "gold": (4197.0, -0.458),
     "usd_cny": (6.6932, 0.0179),
+    "cn10y": (1.714, None),
 }
 _INDICES = {
     "csi300": ("CSI 300", "沪深300", (("sina", "s_sh000300"), ("tencent", "s_sh000300"))),
@@ -38,6 +39,7 @@ _INDICES = {
     "nasdaq100": ("Nasdaq-100", "纳斯达克100", (("yahoo", "^NDX"), ("tencent", "usNDX"))),
     "gold": ("Gold futures (USD/oz)", "纽约黄金期货（美元/盎司）", (("sina", "hf_GC"), ("yahoo", "GC=F"))),
     "usd_cny": ("USD/CNY", "美元兑人民币", (("sina", "fx_susdcny"), ("yahoo", "CNY=X"))),
+    "cn10y": ("China 10-year government yield", "中国十年期国债收益率", (("sina", "globalbd_cn10yt"),)),
 }
 _PROVIDER_LINE = re.compile(r'(?:var hq_str_|v_)([A-Za-z0-9_]+)="([^"]*)"')
 _FUND_CODE = re.compile(r"CN-(\d{6})\Z")
@@ -101,6 +103,9 @@ def _parse_index(provider: str, symbol: str, payload: bytes) -> tuple[float, flo
         text = payload.decode("utf-8")
     values = _provider_fields(text, symbol)
     if provider == "sina":
+        if symbol == "globalbd_cn10yt":
+            price, _ = _validated_numbers(values[1], None)
+            return price, None, f"{values[12]}T{values[13]}"
         if symbol.startswith("s_"):
             price, change = _validated_numbers(values[1], values[3])
             as_of = datetime.now(timezone.utc).isoformat()
@@ -160,7 +165,7 @@ class LiveMarket:
         self.enabled = enabled
         self.clock = clock
         self._cache: dict[str, tuple[float, MarketQuote]] = {}
-        self._funds = {product.id: product for product in load_catalog(DATA_DIR / "products_cn.json")}
+        self._funds = {product.id: product for product in load_catalog(DATA_DIR / "products_cn.json") if _FUND_CODE.fullmatch(product.id)}
         meta_path = DATA_DIR / "products_cn_meta.json"
         self._meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {"as_of": SNAPSHOT_DATE, "funds": {}}
 

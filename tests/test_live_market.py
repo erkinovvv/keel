@@ -20,6 +20,8 @@ def test_real_provider_samples_parse_to_typed_values():
     assert price == pytest.approx(7814.93) and change == pytest.approx(0.04)
     price, change, _ = _parse_index("yahoo", "^GSPC", fixture_bytes("yahoo.json"))
     assert price == pytest.approx(7815.96) and change == pytest.approx(0.057)
+    price, change, as_of = _parse_index("sina", "globalbd_cn10yt", fixture_bytes("sina.txt"))
+    assert price == pytest.approx(1.714) and change is None and as_of.startswith("2026-10-12T")
     price, change, as_of = _parse_fund("eastmoney", "270042", fixture_bytes("eastmoney.json"))
     assert price == pytest.approx(8.4745) and change == pytest.approx(0.41) and as_of == "2026-10-09"
     price, change, as_of = _parse_fund("tencent", "270042", fixture_bytes("tencent.txt"))

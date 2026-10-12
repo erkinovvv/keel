@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from .allocation import Allocation
+from .catalog import load_fixed_income_cn
 from .profiling import InvestorProfile
 
 DATA = Path(__file__).parent / "data" / "rehearsal_2008.json"
@@ -44,12 +45,13 @@ def portfolio_path(allocation: Allocation, scenario: dict[str, Any] | None = Non
     """Buy-and-hold value of the allocation's asset-class mix through the scenario, month by month."""
 
     scenario = scenario or load_scenario()
-    sleeves = {asset: allocation.amount * weight for asset, weight in allocation.strategic_weights.items() if weight > 0}
+    fixed_rates = {product.id: product.expected_return for product in load_fixed_income_cn()}
+    sleeves = {index: holding.amount for index, holding in enumerate(allocation.holdings)}
     points = [PathPoint(scenario["base_month"], allocation.amount, 0.0, None)]
     peak = allocation.amount
     for row in scenario["months"]:
-        for asset in sleeves:
-            sleeves[asset] *= 1 + row["returns"][asset]
+        for index, holding in enumerate(allocation.holdings):
+            sleeves[index] *= 1 + (fixed_rates[holding.product_id] / 12 if holding.product_id in fixed_rates else row["returns"][holding.asset_class])
         value = sum(sleeves.values())
         peak = max(peak, value)
         points.append(PathPoint(row["month"], value, 1 - value / peak, row.get("headline")))

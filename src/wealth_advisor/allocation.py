@@ -8,7 +8,7 @@ from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 
-from .catalog import Product, filter_products, load_correlations, load_catalog
+from .catalog import DEPOSIT_INSURANCE_LIMIT, Product, filter_products, load_correlations, load_catalog
 
 
 STRATEGIC_WEIGHTS: dict[int, dict[str, float]] = {
@@ -98,13 +98,30 @@ def _select_holdings(
         raise ValueError(f"no suitable product for asset class {asset_class}")
     allow_cash_equivalent_50 = preferred_max_liquid_days is not None
     maximum_weight = max(_product_weight_cap(product, allow_cash_equivalent_50) for product in candidates)
-    count = max(1, math.ceil(target / maximum_weight))
-    eligible = [product for product in candidates if amount * target / count >= product.min_investment]
-    if len(eligible) < count:
-        raise ValueError(f"amount {amount} cannot satisfy the {MAX_PRODUCT_WEIGHT:.0%} product cap for {asset_class}")
-    if not eligible:
-        raise ValueError(f"amount {amount} is too small for {asset_class} minimum investment")
-    selected = eligible[:count]
+    selected: list[Product] = []
+    count = 0
+    for proposed_count in range(max(1, math.ceil(target / maximum_weight)), len(candidates) + 1):
+        per_product = amount * target / proposed_count
+        selected = []
+        bank_keys: set[str] = set()
+        for product in candidates:
+            if per_product + 1e-9 < product.min_investment or target / proposed_count > _product_weight_cap(product, allow_cash_equivalent_50) + 1e-12:
+                continue
+            if product.max_per_person is not None and per_product > product.max_per_person + 1e-9:
+                continue
+            if product.kind in {"deposit", "large_cd"}:
+                insured_principal = DEPOSIT_INSURANCE_LIMIT / (1 + product.expected_return * product.term_months / 12)
+                if per_product > insured_principal + 1e-9 or product.issuer_key in bank_keys:
+                    continue
+                bank_keys.add(product.issuer_key)
+            selected.append(product)
+            if len(selected) == proposed_count:
+                count = proposed_count
+                break
+        if count:
+            break
+    if not count:
+        raise ValueError(f"amount {amount} cannot satisfy product, minimum, and deposit-insurance limits for {asset_class}")
     weights = [target / count] * count
     return [
         Holding(
@@ -317,6 +334,7 @@ def build_allocation(
     use_black_litterman: bool = False,
     bl_tau: float = 0.05,
     bl_views: Sequence[tuple[Mapping[str, float], float, float]] = (),
+    horizon_years: int | None = None,
 ) -> Allocation:
     """Build a suitable portfolio with non-negative weights and a 35% product cap."""
 
@@ -338,7 +356,7 @@ def build_allocation(
     eligible_by_class = {
         asset_class: [
             product
-            for product in filter_products(catalog, investor_class, amount=amount, liquidity_days=None, exclusions=excluded)
+            for product in filter_products(catalog, investor_class, amount=amount, liquidity_days=None, exclusions=excluded, horizon_years=horizon_years)
             if max_liquid_days is None or product.liquidity_days <= 30
             if product.asset_class == asset_class
         ]
@@ -369,6 +387,7 @@ def build_allocation(
                 exclusions=excluded, cash_rate=cash_rate, max_tolerable_loss=max_tolerable_loss,
                 market_data=market_data, use_black_litterman=use_black_litterman,
                 bl_tau=bl_tau, bl_views=bl_views,
+                horizon_years=horizon_years,
             )
             return replace(
                 lower,
@@ -403,6 +422,15 @@ def build_allocation(
             )
             for holding in holdings
         ]
+    deposit_total = sum(holding.amount for holding in holdings if next(product for product in catalog if product.id == holding.product_id).kind in {"deposit", "large_cd"})
+    insurance_split = deposit_total > 500_000
+    if insurance_split:
+        by_id = {product.id: product for product in catalog}
+        holdings = [
+            replace(holding, reason_codes=holding.reason_codes + ("DEPOSIT_INSURANCE_SPLIT",))
+            if by_id[holding.product_id].kind in {"deposit", "large_cd"} else holding
+            for holding in holdings
+        ]
     stress_applied = max_tolerable_loss is not None and stress_before is not None and stress_before > max_tolerable_loss + 1e-10
     if stress_applied:
         holdings = [
@@ -435,7 +463,7 @@ def build_allocation(
         var_95_1y_parametric=float(1.645 * portfolio_volatility * amount),
         strategic_weights={asset: float(weight) for asset, weight in zip(classes, class_weights)},
         volatility_band=VOLATILITY_BANDS[investor_class],
-        reason_codes=("STRESS_LIMIT_APPLIED",) if stress_applied else (),
+        reason_codes=tuple(code for code, active in (("STRESS_LIMIT_APPLIED", stress_applied), ("DEPOSIT_INSURANCE_SPLIT", insurance_split)) if active),
         stress_limit_before=stress_before if stress_applied else None,
         stress_limit_after=_worst_stress_loss({asset: float(weight) for asset, weight in zip(classes, class_weights)}) if stress_applied else None,
     )

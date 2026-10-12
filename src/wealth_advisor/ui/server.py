@@ -337,6 +337,7 @@ def allocate(body: AllocationIn, response: Response, wa_sid: str | None = Cookie
     try:
         allocation = build_allocation(
             amount, requested, load_catalog(), liquidity_days=profile.liquidity_days,
+            horizon_years=_client(file).get("horizon_years"),
             max_tolerable_loss=_client(file).get("max_loss"),
         )
     except ValueError as exc:
@@ -616,7 +617,8 @@ def _order_view(order: dict[str, Any], products: dict[str, Any]) -> dict[str, An
         "name": _product_name(product),
         "asset_class": product.asset_class,
         "nav": product.nav,
-        "units": order["amount"] / product.nav,
+        "price": order.get("price", product.nav),
+        "units": order.get("units", order["amount"] / product.nav),
         "cooling_off": bool(cooling and date.fromisoformat(cooling) > date.today()),
     }
 

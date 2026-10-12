@@ -36,7 +36,7 @@ def suitability_check(profile: InvestorProfile, product: Product, liquidity_days
     reasons: list[str] = []
     if product.risk_class > profile.investor_class:
         reasons.append("RISK_CLASS_ABOVE_INVESTOR_CLASS")
-    if liquidity_days is not None and liquidity_days <= 30 and product.liquidity_days > 30:
+    if liquidity_days is not None and liquidity_days <= 30 and product.liquidity_days > 30 and product.kind == "fund":
         reasons.append("LIQUIDITY_HORIZON_MISMATCH")
     return not reasons, tuple(reasons)
 

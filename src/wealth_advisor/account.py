@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from typing import Iterable
 
 from .allocation import Allocation
-from .catalog import Product
+from .catalog import DEPOSIT_INSURANCE_LIMIT, Product, fixed_income_available
 from .compliance import pretrade_check
 from .profiling import InvestorProfile
 
@@ -22,6 +22,8 @@ class SimulatedOrder:
     created_on: date = field(default_factory=date.today)
     settles_on: date | None = None
     cooling_off_until: date | None = None
+    units: float | None = None
+    price: float | None = None
 
     def summary(self) -> str:
         return f"{self.order_id}|BUY|{self.product_id}|{self.amount:.8f}|R{self.risk_class}"
@@ -65,15 +67,31 @@ class SimulatedAccount:
         if any(holding.amount > max_order_amount for holding in allocation.holdings):
             raise ValueError("per-order amount cap exceeded")
         by_id = {product.id: product for product in products}
+        bank_balances: dict[str, float] = {}
+        for product_id, balance in self.holdings.items():
+            product = by_id.get(product_id)
+            if product and product.kind in {"deposit", "large_cd"}:
+                bank_balances[product.issuer_key] = bank_balances.get(product.issuer_key, 0.0) + balance * (1 + product.expected_return * product.term_months / 12)
         created: list[SimulatedOrder] = []
         for index, holding in enumerate(allocation.holdings, start=len(self.orders) + 1):
             product = by_id[holding.product_id]
+            if not fixed_income_available(product):
+                raise ValueError("savings bond sale window is closed")
+            if product.max_per_person is not None and holding.amount > product.max_per_person:
+                raise ValueError("per-person savings bond limit exceeded")
+            if product.kind in {"deposit", "large_cd"}:
+                projected = bank_balances.get(product.issuer_key, 0.0) + holding.amount * (1 + product.expected_return * product.term_months / 12)
+                if projected > DEPOSIT_INSURANCE_LIMIT + 1e-9:
+                    raise ValueError("deposit insurance limit per bank exceeded")
+                bank_balances[product.issuer_key] = projected
             order = SimulatedOrder(
                 order_id=f"order-{index}",
                 product_id=holding.product_id,
                 amount=holding.amount,
                 risk_class=product.risk_class,
                 cooling_off_until=date.today() + timedelta(days=cooling_off_days) if product.risk_class >= 4 else None,
+                units=holding.amount / (1.0 if product.kind in {"deposit", "large_cd", "savings_bond"} else product.nav),
+                price=1.0 if product.kind in {"deposit", "large_cd", "savings_bond"} else product.nav,
             )
             self.orders[order.order_id] = order
             created.append(order)
@@ -95,6 +113,5 @@ class SimulatedAccount:
         self.cash -= order.amount
         self.holdings[order.product_id] = self.holdings.get(order.product_id, 0.0) + order.amount
         order.status = "EXECUTED"
-        order.settles_on = date.today() + timedelta(days=2)
+        order.settles_on = date.today() if order.product_id.startswith(("dep-", "lcd-", "sb-")) else date.today() + timedelta(days=2)
         return order
-

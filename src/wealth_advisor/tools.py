@@ -59,6 +59,7 @@ class CompareArgs(BaseModel):
     horizon_years: int | None = Field(default=None, gt=0, le=100)
     liquidity_days: int | None = Field(default=None, ge=0)
     asset_class: str | None = None
+    kind: str | None = None
     exclusions: list[str] = Field(default_factory=list)
 
 
@@ -197,7 +198,9 @@ def compact_tool_result(name: str, result: dict[str, Any], catalog: Iterable[Pro
     if name == "compare_products":
         comparisons = result.get("comparisons", [])
         display_items = [
-            f"{item.get('name', 'Selected fund')} ({item.get('asset_class')}, R{item.get('risk_class')}, net {_display_percent(item.get('net_return', 0))}, fee {_display_percent(item.get('fee', 0))})"
+            f"{item.get('name', 'Selected fund')} ({item.get('asset_class')}, {item.get('kind', 'fund')}, R{item.get('risk_class')}, net {_display_percent(item.get('net_return', 0))}, fee {_display_percent(item.get('fee', 0))}"
+            + (f", rate {_display_percent(item['rate'])}, term {item['term_months']} months, early cost after 6 months {item['early_withdrawal_cost_6m']:.2f}, insured={item['insured']}" if item.get("kind") != "fund" else "")
+            + ")"
             for item in comparisons[:5]
         ]
         return {"display": "Suitable products: " + "; ".join(display_items) + "."}
@@ -308,6 +311,8 @@ class ToolDispatcher:
             if args_data["amount"] is None or args_data["horizon_years"] is None:
                 raise ValueError("record amount and horizon_years before comparing products")
             args_data["investor_class"] = self._profile_class()
+            if self.session and args_data["horizon_years"] is None:
+                args_data["horizon_years"] = self.session.state.client.horizon_years
             if args_data["liquidity_days"] is None and self.session:
                 args_data["liquidity_days"] = self.session.state.profile.liquidity_days
             if self.session:
@@ -328,6 +333,8 @@ class ToolDispatcher:
             if args_data["amount"] is None:
                 raise ValueError("record amount before building an allocation")
             args_data["investor_class"] = self._profile_class()
+            if self.session:
+                args_data["horizon_years"] = self.session.state.client.horizon_years
             if args_data["liquidity_days"] is None and self.session:
                 args_data["liquidity_days"] = self.session.state.profile.liquidity_days
             if self.session:

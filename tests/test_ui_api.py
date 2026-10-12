@@ -146,7 +146,7 @@ def test_live_market_endpoints_are_stale_and_provenanced_when_disabled(tmp_path,
     client = _client(tmp_path, monkeypatch)
     indices = client.get("/api/market/live")
     assert indices.status_code == 200
-    assert len(indices.json()["quotes"]) == 7
+    assert len(indices.json()["quotes"]) == 8
     assert all(quote["stale"] for quote in indices.json()["quotes"])
     assert len(indices.json()["provenance"]["audit_hash"]) == 64
     funds = client.get("/api/market/funds")
