@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from wealth_advisor.catalog import load_catalog
 from wealth_advisor.live_market import LiveMarket, _parse_fund, _parse_index
 
 
@@ -70,3 +71,11 @@ def test_fund_allowlist_rejects_unknown_id():
 def test_funds_skips_fixed_income_product_ids():
     market = LiveMarket(enabled=False)
     assert market.funds(["dep-big6-1y", "lcd-big6-3y"]) == []
+
+
+def test_tencent_money_market_quote_uses_nav_not_income_per_ten_thousand():
+    product = next(product for product in load_catalog(FIXTURES.parents[2] / "src" / "wealth_advisor" / "data" / "products_cn.json") if product.id == "CN-000198")
+    payload = b'v_jj000198="000198~Money market~1~0~0.3543~0~0.3543~2026-10-12~";'
+    price, change, _ = _parse_fund("tencent", "000198", payload, product)
+    assert price == product.nav == 1.0
+    assert change is None

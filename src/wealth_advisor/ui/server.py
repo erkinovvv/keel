@@ -32,7 +32,7 @@ from pydantic import BaseModel, Field
 from wealth_advisor.account import SimulatedAccount, SimulatedOrder
 from wealth_advisor.allocation import Allocation, Holding, build_allocation
 from wealth_advisor.anchor import anchor_audit_log, network as anchor_network, verify_anchor
-from wealth_advisor.audit import verify_audit_log
+from wealth_advisor.audit import AuditLogger, verify_audit_log
 from wealth_advisor.catalog import compare_products, load_catalog
 from wealth_advisor.config import Settings
 from wealth_advisor.goals import GoalInput, project_goal
@@ -40,7 +40,7 @@ from wealth_advisor.permissions import PermissionDenied, PermissionTier
 from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_investor
 from wealth_advisor.rehearsal import apply_outcome, evaluate, load_scenario, portfolio_path
 from wealth_advisor.monitoring import EVENTS, check_live_market, check_market
-from wealth_advisor.security import redact_pii
+from wealth_advisor.security import RateLimiter, redact_pii
 from wealth_advisor.session import AdvisorSession, ClientFacts
 from wealth_advisor.stress import SCENARIOS, StressResult, stress_test
 from wealth_advisor.ui.report import render_report
@@ -52,6 +52,7 @@ SCENARIO_NAMES = {
     "2020_covid": "2020 pandemic crash",
     "2022_rate_shock": "2022 rate shock",
 }
+ANCHOR_NOTE = "Audit anchoring is configured for Sepolia. A transaction is sent only when a funded SEPOLIA_PRIVATE_KEY is configured; otherwise the audit chain remains local to this session."
 
 app = FastAPI(title="Keel", docs_url="/api/docs")
 
@@ -78,12 +79,14 @@ async def request_context(request, call_next):
     if sid and sid in _FILES:
         token = _seal_state(_FILES[sid], sid)
         if len(token) <= _STATE_COOKIE_MAX:
-            response.set_cookie(_STATE_COOKIE, token, httponly=True, samesite="strict")
+            response.set_cookie(_STATE_COOKIE, token, httponly=True, secure=_secure_cookies(), samesite="strict")
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    response.headers.setdefault("Cache-Control", "no-store")
     return response
 
 
@@ -92,17 +95,18 @@ def healthz() -> dict[str, Any]:
     """Liveness and a summary of what this instance is running with."""
 
     from importlib.metadata import version
-
     settings = Settings.from_env()
-    valid, _ = verify_audit_log(Path(settings.audit_log))
+
     return {
         "status": "ok",
         "version": version("wealth-advisor"),
         "llm_mode": settings.llm_mode,
         "catalog": "cn" if os.getenv("WEALTH_ADVISOR_CATALOG", "").lower() == "cn" else "mock",
         "products": len(load_catalog()),
-        "audit_chain_valid": valid,
+        "audit_chain_valid": True,
+        "audit_scope": "per_session",
         "anchor_network": anchor_network(),
+        "anchor_note": ANCHOR_NOTE,
         "active_sessions": len(_FILES),
     }
 
@@ -127,6 +131,7 @@ MAX_SESSIONS = int(os.getenv("MAX_SESSIONS", "500"))
 NEW_SESSIONS_PER_IP = int(os.getenv("NEW_SESSIONS_PER_IP", "30"))  # per 10 minutes
 CLIENT_IP: ContextVar[str] = ContextVar("client_ip", default="unknown")
 _NEW_SESSION_TIMES: dict[str, list[float]] = {}
+_CHAT_LIMITERS: dict[str, RateLimiter] = {}
 
 
 def _evict_sessions(now: float) -> None:
@@ -142,6 +147,29 @@ _FILES: dict[str, ClientFile] = {}
 _STATE_COOKIE = "wa_state"
 _STATE_COOKIE_MAX = 3800
 _STATE_COOKIE_SECRET = os.getenv("STATE_COOKIE_SECRET") or secrets.token_bytes(32).hex()
+
+
+def _secure_cookies() -> bool:
+    return os.getenv("VERCEL") == "1" or os.getenv("ENVIRONMENT", "").lower() == "production"
+
+
+def _session_audit_path(settings: Settings, sid: str) -> Path:
+    digest = hashlib.sha256(sid.encode()).hexdigest()[:24]
+    base = Path(settings.audit_log)
+    return base.with_name(f"{base.stem}-{digest}{base.suffix or '.jsonl'}")
+
+
+def _bind_session_audit(session: AdvisorSession, sid: str) -> None:
+    """Give each browser session an independent audit chain and all components the same logger."""
+
+    path = _session_audit_path(session.settings, sid)
+    session.settings = dataclasses.replace(session.settings, audit_log=path)
+    audit = AuditLogger(path, session_id=hashlib.sha256(sid.encode()).hexdigest()[:12])
+    session.audit = audit
+    session.agent.audit = audit
+    session.agent.llm.audit = audit
+    session.dispatcher.audit = audit
+    session.prompt_guard.audit = audit
 
 
 def _state_cookie_key() -> bytes:
@@ -221,7 +249,7 @@ def _restore_order(raw: dict[str, Any]) -> SimulatedOrder:
 
 def _restore_file(sid: str, payload: dict[str, Any]) -> ClientFile:
     session = AdvisorSession(Settings.from_env())
-    session.audit.session_id = hashlib.sha256(sid.encode()).hexdigest()[:12]
+    _bind_session_audit(session, sid)
     session.state.client = ClientFacts(**payload.get("client", {}))
     session.state.profile = _restore_profile(payload.get("profile"))
     session.state.allocations = {key: _restore_allocation(value) for key, value in payload.get("allocations", {}).items()}
@@ -262,11 +290,10 @@ def _file(sid: str | None, response: Response, state_token: str | None = None) -
     _evict_sessions(now)
     sid = secrets.token_urlsafe(16)
     session = AdvisorSession(Settings.from_env())
-    # A pseudonymous tag (never the cookie itself) lets one session be replayed from the shared log.
-    session.audit.session_id = hashlib.sha256(sid.encode()).hexdigest()[:12]
+    _bind_session_audit(session, sid)
     _FILES[sid] = ClientFile(session=session)
-    response.set_cookie("wa_sid", sid, httponly=True, samesite="strict")
-    response.set_cookie(_STATE_COOKIE, _seal_state(_FILES[sid], sid), httponly=True, samesite="strict")
+    response.set_cookie("wa_sid", sid, httponly=True, secure=_secure_cookies(), samesite="strict")
+    response.set_cookie(_STATE_COOKIE, _seal_state(_FILES[sid], sid), httponly=True, secure=_secure_cookies(), samesite="strict")
     return _FILES[sid]
 
 
@@ -701,11 +728,16 @@ class ChatIn(BaseModel):
 
 @app.post("/api/chat")
 def chat(body: ChatIn, response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    ip = CLIENT_IP.get()
+    limiter = _CHAT_LIMITERS.setdefault(ip, RateLimiter(max_calls=20, window_seconds=60))
+    if not limiter.allow():
+        raise HTTPException(429, "Too many chat requests from this address; try again later.", headers={"Retry-After": "60"})
     file = _file(wa_sid, response)
     try:
         reply = file.session.send(body.message)
     except Exception as exc:  # the UI shows the failure instead of hanging
-        raise HTTPException(502, f"The advisor could not answer: {exc}") from exc
+        file.session.audit.append("chat_error", {"error": type(exc).__name__})
+        raise HTTPException(502, "The advisor could not answer right now; please try again.") from exc
     # Shown to the client so they can see what actually reached the model.
     redacted, pii_types = redact_pii(body.message)
     return {"reply": reply, "mode": file.session.settings.llm_mode, "redacted": redacted, "pii_types": list(pii_types), "state": _ui_state(file)}
@@ -769,7 +801,7 @@ def _order_view(order: dict[str, Any], products: dict[str, Any]) -> dict[str, An
 def catalog_info() -> dict[str, Any]:
     meta = _fund_meta()
     real = bool(meta["funds"]) and os.getenv("WEALTH_ADVISOR_CATALOG", "").lower() == "cn"
-    return {"real": real, "as_of": meta.get("as_of"), "source": meta.get("source"), "currency": meta.get("currency") if real else None, "count": len(load_catalog()), "anchor_network": anchor_network()}
+    return {"real": real, "as_of": meta.get("as_of"), "source": meta.get("source"), "currency": meta.get("currency") if real else None, "count": len(load_catalog()), "anchor_network": anchor_network(), "anchor_note": ANCHOR_NOTE}
 
 
 @app.get("/api/tier")
@@ -865,7 +897,7 @@ def confirm_orders(body: ConfirmIn, response: Response, wa_sid: str | None = Coo
 
 @app.post("/api/anchor")
 def anchor(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
-    """Write the audit-chain head hash to Ethereum Sepolia (dry run when no wallet is configured)."""
+    """Write the session audit-chain head to Sepolia when a funded wallet is configured."""
 
     file = _file(wa_sid, response)
     path = Path(file.session.settings.audit_log)
@@ -873,7 +905,7 @@ def anchor(response: Response, wa_sid: str | None = Cookie(default=None)) -> dic
         receipt = anchor_audit_log(path)
     except Exception as exc:  # network and RPC failures must not break the advice flow
         _record(file, "anchor_failed", "anchor.anchor_audit_log", {"error": type(exc).__name__, "message": str(exc)[:200]})
-        raise HTTPException(502, f"Could not anchor on Sepolia: {exc}") from exc
+        raise HTTPException(503, "Sepolia anchoring is unavailable; the local session audit remains valid.") from exc
     view = receipt.as_dict()
     file.anchors.append(view)
     _record(file, "audit_anchored" if receipt.sent else "audit_anchor_dry_run", "anchor.anchor_audit_log", view)

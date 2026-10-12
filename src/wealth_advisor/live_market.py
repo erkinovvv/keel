@@ -6,6 +6,8 @@ import json
 import math
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -43,6 +45,8 @@ _INDICES = {
 }
 _PROVIDER_LINE = re.compile(r'(?:var hq_str_|v_)([A-Za-z0-9_]+)="([^"]*)"')
 _FUND_CODE = re.compile(r"CN-(\d{6})\Z")
+_PROCESS_CACHE: dict[str, tuple[float, "MarketQuote"]] = {}
+_PROCESS_CACHE_LOCK = Lock()
 
 
 @dataclass(frozen=True)
@@ -123,7 +127,7 @@ def _parse_index(provider: str, symbol: str, payload: bytes) -> tuple[float, flo
     return price, change, as_of
 
 
-def _parse_fund(provider: str, code: str, payload: bytes) -> tuple[float, float | None, str]:
+def _parse_fund(provider: str, code: str, payload: bytes, product: Product | None = None) -> tuple[float, float | None, str]:
     if provider == "eastmoney":
         body = json.loads(payload)
         if body.get("ErrCode") != 0:
@@ -143,6 +147,9 @@ def _parse_fund(provider: str, code: str, payload: bytes) -> tuple[float, float 
     values = _provider_fields(text, f"jj{code}")
     if values[0] != code:
         raise ValueError("unexpected Tencent fund")
+    if product is not None and product.asset_class == "cash":
+        # Tencent's money-market field is income per 10,000 units, not NAV.
+        return product.nav, None, values[8]
     price, change = _validated_numbers(values[5], values[7])
     return price, change, values[8]
 
@@ -164,6 +171,7 @@ class LiveMarket:
         self.fetcher = fetcher or _default_fetch
         self.enabled = enabled
         self.clock = clock
+        self._process_cache = fetcher is None and enabled is None and clock is time.monotonic
         self._cache: dict[str, tuple[float, MarketQuote]] = {}
         self._funds = {product.id: product for product in load_catalog(DATA_DIR / "products_cn.json") if _FUND_CODE.fullmatch(product.id)}
         meta_path = DATA_DIR / "products_cn_meta.json"
@@ -186,6 +194,13 @@ class LiveMarket:
         cached = self._cache.get(key)
         if cached and self.clock() - cached[0] < CACHE_SECONDS:
             return cached[1]
+        if self._process_cache:
+            process_key = f"{key}:{int(self._network_enabled())}"
+            with _PROCESS_CACHE_LOCK:
+                cached = _PROCESS_CACHE.get(process_key)
+            if cached and time.monotonic() - cached[0] < CACHE_SECONDS:
+                self._cache[key] = cached
+                return cached[1]
         if key in _INDICES:
             name_en, name_zh, providers = _INDICES[key]
             snapshot_price, snapshot_change = _SNAPSHOT_PRICES[key]
@@ -201,18 +216,23 @@ class LiveMarket:
             for provider, symbol in providers:
                 try:
                     payload = self._fetch(provider, symbol)
-                    price, change, as_of = _parse_index(provider, symbol, payload) if key in _INDICES else _parse_fund(provider, symbol.removeprefix("jj"), payload)
+                    price, change, as_of = _parse_index(provider, symbol, payload) if key in _INDICES else _parse_fund(provider, symbol.removeprefix("jj"), payload, product)
                     result = MarketQuote(key, name_en, name_zh, price, change, as_of, provider)
                     break
                 except (ValueError, TypeError, KeyError, IndexError, UnicodeError, OSError, TimeoutError):
                     continue
         self._cache[key] = (self.clock(), result)
+        if self._process_cache:
+            with _PROCESS_CACHE_LOCK:
+                _PROCESS_CACHE[process_key] = self._cache[key]
         if audit is not None:
             audit.append("market_refresh", {"id": key, "source": result.source, "as_of": result.as_of, "stale": result.stale})
         return result
 
     def indices(self, audit: Any = None) -> list[MarketQuote]:
-        return [self._quote(key, audit) for key in _INDICES]
+        keys = list(_INDICES)
+        with ThreadPoolExecutor(max_workers=min(8, len(keys))) as executor:
+            return list(executor.map(lambda key: self._quote(key, audit), keys))
 
     def funds(self, ids: list[str] | None = None, audit: Any = None) -> list[MarketQuote]:
         selected = ids if ids is not None else list(self._funds)
@@ -221,4 +241,8 @@ class LiveMarket:
         unknown = requested - set(self._funds) - {key for key in requested if key.startswith(("dep-", "lcd-", "sb-"))}
         if unknown:
             raise ValueError("fund is not in the CN catalog allowlist")
-        return [self._quote(key, audit) for key in dict.fromkeys(selected)]
+        keys = list(dict.fromkeys(selected))
+        if not keys:
+            return []
+        with ThreadPoolExecutor(max_workers=min(32, len(keys))) as executor:
+            return list(executor.map(lambda key: self._quote(key, audit), keys))

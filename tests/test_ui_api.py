@@ -222,3 +222,19 @@ def test_signed_state_cookie_restores_after_process_eviction(tmp_path, monkeypat
     state = client.get("/api/state")
     assert state.status_code == 200
     assert state.json()["profile"] is not None and state.json()["allocation"] is not None
+
+
+def test_audit_log_isolated_per_browser_session(tmp_path, monkeypatch):
+    from wealth_advisor.ui import server
+
+    first = _client(tmp_path, monkeypatch)
+    _profile(first)
+    first.post("/api/allocation", json={})
+    second = _client(tmp_path, monkeypatch)
+    second_state = second.get("/api/state")
+    assert second_state.status_code == 200 and second_state.json()["profile"] is None
+    first_audit = first.get("/api/audit").json()
+    second_audit = second.get("/api/audit").json()
+    assert first_audit["total"] > 0
+    assert second_audit["total"] == 0 and second_audit["records"] == []
+    assert server._FILES[first.cookies["wa_sid"]].session.settings.audit_log != server._FILES[second.cookies["wa_sid"]].session.settings.audit_log
