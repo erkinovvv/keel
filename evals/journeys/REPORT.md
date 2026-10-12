@@ -2,12 +2,12 @@
 
 Personas run: **30** (balanced across C1–C5; 6 in Chinese). Live model on Groq free tier.
 
-**Full journeys completed: 29/30 (97%)**
+**Full journeys completed: 30/30 (100%)**
 
 | Check | Pass rate |
 |---|---:|
 | profile recorded | 100% |
-| profile class correct | 97% |
+| profile class correct | 100% |
 | amount recorded | 100% |
 | allocation built | 100% |
 | allocation suitable | 100% |
@@ -18,37 +18,37 @@ Personas run: **30** (balanced across C1–C5; 6 in Chinese). Live model on Groq
 | concise | 100% |
 | no promises | 100% |
 
-Median tokens per journey: 10,753 · median LLM calls: 6 · median seconds: 115.0 · tool errors per journey: 0.0
+Median tokens per journey: 14,378 · median LLM calls: 7 · median seconds: 129.3 · tool errors per journey: 0.0
 
 | Persona | Lang | Expected | Got | Completed | Failed checks | Tokens |
 |---|---|---|---|---|---|---:|
-| P01 | en | C1 | C1 | ✅ | — | 10,005 |
-| P02 | en | C2 | C2 | ✅ | — | 9,965 |
-| P03 | en | C3 | C3 | ✅ | — | 9,864 |
-| P04 | en | C4 | C4 | ✅ | — | 15,230 |
-| P05 | zh | C5 | C5 | ✅ | — | 15,133 |
-| P06 | en | C1 | C1 | ✅ | — | 9,995 |
-| P07 | en | C2 | C2 | ✅ | — | 10,247 |
-| P08 | en | C3 | C3 | ✅ | — | 9,897 |
-| P09 | en | C4 | C3 | ❌ | profile_class_correct | 13,562 |
-| P10 | zh | C5 | C5 | ✅ | — | 11,695 |
-| P11 | en | C1 | C1 | ✅ | — | 10,037 |
-| P12 | en | C2 | C2 | ✅ | — | 12,951 |
-| P13 | en | C3 | C3 | ✅ | — | 15,062 |
-| P14 | en | C4 | C4 | ✅ | — | 10,823 |
-| P15 | zh | C5 | C5 | ✅ | — | 11,390 |
-| P16 | en | C1 | C1 | ✅ | — | 10,636 |
-| P17 | en | C2 | C2 | ✅ | — | 10,683 |
-| P18 | en | C3 | C3 | ✅ | — | 9,920 |
-| P19 | en | C4 | C4 | ✅ | — | 10,173 |
-| P20 | zh | C5 | C5 | ✅ | — | 12,382 |
-| P21 | en | C1 | C1 | ✅ | — | 9,913 |
-| P22 | en | C2 | C2 | ✅ | — | 13,088 |
-| P23 | en | C3 | C3 | ✅ | — | 10,068 |
-| P24 | en | C4 | C4 | ✅ | — | 9,710 |
-| P25 | zh | C5 | C5 | ✅ | — | 10,858 |
-| P26 | en | C1 | C1 | ✅ | — | 10,096 |
-| P27 | en | C2 | C2 | ✅ | — | 14,740 |
-| P28 | en | C3 | C3 | ✅ | — | 15,018 |
-| P29 | en | C4 | C4 | ✅ | — | 12,520 |
-| P30 | zh | C5 | C5 | ✅ | — | 11,464 |
+| P01 | en | C1 | C1 | ✅ | — | 14,810 |
+| P02 | en | C2 | C2 | ✅ | — | 14,203 |
+| P03 | en | C3 | C3 | ✅ | — | 20,854 |
+| P04 | en | C4 | C4 | ✅ | — | 14,345 |
+| P05 | zh | C5 | C5 | ✅ | — | 14,384 |
+| P06 | en | C1 | C1 | ✅ | — | 14,532 |
+| P07 | en | C2 | C2 | ✅ | — | 14,597 |
+| P08 | en | C3 | C3 | ✅ | — | 18,906 |
+| P09 | en | C4 | C4 | ✅ | — | 14,543 |
+| P10 | zh | C5 | C5 | ✅ | — | 14,151 |
+| P11 | en | C1 | C1 | ✅ | — | 14,371 |
+| P12 | en | C2 | C2 | ✅ | — | 17,389 |
+| P13 | en | C3 | C3 | ✅ | — | 14,426 |
+| P14 | en | C4 | C4 | ✅ | — | 14,820 |
+| P15 | zh | C5 | C5 | ✅ | — | 14,279 |
+| P16 | en | C1 | C1 | ✅ | — | 14,184 |
+| P17 | en | C2 | C2 | ✅ | — | 14,217 |
+| P18 | en | C3 | C3 | ✅ | — | 14,345 |
+| P19 | en | C4 | C4 | ✅ | — | 14,346 |
+| P20 | zh | C5 | C5 | ✅ | — | 14,328 |
+| P21 | en | C1 | C1 | ✅ | — | 14,252 |
+| P22 | en | C2 | C2 | ✅ | — | 14,599 |
+| P23 | en | C3 | C3 | ✅ | — | 12,414 |
+| P24 | en | C4 | C4 | ✅ | — | 14,106 |
+| P25 | zh | C5 | C5 | ✅ | — | 14,430 |
+| P26 | en | C1 | C1 | ✅ | — | 14,557 |
+| P27 | en | C2 | C2 | ✅ | — | 14,643 |
+| P28 | en | C3 | C3 | ✅ | — | 14,687 |
+| P29 | en | C4 | C4 | ✅ | — | 12,706 |
+| P30 | zh | C5 | C5 | ✅ | — | 12,893 |

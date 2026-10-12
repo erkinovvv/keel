@@ -255,7 +255,7 @@ def run(url: str) -> Path:
         pg.wait_for_timeout(600)
 
         card(pg, "Keel", ["The model talks. Code decides. The client confirms. The chain remembers.",
-                          "65/65 red-team cases passed · 29/30 client journeys completed on the live model · English and 中文"], 6000)
+                          "65/65 red-team cases passed · 30/30 client journeys completed on the live model · English and 中文"], 6000)
         video = pg.video.path()
         ctx.close()
         browser.close()
