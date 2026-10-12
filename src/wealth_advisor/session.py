@@ -23,10 +23,14 @@ from .tools import ToolDispatcher
 from .tools import TOOL_SCHEMAS
 
 _GUARANTEE_REQUEST = re.compile(r"\b(?:guarantee(?:d|s)?|risk[- ]free|certain\s+return)\b", re.I)
-_CONCENTRATION_REQUEST = re.compile(
-    r"\b(?:everything|all(?:\s+my\s+money|\s+of\s+it)?)\s+(?:into|in|on)\b|"
-    r"\b(?:put|invest|place)\b.{0,40}\b(?:everything|all)\b|\ball\s+in\b|"
-    r"\b(?:one|single)\s+(?:fund|product|stock)\b",
+_CONCENTRATION_INVESTING_VERB = re.compile(r"\b(?:put|invest|move|buy|allocate)\b|投|买|全仓", re.I)
+_CONCENTRATION_ALL_IN = re.compile(
+    r"\b(?:everything|all\s+(?:my\s+)?(?:money|savings|cash)|100\s*%|all\s+of\s+it)\b|全部|所有钱|全仓",
+    re.I,
+)
+_CONCENTRATION_SINGLE_TARGET = re.compile(
+    r"\b(?:one|single)\s+(?:fund|product|stock|etf)\b|\b(?:nasdaq|s&p|gold)\b|"
+    r"\b[A-Z]{2,5}[- ]?\d{3,}\b|纳斯达克|标普|黄金|基金",
     re.I,
 )
 
@@ -163,7 +167,10 @@ class AdvisorSession:
 
     @staticmethod
     def _is_concentration_request(message: str) -> bool:
-        return bool(_CONCENTRATION_REQUEST.search(message))
+        return all(
+            pattern.search(message)
+            for pattern in (_CONCENTRATION_INVESTING_VERB, _CONCENTRATION_ALL_IN, _CONCENTRATION_SINGLE_TARGET)
+        )
 
     def _safety_reply(self, message: str) -> str | None:
         guarantee = bool(_GUARANTEE_REQUEST.search(message))
@@ -191,7 +198,7 @@ class AdvisorSession:
                 else "I cannot put everything into one product: the 35% per-product cap keeps the portfolio diversified."
             )
         sentences.append(
-            "下一步，请打开Portfolio查看合适的组合。" if chinese
+            "下一步，请打开投资组合查看合适的组合。" if chinese
             else "Next, open Portfolio to review the suitable mix."
         )
         return " ".join(sentences)

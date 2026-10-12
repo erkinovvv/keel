@@ -209,3 +209,24 @@ def test_replay_safety_reply_handles_guarantee_and_concentration_without_reaskin
     assert "Portfolio" in reply
     assert "**" not in reply
     assert len(reply.split()) <= 70
+
+
+def test_concentration_detection_requires_all_three_signals():
+    benign = (
+        "Explain everything in simple terms",
+        "Is all of this in CNY?",
+        "Tell me all on fees",
+        "Which one fund has the lowest fee?",
+        "What is in the single bond fund?",
+    )
+    assert all(not AdvisorSession._is_concentration_request(message) for message in benign)
+    assert AdvisorSession._is_concentration_request("Just put everything into the Nasdaq fund.")
+    assert AdvisorSession._is_concentration_request("把所有钱投到纳斯达克基金。")
+
+
+def test_chinese_concentration_reply_uses_localized_ui_step(tmp_path):
+    session = make_session(tmp_path)
+    reply = session._safety_reply("把所有钱投到纳斯达克基金。")
+    assert reply is not None
+    assert "投资组合" in reply
+    assert "Portfolio" not in reply
