@@ -221,39 +221,39 @@
     "tolerance_class": 4,
     "capacity_score": 9,
     "tolerance_score": 9,
-    "expires_on": "2027-10-11",
+    "expires_on": "2027-10-12",
     "reasons": [
      {
       "code": "HORIZON_3_7Y",
-      "text": "How long can this money stay invested? → 3–7 years"
+      "text": "Investment horizon: 3–7 years"
      },
      {
       "code": "LIQUIDITY_NEED_WITHIN_30D",
-      "text": "When might you need to withdraw part of this money? → Within a month"
+      "text": "When you may need the money: Within a month"
      },
      {
       "code": "INCOME_STABILITY_MIXED",
-      "text": "How stable is your income? → Partly stable"
+      "text": "Income: Partly stable"
      },
      {
       "code": "EMERGENCY_FUND_3_6_MONTHS",
-      "text": "How many months of expenses do you hold in cash? → 3–6 months"
+      "text": "Cash reserve: 3–6 months"
      },
      {
       "code": "INVESTED_SHARE_25_50",
-      "text": "What share of your net worth is this investment? → 25–50%"
+      "text": "Share of your net worth: 25–50%"
      },
      {
       "code": "DRAWDOWN_REACTION_HOLD",
-      "text": "Your portfolio falls 20% in a month. What do you do? → Hold and wait"
+      "text": "If it fell 20% in a month: Hold and wait"
      },
      {
       "code": "EXPERIENCE_GOOD",
-      "text": "How experienced are you with funds, bonds or shares? → Good (several years investing)"
+      "text": "Experience: Good (several years investing)"
      },
      {
       "code": "GOAL_GROWTH",
-      "text": "What is the main goal of this money? → Long-term growth"
+      "text": "Goal: Long-term growth"
      }
     ],
     "flags": []
@@ -267,8 +267,8 @@
    },
    "provenance": {
     "source": "profiling.profile_investor",
-    "audit_hash": "eecb66dc804fbc7d3483ff9f16334fc579e4bf995596af5a14559fd571e03743",
-    "timestamp": "2026-10-11T15:11:21.107266+00:00"
+    "audit_hash": "656860d58165f8de4580717cfe9454f168ab0dc2f2ac232fb904108afd7f3865",
+    "timestamp": "2026-10-12T07:29:02.756046+00:00"
    }
   }
  },
@@ -394,8 +394,8 @@
    },
    "provenance": {
     "source": "allocation.build_allocation",
-    "audit_hash": "2a65c19797aba33a027b1c5b7465d759945c0695818134f0623aaf6a2d40d4ea",
-    "timestamp": "2026-10-11T15:11:21.112874+00:00"
+    "audit_hash": "44a093c5a0b3fbd85d8a2c311777876daa997e14ddb1b056d4e84ea2d1c568f6",
+    "timestamp": "2026-10-12T07:29:02.760518+00:00"
    }
   }
  },
@@ -428,8 +428,8 @@
    "kill_switch": false,
    "provenance": {
     "source": "ui.server.consent",
-    "audit_hash": "c244755cc455abcc4bdb54ceffbf53ae15320ea07d9a33f216eb3363496e02b5",
-    "timestamp": "2026-10-11T15:11:21.116006+00:00"
+    "audit_hash": "b35c9b696d612bf93fd7feb8c9ba43a16d05d600d060e4637f18b15a70e8b656",
+    "timestamp": "2026-10-12T07:29:02.763188+00:00"
    }
   }
  },
@@ -449,7 +449,7 @@
      "amount": 10000.0,
      "risk_class": 1,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
      "cooling_off_until": null,
      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
@@ -464,7 +464,7 @@
      "amount": 16014.837103755983,
      "risk_class": 3,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
      "cooling_off_until": null,
      "name": "Essence Steady Value-Add Hybrid A (001316)",
@@ -479,9 +479,9 @@
      "amount": 8831.037114894907,
      "risk_class": 4,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
-     "cooling_off_until": "2026-10-12",
+     "cooling_off_until": "2026-10-13",
      "name": "GF Nasdaq-100 ETF Feeder A (QDII) (270042)",
      "asset_class": "equity",
      "nav": 8.44,
@@ -494,9 +494,9 @@
      "amount": 8831.037114894907,
      "risk_class": 4,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
-     "cooling_off_until": "2026-10-12",
+     "cooling_off_until": "2026-10-13",
      "name": "Bosera S&P 500 ETF Feeder A (050025)",
      "asset_class": "equity",
      "nav": 5.6279,
@@ -509,9 +509,9 @@
      "amount": 6323.0886664541995,
      "risk_class": 4,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
-     "cooling_off_until": "2026-10-12",
+     "cooling_off_until": "2026-10-13",
      "name": "Hua An Gold ETF Feeder A (000216)",
      "asset_class": "gold",
      "nav": 3.1251,
@@ -523,8 +523,8 @@
    "investor_class": 4,
    "provenance": {
     "source": "session.create_draft_orders",
-    "audit_hash": "cf91a897bf0c28881bb854623506f3c42e7534a6c81c402baa3d9ad59571d2d9",
-    "timestamp": "2026-10-11T15:11:21.117654+00:00"
+    "audit_hash": "1c50b02af242d96a64447a741b6074824ca77784c19a2582261d395c45e68062",
+    "timestamp": "2026-10-12T07:29:02.764667+00:00"
    }
   }
  },
@@ -553,8 +553,8 @@
    "investor_class": 4,
    "provenance": {
     "source": "session.confirm_order",
-    "audit_hash": "329f52f0ac7feebb0670aec7284a87733c97a04e88ba08a6ccffc31662ea3636",
-    "timestamp": "2026-10-11T15:11:21.119270+00:00"
+    "audit_hash": "68a0c0585b48582a0ba310cad678c9c648a99fc02a967d9e954d66005e8d7e3e",
+    "timestamp": "2026-10-12T07:29:02.766385+00:00"
    }
   }
  },
@@ -572,7 +572,7 @@
   "status": 200,
   "response": {
    "tokens": {
-    "order-1": "Kj1OntTXBCWPbSZNvyWQzta1psIwELm8"
+    "order-1": "Wo1W_Woxqfl6xN5BZmiX4Gjvkl4mDgwj"
    }
   }
  },
@@ -583,7 +583,7 @@
    "path": "/api/orders/confirm",
    "body": {
     "tokens": {
-     "order-1": "Kj1OntTXBCWPbSZNvyWQzta1psIwELm8"
+     "order-1": "Wo1W_Woxqfl6xN5BZmiX4Gjvkl4mDgwj"
     }
    }
   },
@@ -596,8 +596,8 @@
      "amount": 10000.0,
      "risk_class": 1,
      "status": "EXECUTED",
-     "created_on": "2026-10-11",
-     "settles_on": "2026-10-13",
+     "created_on": "2026-10-12",
+     "settles_on": "2026-10-14",
      "cooling_off_until": null,
      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
      "asset_class": "cash",
@@ -612,8 +612,8 @@
    "investor_class": 4,
    "provenance": {
     "source": "session.confirm_order",
-    "audit_hash": "cc4ca63719021b930ad02a41f29d40e63e2fb261d67063629776f1a15a997e02",
-    "timestamp": "2026-10-11T15:11:21.122161+00:00"
+    "audit_hash": "26acfb9767be4d1957685160a0a261f8ac7faf3611a97810774256bf602a95f8",
+    "timestamp": "2026-10-12T07:29:02.769842+00:00"
    }
   }
  },
@@ -624,7 +624,7 @@
    "path": "/api/orders/confirm",
    "body": {
     "tokens": {
-     "order-1": "Kj1OntTXBCWPbSZNvyWQzta1psIwELm8"
+     "order-1": "Wo1W_Woxqfl6xN5BZmiX4Gjvkl4mDgwj"
     }
    }
   },
@@ -642,8 +642,8 @@
    "investor_class": 4,
    "provenance": {
     "source": "session.confirm_order",
-    "audit_hash": "4a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc",
-    "timestamp": "2026-10-11T15:11:21.123716+00:00"
+    "audit_hash": "1a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab84796630",
+    "timestamp": "2026-10-12T07:29:02.771297+00:00"
    }
   }
  },
@@ -658,10 +658,10 @@
   },
   "status": 200,
   "response": {
-   "redacted": "My [PASSPORT_REDACTED] and my card is [PHONE_REDACTED]",
+   "redacted": "My [PASSPORT_REDACTED] and my card is [CARD_REDACTED]",
    "pii_types": [
     "PASSPORT",
-    "PHONE"
+    "CARD"
    ]
   }
  },
@@ -674,22 +674,22 @@
   },
   "status": 200,
   "response": {
-   "tx_hash": "0xe9727ea8b5241377c7f4e328613c260b034f7103bd6c2be5152dbcc9718e71db",
-   "head_hash": "4a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc",
+   "tx_hash": "0xfa6717331e1c741ddfd6e211ef56c290a13bfab73fee49a6d644e85d3302927b",
+   "head_hash": "1a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab84796630",
    "record_count": 13,
-   "payload_hex": "574130314a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc0000000d",
+   "payload_hex": "574130311a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab847966300000000d",
    "explorer_url": null,
    "sent": true,
    "note": "FISCO BCOS contract 0xA0a4C46e3a7bF2F535ba02868Fc3AFd6767FE9E5",
    "network": "fisco",
-   "block": 11,
+   "block": 46,
    "verification": {
     "network": "fisco",
-    "tx_hash": "0xe9727ea8b5241377c7f4e328613c260b034f7103bd6c2be5152dbcc9718e71db",
-    "block": 11,
-    "block_time": 1791731481,
-    "anchored_head": "4a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc",
-    "local_head": "4a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc",
+    "tx_hash": "0xfa6717331e1c741ddfd6e211ef56c290a13bfab73fee49a6d644e85d3302927b",
+    "block": 46,
+    "block_time": 1791790143,
+    "anchored_head": "1a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab84796630",
+    "local_head": "1a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab84796630",
     "record_count": 13,
     "chain_valid": true,
     "chain_reason": "audit chain verified",
@@ -702,17 +702,17 @@
   "step": "Verify the anchor against the local audit chain",
   "request": {
    "method": "GET",
-   "path": "/api/anchor/verify?tx=0xe9727ea8b5241377c7f4e328613c260b034f7103bd6c2be5152dbcc9718e71db",
+   "path": "/api/anchor/verify?tx=0xfa6717331e1c741ddfd6e211ef56c290a13bfab73fee49a6d644e85d3302927b",
    "body": null
   },
   "status": 200,
   "response": {
    "network": "fisco",
-   "tx_hash": "0xe9727ea8b5241377c7f4e328613c260b034f7103bd6c2be5152dbcc9718e71db",
-   "block": 11,
-   "block_time": 1791731481,
-   "anchored_head": "4a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc",
-   "local_head": "4a02f417bd5c58cce8cda72e86e91b91e86d34f429a149c8f56679c17ebf80dc",
+   "tx_hash": "0xfa6717331e1c741ddfd6e211ef56c290a13bfab73fee49a6d644e85d3302927b",
+   "block": 46,
+   "block_time": 1791790143,
+   "anchored_head": "1a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab84796630",
+   "local_head": "1a8f1534642aa5d228253cfeffb34e4896aeec849572fb2cf9107bab84796630",
    "record_count": 13,
    "chain_valid": true,
    "chain_reason": "audit chain verified",
@@ -736,39 +736,39 @@
     "tolerance_class": 4,
     "capacity_score": 9,
     "tolerance_score": 9,
-    "expires_on": "2027-10-11",
+    "expires_on": "2027-10-12",
     "reasons": [
      {
       "code": "HORIZON_3_7Y",
-      "text": "How long can this money stay invested? → 3–7 years"
+      "text": "Investment horizon: 3–7 years"
      },
      {
       "code": "LIQUIDITY_NEED_WITHIN_30D",
-      "text": "When might you need to withdraw part of this money? → Within a month"
+      "text": "When you may need the money: Within a month"
      },
      {
       "code": "INCOME_STABILITY_MIXED",
-      "text": "How stable is your income? → Partly stable"
+      "text": "Income: Partly stable"
      },
      {
       "code": "EMERGENCY_FUND_3_6_MONTHS",
-      "text": "How many months of expenses do you hold in cash? → 3–6 months"
+      "text": "Cash reserve: 3–6 months"
      },
      {
       "code": "INVESTED_SHARE_25_50",
-      "text": "What share of your net worth is this investment? → 25–50%"
+      "text": "Share of your net worth: 25–50%"
      },
      {
       "code": "DRAWDOWN_REACTION_HOLD",
-      "text": "Your portfolio falls 20% in a month. What do you do? → Hold and wait"
+      "text": "If it fell 20% in a month: Hold and wait"
      },
      {
       "code": "EXPERIENCE_GOOD",
-      "text": "How experienced are you with funds, bonds or shares? → Good (several years investing)"
+      "text": "Experience: Good (several years investing)"
      },
      {
       "code": "GOAL_GROWTH",
-      "text": "What is the main goal of this money? → Long-term growth"
+      "text": "Goal: Long-term growth"
      }
     ],
     "flags": []
@@ -889,8 +889,8 @@
    },
    "allocation_provenance": {
     "source": "allocation.build_allocation",
-    "audit_hash": "2a65c19797aba33a027b1c5b7465d759945c0695818134f0623aaf6a2d40d4ea",
-    "timestamp": "2026-10-11T15:11:21.112874+00:00"
+    "audit_hash": "44a093c5a0b3fbd85d8a2c311777876daa997e14ddb1b056d4e84ea2d1c568f6",
+    "timestamp": "2026-10-12T07:29:02.760518+00:00"
    },
    "tier": {
     "tier": "EXECUTE",

@@ -14,39 +14,39 @@
    "tolerance_class": 2,
    "capacity_score": 6,
    "tolerance_score": 3,
-   "expires_on": "2027-10-11",
+   "expires_on": "2027-10-12",
    "reasons": [
     {
      "code": "HORIZON_1_3Y",
-     "text": "How long can this money stay invested? → 1–3 years"
+     "text": "Investment horizon: 1–3 years"
     },
     {
      "code": "LIQUIDITY_NEED_WITHIN_7D",
-     "text": "When might you need to withdraw part of this money? → Within a week"
+     "text": "When you may need the money: Within a week"
     },
     {
      "code": "INCOME_STABILITY_MIXED",
-     "text": "How stable is your income? → Partly stable"
+     "text": "Income: Partly stable"
     },
     {
      "code": "EMERGENCY_FUND_3_6_MONTHS",
-     "text": "How many months of expenses do you hold in cash? → 3–6 months"
+     "text": "Cash reserve: 3–6 months"
     },
     {
      "code": "INVESTED_SHARE_50_75",
-     "text": "What share of your net worth is this investment? → 50–75%"
+     "text": "Share of your net worth: 50–75%"
     },
     {
      "code": "DRAWDOWN_REACTION_REDUCE",
-     "text": "Your portfolio falls 20% in a month. What do you do? → Sell some to limit losses"
+     "text": "If it fell 20% in a month: Sell some to limit losses"
     },
     {
      "code": "EXPERIENCE_BASIC",
-     "text": "How experienced are you with funds, bonds or shares? → Basic (deposits, a few funds)"
+     "text": "Experience: Basic (deposits, a few funds)"
     },
     {
      "code": "GOAL_INCOME",
-     "text": "What is the main goal of this money? → Regular income"
+     "text": "Goal: Regular income"
     }
    ],
    "flags": []
@@ -117,8 +117,8 @@
   },
   "allocation_provenance": {
    "source": "allocation.build_allocation",
-   "audit_hash": "58b500f80ce0fc1c36bff33badec51ee8f54dfb0a64c80d90dcd019fd58b7175",
-   "timestamp": "2026-10-11T15:11:19.856920+00:00"
+   "audit_hash": "e7332f3dc912c3a864af73a51078d5af23c47798a185bd3e0dae3d227fa38746",
+   "timestamp": "2026-10-12T07:29:01.479852+00:00"
   },
   "tier": {
    "tier": "EXECUTE",

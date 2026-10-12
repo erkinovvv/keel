@@ -16,39 +16,39 @@
    "tolerance_class": 3,
    "capacity_score": 18,
    "tolerance_score": 12,
-   "expires_on": "2027-10-11",
+   "expires_on": "2027-10-12",
    "reasons": [
     {
      "code": "HORIZON_OVER_10Y",
-     "text": "How long can this money stay invested? → More than 10 years"
+     "text": "Investment horizon: More than 10 years"
     },
     {
      "code": "LIQUIDITY_NEED_OVER_30D",
-     "text": "When might you need to withdraw part of this money? → Not for at least a month"
+     "text": "When you may need the money: Not for at least a month"
     },
     {
      "code": "INCOME_STABILITY_STABLE",
-     "text": "How stable is your income? → Stable salary or pension"
+     "text": "Income: Stable salary or pension"
     },
     {
      "code": "EMERGENCY_FUND_OVER_6_MONTHS",
-     "text": "How many months of expenses do you hold in cash? → More than 6 months"
+     "text": "Cash reserve: More than 6 months"
     },
     {
      "code": "INVESTED_SHARE_UNDER_25",
-     "text": "What share of your net worth is this investment? → Less than 25%"
+     "text": "Share of your net worth: Less than 25%"
     },
     {
      "code": "DRAWDOWN_REACTION_BUY_MORE",
-     "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+     "text": "If it fell 20% in a month: Buy more at lower prices"
     },
     {
      "code": "EXPERIENCE_ADVANCED",
-     "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+     "text": "Experience: Advanced (professional / active investor)"
     },
     {
      "code": "GOAL_AGGRESSIVE_GROWTH",
-     "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+     "text": "Goal: Maximum growth, high risk accepted"
     },
     {
      "code": "REVEALED_TOLERANCE_C3",
@@ -146,8 +146,8 @@
   },
   "allocation_provenance": {
    "source": "allocation.build_allocation",
-   "audit_hash": "52d129eea6483fd9cf765efc43af96241d4d78b427053850cb3cea2c928d26c1",
-   "timestamp": "2026-10-11T15:11:20.521074+00:00"
+   "audit_hash": "cfd8dfb6ad5d7dbf450d2bb78840a3d1c2730458bafab2615f3533ca0d9f3c05",
+   "timestamp": "2026-10-12T07:29:02.262429+00:00"
   },
   "tier": {
    "tier": "EXECUTE",

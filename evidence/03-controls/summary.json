@@ -4,7 +4,7 @@
  "result": {
   "forged_token_executed": 0,
   "replayed_token_executed": 0,
-  "redacted_message": "My [PASSPORT_REDACTED] and my card is [PHONE_REDACTED]"
+  "redacted_message": "My [PASSPORT_REDACTED] and my card is [CARD_REDACTED]"
  },
  "state": {
   "profile": {
@@ -14,39 +14,39 @@
    "tolerance_class": 4,
    "capacity_score": 9,
    "tolerance_score": 9,
-   "expires_on": "2027-10-11",
+   "expires_on": "2027-10-12",
    "reasons": [
     {
      "code": "HORIZON_3_7Y",
-     "text": "How long can this money stay invested? → 3–7 years"
+     "text": "Investment horizon: 3–7 years"
     },
     {
      "code": "LIQUIDITY_NEED_WITHIN_30D",
-     "text": "When might you need to withdraw part of this money? → Within a month"
+     "text": "When you may need the money: Within a month"
     },
     {
      "code": "INCOME_STABILITY_MIXED",
-     "text": "How stable is your income? → Partly stable"
+     "text": "Income: Partly stable"
     },
     {
      "code": "EMERGENCY_FUND_3_6_MONTHS",
-     "text": "How many months of expenses do you hold in cash? → 3–6 months"
+     "text": "Cash reserve: 3–6 months"
     },
     {
      "code": "INVESTED_SHARE_25_50",
-     "text": "What share of your net worth is this investment? → 25–50%"
+     "text": "Share of your net worth: 25–50%"
     },
     {
      "code": "DRAWDOWN_REACTION_HOLD",
-     "text": "Your portfolio falls 20% in a month. What do you do? → Hold and wait"
+     "text": "If it fell 20% in a month: Hold and wait"
     },
     {
      "code": "EXPERIENCE_GOOD",
-     "text": "How experienced are you with funds, bonds or shares? → Good (several years investing)"
+     "text": "Experience: Good (several years investing)"
     },
     {
      "code": "GOAL_GROWTH",
-     "text": "What is the main goal of this money? → Long-term growth"
+     "text": "Goal: Long-term growth"
     }
    ],
    "flags": []
@@ -167,8 +167,8 @@
   },
   "allocation_provenance": {
    "source": "allocation.build_allocation",
-   "audit_hash": "2a65c19797aba33a027b1c5b7465d759945c0695818134f0623aaf6a2d40d4ea",
-   "timestamp": "2026-10-11T15:11:21.112874+00:00"
+   "audit_hash": "44a093c5a0b3fbd85d8a2c311777876daa997e14ddb1b056d4e84ea2d1c568f6",
+   "timestamp": "2026-10-12T07:29:02.760518+00:00"
   },
   "tier": {
    "tier": "EXECUTE",

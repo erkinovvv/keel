@@ -221,39 +221,39 @@
     "tolerance_class": 5,
     "capacity_score": 18,
     "tolerance_score": 12,
-    "expires_on": "2027-10-11",
+    "expires_on": "2027-10-12",
     "reasons": [
      {
       "code": "HORIZON_OVER_10Y",
-      "text": "How long can this money stay invested? → More than 10 years"
+      "text": "Investment horizon: More than 10 years"
      },
      {
       "code": "LIQUIDITY_NEED_OVER_30D",
-      "text": "When might you need to withdraw part of this money? → Not for at least a month"
+      "text": "When you may need the money: Not for at least a month"
      },
      {
       "code": "INCOME_STABILITY_STABLE",
-      "text": "How stable is your income? → Stable salary or pension"
+      "text": "Income: Stable salary or pension"
      },
      {
       "code": "EMERGENCY_FUND_OVER_6_MONTHS",
-      "text": "How many months of expenses do you hold in cash? → More than 6 months"
+      "text": "Cash reserve: More than 6 months"
      },
      {
       "code": "INVESTED_SHARE_UNDER_25",
-      "text": "What share of your net worth is this investment? → Less than 25%"
+      "text": "Share of your net worth: Less than 25%"
      },
      {
       "code": "DRAWDOWN_REACTION_BUY_MORE",
-      "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+      "text": "If it fell 20% in a month: Buy more at lower prices"
      },
      {
       "code": "EXPERIENCE_ADVANCED",
-      "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+      "text": "Experience: Advanced (professional / active investor)"
      },
      {
       "code": "GOAL_AGGRESSIVE_GROWTH",
-      "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+      "text": "Goal: Maximum growth, high risk accepted"
      }
     ],
     "flags": []
@@ -267,8 +267,8 @@
    },
    "provenance": {
     "source": "profiling.profile_investor",
-    "audit_hash": "418ec73c77238b4d6b16c1971b11324ae8459ebfb946a9f45ab530dc9e51e94d",
-    "timestamp": "2026-10-11T15:11:20.511468+00:00"
+    "audit_hash": "775372c33f1b29c446bf495880702f9e5ed5501c927efaf5f0b2793d59f32043",
+    "timestamp": "2026-10-12T07:29:02.236686+00:00"
    }
   }
  },
@@ -382,8 +382,8 @@
    },
    "provenance": {
     "source": "allocation.build_allocation",
-    "audit_hash": "ff1ec6db4cf2da2ff1c81fb87007b01b068b05c3ce0f3e8abddc25e1e80f4495",
-    "timestamp": "2026-10-11T15:11:20.513892+00:00"
+    "audit_hash": "ea3d1ba36fc6f5115e12ccead1efa0a6778d1b626d6a1b2d2e30b578442fdcc6",
+    "timestamp": "2026-10-12T07:29:02.246239+00:00"
    }
   }
  },
@@ -829,8 +829,8 @@
    "method": "Monthly total returns per asset class. Bonds approximated from 10-year Treasury yield changes with duration 6. US data as a proxy for global markets.",
    "provenance": {
     "source": "rehearsal.portfolio_path",
-    "audit_hash": "b4cd7e9eeaa18143ed5db7a1e7b1eafa24e3500c0ba59433741034bbecf2a8f3",
-    "timestamp": "2026-10-11T15:11:20.515875+00:00"
+    "audit_hash": "3c99703f64fc6738e7bc47227bf3541c2bf0f34504c46bc86a9eaff8d8e5a16d",
+    "timestamp": "2026-10-12T07:29:02.251353+00:00"
    }
   }
  },
@@ -870,39 +870,39 @@
     "tolerance_class": 3,
     "capacity_score": 18,
     "tolerance_score": 12,
-    "expires_on": "2027-10-11",
+    "expires_on": "2027-10-12",
     "reasons": [
      {
       "code": "HORIZON_OVER_10Y",
-      "text": "How long can this money stay invested? → More than 10 years"
+      "text": "Investment horizon: More than 10 years"
      },
      {
       "code": "LIQUIDITY_NEED_OVER_30D",
-      "text": "When might you need to withdraw part of this money? → Not for at least a month"
+      "text": "When you may need the money: Not for at least a month"
      },
      {
       "code": "INCOME_STABILITY_STABLE",
-      "text": "How stable is your income? → Stable salary or pension"
+      "text": "Income: Stable salary or pension"
      },
      {
       "code": "EMERGENCY_FUND_OVER_6_MONTHS",
-      "text": "How many months of expenses do you hold in cash? → More than 6 months"
+      "text": "Cash reserve: More than 6 months"
      },
      {
       "code": "INVESTED_SHARE_UNDER_25",
-      "text": "What share of your net worth is this investment? → Less than 25%"
+      "text": "Share of your net worth: Less than 25%"
      },
      {
       "code": "DRAWDOWN_REACTION_BUY_MORE",
-      "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+      "text": "If it fell 20% in a month: Buy more at lower prices"
      },
      {
       "code": "EXPERIENCE_ADVANCED",
-      "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+      "text": "Experience: Advanced (professional / active investor)"
      },
      {
       "code": "GOAL_AGGRESSIVE_GROWTH",
-      "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+      "text": "Goal: Maximum growth, high risk accepted"
      },
      {
       "code": "REVEALED_TOLERANCE_C3",
@@ -913,8 +913,8 @@
    },
    "provenance": {
     "source": "rehearsal.evaluate",
-    "audit_hash": "4fbc41f8c1120fb27cdd202a2097bed2a7ea0610d8308ddd77345dd7d9dbd66b",
-    "timestamp": "2026-10-11T15:11:20.517482+00:00"
+    "audit_hash": "9255cdebc7baa648a8d631e30501e6f9336b07f38438a9edfa5c7266c5ecb45e",
+    "timestamp": "2026-10-12T07:29:02.255322+00:00"
    }
   }
  },
@@ -1013,8 +1013,8 @@
    },
    "provenance": {
     "source": "allocation.build_allocation",
-    "audit_hash": "52d129eea6483fd9cf765efc43af96241d4d78b427053850cb3cea2c928d26c1",
-    "timestamp": "2026-10-11T15:11:20.521074+00:00"
+    "audit_hash": "cfd8dfb6ad5d7dbf450d2bb78840a3d1c2730458bafab2615f3533ca0d9f3c05",
+    "timestamp": "2026-10-12T07:29:02.262429+00:00"
    }
   }
  },
@@ -1035,8 +1035,8 @@
    "kill_switch": false,
    "provenance": {
     "source": "ui.server.consent",
-    "audit_hash": "3c834edd79eda50b6de6be5db269c69040a3a7b44246dd14f3994070b67000db",
-    "timestamp": "2026-10-11T15:11:20.522536+00:00"
+    "audit_hash": "d551425c4eb46f6bf3581d3846bd035baa9236d36a6c5169f29c52194e5b8a66",
+    "timestamp": "2026-10-12T07:29:02.267432+00:00"
    }
   }
  },
@@ -1056,7 +1056,7 @@
      "amount": 23441.271418327862,
      "risk_class": 1,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
      "cooling_off_until": null,
      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
@@ -1071,7 +1071,7 @@
      "amount": 25519.576193890713,
      "risk_class": 3,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
      "cooling_off_until": null,
      "name": "Essence Steady Value-Add Hybrid A (001316)",
@@ -1086,7 +1086,7 @@
      "amount": 25519.576193890713,
      "risk_class": 3,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
      "cooling_off_until": null,
      "name": "E Fund Yufeng Return Bond A (000171)",
@@ -1101,7 +1101,7 @@
      "amount": 25519.576193890713,
      "risk_class": 2,
      "status": "DRAFT",
-     "created_on": "2026-10-11",
+     "created_on": "2026-10-12",
      "settles_on": null,
      "cooling_off_until": null,
      "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
@@ -1115,8 +1115,8 @@
    "investor_class": 3,
    "provenance": {
     "source": "session.create_draft_orders",
-    "audit_hash": "7e3bc59de6d99b3151c71b3e6743f847c50125dda2b6304bbb4ade7c1bf1012e",
-    "timestamp": "2026-10-11T15:11:20.523848+00:00"
+    "audit_hash": "a1b04502c08aef6faaf28e9cd383dd9139773277b7135347d6965adca2af16a8",
+    "timestamp": "2026-10-12T07:29:02.276923+00:00"
    }
   }
  },
@@ -1137,10 +1137,10 @@
   "status": 200,
   "response": {
    "tokens": {
-    "order-1": "gllptLewpr2rqs4xHA7voLPdVOvrshBY",
-    "order-2": "WY-9Iw1xJZfSotXqBc8mQ816YoRBfwig",
-    "order-3": "sK_DG1xpke9g8iIv1LRhFdoY6zmK4Isq",
-    "order-4": "Ur9fc-kPRM-JD8bx2yxdjK1GoAG8VE0p"
+    "order-1": "T0X_hMDn3OENZT-ocVBbLkV0lTDYXBOH",
+    "order-2": "IdlfFQekcJXei8Ii9lQSAgJbKQNCJHGo",
+    "order-3": "jQC5Q0A7PrbYUFrS13HhKSRWy2h9Y7Sr",
+    "order-4": "4VoZsWLZ8m-GqwxSXDO4rNVpLcbywn3h"
    }
   }
  },
@@ -1151,10 +1151,10 @@
    "path": "/api/orders/confirm",
    "body": {
     "tokens": {
-     "order-1": "gllptLewpr2rqs4xHA7voLPdVOvrshBY",
-     "order-2": "WY-9Iw1xJZfSotXqBc8mQ816YoRBfwig",
-     "order-3": "sK_DG1xpke9g8iIv1LRhFdoY6zmK4Isq",
-     "order-4": "Ur9fc-kPRM-JD8bx2yxdjK1GoAG8VE0p"
+     "order-1": "T0X_hMDn3OENZT-ocVBbLkV0lTDYXBOH",
+     "order-2": "IdlfFQekcJXei8Ii9lQSAgJbKQNCJHGo",
+     "order-3": "jQC5Q0A7PrbYUFrS13HhKSRWy2h9Y7Sr",
+     "order-4": "4VoZsWLZ8m-GqwxSXDO4rNVpLcbywn3h"
     }
    }
   },
@@ -1167,8 +1167,8 @@
      "amount": 23441.271418327862,
      "risk_class": 1,
      "status": "EXECUTED",
-     "created_on": "2026-10-11",
-     "settles_on": "2026-10-13",
+     "created_on": "2026-10-12",
+     "settles_on": "2026-10-14",
      "cooling_off_until": null,
      "name": "Aegon-Industrial Tiantianyi Money Market B (001821)",
      "asset_class": "cash",
@@ -1182,8 +1182,8 @@
      "amount": 25519.576193890713,
      "risk_class": 3,
      "status": "EXECUTED",
-     "created_on": "2026-10-11",
-     "settles_on": "2026-10-13",
+     "created_on": "2026-10-12",
+     "settles_on": "2026-10-14",
      "cooling_off_until": null,
      "name": "Essence Steady Value-Add Hybrid A (001316)",
      "asset_class": "bonds",
@@ -1197,8 +1197,8 @@
      "amount": 25519.576193890713,
      "risk_class": 3,
      "status": "EXECUTED",
-     "created_on": "2026-10-11",
-     "settles_on": "2026-10-13",
+     "created_on": "2026-10-12",
+     "settles_on": "2026-10-14",
      "cooling_off_until": null,
      "name": "E Fund Yufeng Return Bond A (000171)",
      "asset_class": "bonds",
@@ -1212,8 +1212,8 @@
      "amount": 25519.576193890713,
      "risk_class": 2,
      "status": "EXECUTED",
-     "created_on": "2026-10-11",
-     "settles_on": "2026-10-13",
+     "created_on": "2026-10-12",
+     "settles_on": "2026-10-14",
      "cooling_off_until": null,
      "name": "GF CDB 7-10Y Policy Bank Bond Index A (003376)",
      "asset_class": "bonds",
@@ -1228,8 +1228,8 @@
    "investor_class": 3,
    "provenance": {
     "source": "session.confirm_order",
-    "audit_hash": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
-    "timestamp": "2026-10-11T15:11:20.526951+00:00"
+    "audit_hash": "0b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c2556366",
+    "timestamp": "2026-10-12T07:29:02.297971+00:00"
    }
   }
  },
@@ -1242,22 +1242,22 @@
   },
   "status": 200,
   "response": {
-   "tx_hash": "0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
-   "head_hash": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+   "tx_hash": "0xad017928b6019e3a426e1638f02900e7393e3cc9f0912c923246ba71f6343e09",
+   "head_hash": "0b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c2556366",
    "record_count": 18,
-   "payload_hex": "574130313c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e00000012",
+   "payload_hex": "574130310b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c255636600000012",
    "explorer_url": null,
    "sent": true,
    "note": "FISCO BCOS contract 0xA0a4C46e3a7bF2F535ba02868Fc3AFd6767FE9E5",
    "network": "fisco",
-   "block": 10,
+   "block": 45,
    "verification": {
     "network": "fisco",
-    "tx_hash": "0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
-    "block": 10,
-    "block_time": 1791731481,
-    "anchored_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
-    "local_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+    "tx_hash": "0xad017928b6019e3a426e1638f02900e7393e3cc9f0912c923246ba71f6343e09",
+    "block": 45,
+    "block_time": 1791790142,
+    "anchored_head": "0b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c2556366",
+    "local_head": "0b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c2556366",
     "record_count": 18,
     "chain_valid": true,
     "chain_reason": "audit chain verified",
@@ -1270,17 +1270,17 @@
   "step": "Verify the anchor against the local audit chain",
   "request": {
    "method": "GET",
-   "path": "/api/anchor/verify?tx=0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
+   "path": "/api/anchor/verify?tx=0xad017928b6019e3a426e1638f02900e7393e3cc9f0912c923246ba71f6343e09",
    "body": null
   },
   "status": 200,
   "response": {
    "network": "fisco",
-   "tx_hash": "0xcb993c5e55b936a97b92cd6a298b20bbcce1afc1274abc3ab77b67da7abbd11d",
-   "block": 10,
-   "block_time": 1791731481,
-   "anchored_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
-   "local_head": "3c4c740584d57ac5ecbf4195e43e28a19cd69ba8a99cfb75212b70388468098e",
+   "tx_hash": "0xad017928b6019e3a426e1638f02900e7393e3cc9f0912c923246ba71f6343e09",
+   "block": 45,
+   "block_time": 1791790142,
+   "anchored_head": "0b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c2556366",
+   "local_head": "0b35f67897c9131f90cee20185c5e4e9a2b25899cc457bdc9687b163c2556366",
    "record_count": 18,
    "chain_valid": true,
    "chain_reason": "audit chain verified",
@@ -1304,39 +1304,39 @@
     "tolerance_class": 3,
     "capacity_score": 18,
     "tolerance_score": 12,
-    "expires_on": "2027-10-11",
+    "expires_on": "2027-10-12",
     "reasons": [
      {
       "code": "HORIZON_OVER_10Y",
-      "text": "How long can this money stay invested? → More than 10 years"
+      "text": "Investment horizon: More than 10 years"
      },
      {
       "code": "LIQUIDITY_NEED_OVER_30D",
-      "text": "When might you need to withdraw part of this money? → Not for at least a month"
+      "text": "When you may need the money: Not for at least a month"
      },
      {
       "code": "INCOME_STABILITY_STABLE",
-      "text": "How stable is your income? → Stable salary or pension"
+      "text": "Income: Stable salary or pension"
      },
      {
       "code": "EMERGENCY_FUND_OVER_6_MONTHS",
-      "text": "How many months of expenses do you hold in cash? → More than 6 months"
+      "text": "Cash reserve: More than 6 months"
      },
      {
       "code": "INVESTED_SHARE_UNDER_25",
-      "text": "What share of your net worth is this investment? → Less than 25%"
+      "text": "Share of your net worth: Less than 25%"
      },
      {
       "code": "DRAWDOWN_REACTION_BUY_MORE",
-      "text": "Your portfolio falls 20% in a month. What do you do? → Buy more at lower prices"
+      "text": "If it fell 20% in a month: Buy more at lower prices"
      },
      {
       "code": "EXPERIENCE_ADVANCED",
-      "text": "How experienced are you with funds, bonds or shares? → Advanced (professional / active investor)"
+      "text": "Experience: Advanced (professional / active investor)"
      },
      {
       "code": "GOAL_AGGRESSIVE_GROWTH",
-      "text": "What is the main goal of this money? → Maximum growth, high risk accepted"
+      "text": "Goal: Maximum growth, high risk accepted"
      },
      {
       "code": "REVEALED_TOLERANCE_C3",
@@ -1434,8 +1434,8 @@
    },
    "allocation_provenance": {
     "source": "allocation.build_allocation",
-    "audit_hash": "52d129eea6483fd9cf765efc43af96241d4d78b427053850cb3cea2c928d26c1",
-    "timestamp": "2026-10-11T15:11:20.521074+00:00"
+    "audit_hash": "cfd8dfb6ad5d7dbf450d2bb78840a3d1c2730458bafab2615f3533ca0d9f3c05",
+    "timestamp": "2026-10-12T07:29:02.262429+00:00"
    },
    "tier": {
     "tier": "EXECUTE",
