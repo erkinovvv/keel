@@ -26,7 +26,7 @@ const NUMBERS = {
   journeys: "29 / 30",   // evals/journeys/REPORT.md
   redteam: "57 / 57",    // evals/redteam/REPORT.md
   benign: "8 / 8",
-  tests: "129",          // uv run pytest
+  tests: "132",          // uv run pytest
   backtest: "5 / 5",     // docs/ALGORITHM.md section 6
 };
 
@@ -279,7 +279,7 @@ pres.addSection({ title: "Results and fit" });
   rule(s, M, 4.1, W - 2 * M, RULE, "stats-bottom");
   text(s, "What the backtest taught us", { x: M, y: 4.45, w: 6, h: 0.4, fontSize: 15, bold: true, color: C.accent2 });
   text(s, "Every class kept its volatility target for 18 years, yet every class fell further than that number suggests: C5 lost 34% in 2008. A volatility figure does not tell a client what 2008 feels like. That is why Keel enforces the client's own loss limit and has them rehearse the crash.", { x: M, y: 4.9, w: W - 2 * M - 1, h: 1.3, fontSize: 17, color: C.text1 });
-  s.addNotes("Here is what we measured. Twenty-nine of thirty scripted clients completed the whole journey on a live model. All 57 red-team attacks were stopped. 129 automated tests run offline in continuous integration. And a backtest from 2008 to 2026: every risk class stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why Keel enforces the client's own loss limit and makes them rehearse the crash.");
+  s.addNotes("Here is what we measured. Twenty-nine of thirty scripted clients completed the whole journey on a live model. All 57 red-team attacks were stopped. 132 automated tests run offline in continuous integration. And a backtest from 2008 to 2026: every risk class stayed inside its volatility band, yet every one fell further than that number suggests; C5 lost 34 percent in 2008. That is exactly why Keel enforces the client's own loss limit and makes them rehearse the crash.");
 }
 
 // ------------------------------------------------------------------ 10 architecture

@@ -99,6 +99,19 @@ def test_model_tool_results_are_compact_and_display_ready(tmp_path):
     assert product.id not in compact["display"]
 
 
+def test_allocation_capped_by_client_loss_limit_says_so():
+    from wealth_advisor.catalog import load_catalog
+    from wealth_advisor.tools import compact_tool_result
+
+    catalog = load_catalog()
+    allocation = build_allocation(50_000, 3, catalog, max_tolerable_loss=0.05)
+    assert allocation.stress_limit_after is not None
+    display = compact_tool_result("build_allocation", allocation.as_dict(), catalog)["display"]
+    assert "client's own maximum-loss answer, not by the risk class" in display
+    plain = compact_tool_result("build_allocation", build_allocation(50_000, 3, catalog).as_dict(), catalog)["display"]
+    assert "Scaled back" not in plain
+
+
 def test_stage_tool_lists_preserve_canonical_order(tmp_path):
     from wealth_advisor.permissions import PermissionTier
     from wealth_advisor.session import AdvisorSession

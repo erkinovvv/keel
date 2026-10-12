@@ -200,12 +200,17 @@ def compact_tool_result(name: str, result: dict[str, Any], catalog: Iterable[Pro
             f"{product_names.get(holding.get('product_id'), 'Selected fund')} ({holding.get('asset_class')}) {_display_percent(holding.get('weight', 0))}"
             for holding in holdings
         )
-        return {
-            "display": (
-                f"Your portfolio for C{result.get('investor_class')}: {product_mix}. "
-                f"Expected return {_display_percent(result.get('expected_return', 0))}; volatility {_display_percent(result.get('volatility', 0))}."
-            ),
-        }
+        display = (
+            f"Your portfolio for C{result.get('investor_class')}: {product_mix}. "
+            f"Expected return {_display_percent(result.get('expected_return', 0))}; volatility {_display_percent(result.get('volatility', 0))}."
+        )
+        if result.get("stress_limit_after") is not None:
+            # Without this the model credits the cap to the risk class and tells the client their class set it.
+            display += (
+                f" Scaled back by the client's own maximum-loss answer, not by the risk class: worst historical stress loss "
+                f"{_display_percent(result.get('stress_limit_before') or 0)} before, {_display_percent(result['stress_limit_after'])} after."
+            )
+        return {"display": display}
     if name == "stress_test":
         return {
             key: result.get(key)
