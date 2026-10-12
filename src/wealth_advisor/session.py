@@ -13,6 +13,7 @@ from .allocation import Allocation
 from .audit import AuditLogger
 from .config import Settings
 from .llm import LLMClient
+from .live_market import LiveMarket
 from .permissions import PermissionTier
 from .permissions import ConfirmationTokenStore, PermissionDenied, require_tier
 from .profiling import InvestorProfile
@@ -113,6 +114,7 @@ class AdvisorSession:
         self.state = SessionState()
         self.state.account = SimulatedAccount(cash=self.settings.simulated_cash)
         self.audit = AuditLogger(self.settings.audit_log)
+        self.market = LiveMarket()
         self.dispatcher = ToolDispatcher(audit=self.audit, session=self)
         self.agent = AdvisorAgent(
             llm=LLMClient(settings=self.settings, audit=self.audit),
@@ -159,11 +161,11 @@ class AdvisorSession:
         """Expose only tools valid for the current advisory stage."""
 
         if not self.state.profile:
-            names = {"record_client_facts", "profile_investor"}
+            names = {"record_client_facts", "profile_investor", "market_quotes"}
         elif not self.state.allocations:
-            names = {"build_allocation", "compare_products"}
+            names = {"build_allocation", "compare_products", "market_quotes"}
         else:
-            names = {"stress_test", "compare_products", "build_allocation"}
+            names = {"stress_test", "compare_products", "build_allocation", "market_quotes"}
         return [tool for tool in TOOL_SCHEMAS if tool["function"]["name"] in names]
 
     @staticmethod
@@ -337,7 +339,7 @@ class AdvisorSession:
             return f"Your investor profile{class_text} is recorded. Next I can build a suitable allocation."
         if not stress_results:
             return f"Your investor profile{class_text} and allocation are recorded. Next I can run a historical stress test."
-        return f"Your investor profile{class_text}, allocation, and stress test are recorded. Next, open Rehearse step 3 and live through 2008 with your portfolio before confirming any orders."
+        return f"Your investor profile{class_text}, allocation, and stress test are recorded. Next, open the Crash test (step 3) and live through 2008 with your plan before confirming any orders."
 
     def stored_allocation(self, allocation_id: str = "latest") -> Allocation:
         """Resolve a server-side allocation identifier for non-LLM callers."""

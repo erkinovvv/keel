@@ -84,7 +84,7 @@ def test_advice_report_is_fingerprinted(tmp_path, monkeypatch):
     client.post("/api/allocation", json={})
     client.post("/api/goal", json={"target": 300_000, "years": 8, "monthly": 1_000})
     page = client.get("/report")
-    assert page.status_code == 200 and "Advice Report" in page.text and "Recommended portfolio" in page.text
+    assert page.status_code == 200 and "Advice Report" in page.text and "Your investment plan" in page.text
     events = [r["event"] for r in client.get("/api/audit").json()["records"]]
     assert "advice_report_issued" in events
 
@@ -121,11 +121,11 @@ def test_crash_rehearsal_reveals_tolerance(tmp_path, monkeypatch):
     result = client.post("/api/rehearsal/decision", json={"action": "sell", "month_index": first_dip}).json()
     assert result["outcome"]["revealed_class"] == 1
     assert result["profile"]["investor_class"] == 1 <= before
-    assert any("crash rehearsal" in r["text"] for r in result["profile"]["reasons"])
+    assert any("crash test" in r["text"] for r in result["profile"]["reasons"])
     events = [r["event"] for r in client.get("/api/audit").json()["records"]]
     assert {"rehearsal_started", "rehearsal_decision"} <= set(events)
     report = client.get("/report").text
-    assert "what you said and what you did" in report and "Risk class lowered" in report
+    assert "what you said and what you did" in report and "Risk level lowered" in report
 
 
 def test_proactive_alert_and_client_decision(tmp_path, monkeypatch):
@@ -140,6 +140,19 @@ def test_proactive_alert_and_client_decision(tmp_path, monkeypatch):
     assert decision["choice"] == "hold"
     events = [r["event"] for r in client.get("/api/audit").json()["records"]]
     assert {"proactive_alert", "client_decision_after_alert"} <= set(events)
+
+
+def test_live_market_endpoints_are_stale_and_provenanced_when_disabled(tmp_path, monkeypatch):
+    client = _client(tmp_path, monkeypatch)
+    indices = client.get("/api/market/live")
+    assert indices.status_code == 200
+    assert len(indices.json()["quotes"]) == 7
+    assert all(quote["stale"] for quote in indices.json()["quotes"])
+    assert len(indices.json()["provenance"]["audit_hash"]) == 64
+    funds = client.get("/api/market/funds")
+    assert funds.status_code == 200 and funds.json()["quotes"]
+    assert all(quote["stale"] for quote in funds.json()["quotes"])
+    assert client.post("/api/market/check-live").status_code == 409
 
 
 def test_security_headers_and_health(tmp_path, monkeypatch):

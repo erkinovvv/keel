@@ -35,7 +35,7 @@ from wealth_advisor.goals import GoalInput, project_goal
 from wealth_advisor.permissions import PermissionDenied, PermissionTier
 from wealth_advisor.profiling import QUESTIONNAIRE, InvestorProfile, profile_investor
 from wealth_advisor.rehearsal import apply_outcome, evaluate, load_scenario, portfolio_path
-from wealth_advisor.monitoring import EVENTS, check_market
+from wealth_advisor.monitoring import EVENTS, check_live_market, check_market
 from wealth_advisor.security import redact_pii
 from wealth_advisor.session import AdvisorSession
 from wealth_advisor.stress import SCENARIOS, stress_test
@@ -288,7 +288,7 @@ def questionnaire() -> list[dict[str, Any]]:
             "key": key,
             "question": question_label(key),
             "domain": spec["domain"],
-            "options": [{"key": option, "label": humanize(option)} for option in spec["options"]],
+            "options": [{"key": option, "label": humanize(option, key)} for option in spec["options"]],
         }
         for key, spec in QUESTIONNAIRE.items()
     ]
@@ -482,6 +482,56 @@ def market_event(event: str, response: Response, wa_sid: str | None = Cookie(def
     file.alerts.append(view)
     stamp = _record(file, "proactive_alert", "monitoring.check_market", {"check": view})
     return {"check": view, "provenance": stamp}
+
+
+@app.get("/api/market/live")
+def live_indices(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Return allowlisted index, gold, and FX observations with refresh provenance."""
+
+    file = _file(wa_sid, response)
+    quotes = [quote.as_dict() for quote in file.session.market.indices(file.session.audit)]
+    stamp = _record(file, "market_quotes_viewed", "live_market.LiveMarket.indices", {"sources": [quote["source"] for quote in quotes], "as_of": [quote["as_of"] for quote in quotes]})
+    return {"quotes": quotes, "provenance": stamp}
+
+
+@app.get("/api/market/funds")
+def live_funds(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Return NAV observations for CN holdings, or the full CN catalog without an allocation."""
+
+    file = _file(wa_sid, response)
+    allocation_id = file.session.state.latest_allocation_id
+    ids = None
+    if allocation_id:
+        holding_ids = [holding.product_id for holding in file.session.state.allocations[allocation_id].holdings]
+        if all(product_id.startswith("CN-") for product_id in holding_ids):
+            ids = holding_ids
+    quotes = [quote.as_dict() for quote in file.session.market.funds(ids, file.session.audit)]
+    stamp = _record(file, "fund_nav_viewed", "live_market.LiveMarket.funds", {"sources": [quote["source"] for quote in quotes], "as_of": [quote["as_of"] for quote in quotes]})
+    return {"quotes": quotes, "allocation_id": allocation_id, "provenance": stamp}
+
+
+@app.post("/api/market/check-live")
+def check_live(response: Response, wa_sid: str | None = Cookie(default=None)) -> dict[str, Any]:
+    """Apply latest public fund NAV changes to the current portfolio and reuse monitoring policy."""
+
+    file = _file(wa_sid, response)
+    _require_profile(file)
+    try:
+        allocation = file.session.stored_allocation("latest")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    try:
+        quotes = file.session.market.funds([holding.product_id for holding in allocation.holdings], file.session.audit)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    if any(quote.stale or quote.change_pct is None for quote in quotes):
+        raise HTTPException(503, "Current NAV changes are unavailable for every holding; no live check was computed.")
+    changes = {quote.id: quote.change_pct for quote in quotes if quote.change_pct is not None}
+    check = check_live_market(allocation, changes, loss_limit=_client(file).get("max_loss"), rehearsal=file.rehearsals[-1] if file.rehearsals else None)
+    view = check.as_dict()
+    file.alerts.append(view)
+    stamp = _record(file, "live_market_check", "monitoring.check_live_market", {"check": view, "sources": [quote.source for quote in quotes], "as_of": [quote.as_of for quote in quotes]})
+    return {"check": view, "quotes": [quote.as_dict() for quote in quotes], "provenance": stamp}
 
 
 class AlertDecisionIn(BaseModel):

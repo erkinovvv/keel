@@ -120,7 +120,7 @@ def test_stage_tool_lists_preserve_canonical_order(tmp_path):
     canonical = [item["function"]["name"] for item in TOOL_SCHEMAS]
     session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.ADVISE)
     first_stage = [item["function"]["name"] for item in session._tools_for_state()]
-    assert first_stage == [name for name in canonical if name in {"record_client_facts", "profile_investor"}]
+    assert first_stage == [name for name in canonical if name in {"record_client_facts", "profile_investor", "market_quotes"}]
 
 
 def test_tool_dispatcher_exposes_stress_test(tmp_path):

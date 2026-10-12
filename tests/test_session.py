@@ -205,7 +205,7 @@ def test_complete_state_fallback_omits_empty_missing_clause():
         {"profile": {}, "allocation": {}, "stress_results": {"stress-1": {}}},
         "the client's language",
     )
-    assert reply == "Your investor profile, allocation, and stress test are recorded. Next, open Rehearse step 3 and live through 2008 with your portfolio before confirming any orders."
+    assert reply == "Your investor profile, allocation, and stress test are recorded. Next, open the Crash test (step 3) and live through 2008 with your plan before confirming any orders."
     assert "Stored in this session" not in reply
 
 
@@ -237,7 +237,7 @@ def test_replay_completes_requested_portfolio_and_stress_in_one_turn(tmp_path):
         "responses": [
             {"content": "", "tool_calls": [{"name": "build_allocation", "arguments": {}}]},
             {"content": "I will run the 2008 stress test now.", "tool_calls": []},
-            {"content": "The requested checks are complete. Open Rehearse step 3 next.", "tool_calls": []},
+            {"content": "The requested checks are complete. Open the Crash test next.", "tool_calls": []},
         ]
     }), encoding="utf-8")
     session = AdvisorSession(Settings(llm_mode="replay", replay_file=fixture, audit_log=tmp_path / "audit.jsonl"))
@@ -249,7 +249,7 @@ def test_replay_completes_requested_portfolio_and_stress_in_one_turn(tmp_path):
     assert session.state.allocations
     assert session.state.stress_results
     assert "I will run" not in reply
-    assert "open rehearse step 3" in reply.lower()
+    assert "open the crash test" in reply.lower()
 
 
 def test_concentration_detection_requires_all_three_signals():

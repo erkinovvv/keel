@@ -83,6 +83,12 @@ class DraftOrderArgs(BaseModel):
     allocation_id: str = "latest"
 
 
+class MarketQuotesArgs(BaseModel):
+    """No arguments: server-side allowlists define the quote universe."""
+
+    pass
+
+
 _LEGACY_FIELD_NAMES = {
     "amount": "amount_cny",
     "max_loss": "max_loss_fraction",
@@ -154,6 +160,7 @@ TOOL_SCHEMAS = [
     {"type": "function", "function": {"name": "build_allocation", "description": "Build a deterministic suitable allocation.", "parameters": _provider_schema(AllocationArgs)}},
     {"type": "function", "function": {"name": "stress_test", "description": "Apply a deterministic historical portfolio stress.", "parameters": _provider_schema(StressArgs)}},
     {"type": "function", "function": {"name": "create_draft_orders", "description": "Create proposed simulated orders from a stored allocation.", "parameters": _provider_schema(DraftOrderArgs)}},
+    {"type": "function", "function": {"name": "market_quotes", "description": "Read public allowlisted market quotes; dated fallbacks are marked stale.", "parameters": _provider_schema(MarketQuotesArgs)}},
 ]
 
 
@@ -226,6 +233,8 @@ def compact_tool_result(name: str, result: dict[str, Any], catalog: Iterable[Pro
     if name == "create_draft_orders":
         orders = result.get("orders", [])
         return {"display": "Draft orders created: " + "; ".join(f"{product_names.get(order.get('product_id'), 'Selected fund')} {order.get('amount')}" for order in orders) + "."}
+    if name == "market_quotes":
+        return {"quotes": result.get("quotes", [])}
     return {"display": str(result)}
 
 
@@ -354,6 +363,11 @@ class ToolDispatcher:
             require_tier(self.session.tier, PermissionTier.PROPOSE)
             args = DraftOrderArgs.model_validate(arguments)
             result = {"orders": self.session.create_draft_orders(self._allocation_id(args.allocation_id))}
+        elif name == "market_quotes":
+            MarketQuotesArgs.model_validate(arguments)
+            if not self.session:
+                raise ValueError("market_quotes requires a server-side AdvisorSession")
+            result = {"quotes": [quote.as_dict() for quote in self.session.market.indices(self.audit)]}
         else:
             raise ValueError(f"unknown tool: {name}")
         if self.audit:

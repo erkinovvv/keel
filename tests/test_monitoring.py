@@ -2,7 +2,7 @@ import pytest
 
 from wealth_advisor.allocation import build_allocation
 from wealth_advisor.catalog import load_catalog
-from wealth_advisor.monitoring import EVENTS, check_market
+from wealth_advisor.monitoring import EVENTS, check_live_market, check_market
 
 
 @pytest.fixture
@@ -44,3 +44,12 @@ def test_unknown_event_is_rejected(allocation):
 def test_events_cover_every_asset_class():
     for spec in EVENTS.values():
         assert set(spec["returns"]) == {"cash", "bonds", "equity", "gold", "reits"}
+
+
+def test_live_nav_check_reuses_loss_and_rebalance_policy(allocation):
+    changes = {holding.product_id: -5.0 for holding in allocation.holdings}
+    check = check_live_market(allocation, changes, loss_limit=0.01)
+    assert check.event == "live_nav"
+    assert check.change == pytest.approx(-0.05)
+    assert check.recommendation == "review_risk"
+    assert "LOSS_LIMIT_BREACHED" in check.reason_codes

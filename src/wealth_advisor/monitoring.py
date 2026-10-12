@@ -10,6 +10,7 @@ through the human confirmation path.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
 from typing import Any
 
 from .allocation import Allocation
@@ -69,8 +70,40 @@ def check_market(
         spec = EVENTS[event]
     except KeyError as exc:
         raise ValueError(f"unknown market event {event}") from exc
+    values = {k: allocation.amount * w * (1 + spec["returns"].get(k, 0.0)) for k, w in allocation.strategic_weights.items() if w > 0}
+    return _evaluate_market(allocation, event, spec["name"], values, loss_limit, rehearsal)
+
+
+def check_live_market(
+    allocation: Allocation,
+    fund_changes_pct: dict[str, float],
+    *,
+    loss_limit: float | None = None,
+    rehearsal: dict[str, Any] | None = None,
+) -> MarketCheck:
+    """Apply observed NAV daily changes to each holding, then reuse the drift/loss policy."""
+
+    values: dict[str, float] = {}
+    for holding in allocation.holdings:
+        if holding.product_id not in fund_changes_pct:
+            raise ValueError(f"current NAV change unavailable for {holding.product_id}")
+        change = float(fund_changes_pct[holding.product_id])
+        if not math.isfinite(change) or abs(change) > 30:
+            raise ValueError("fund NAV change outside sanity bounds")
+        values[holding.asset_class] = values.get(holding.asset_class, 0.0) + holding.amount * (1 + change / 100)
+    return _evaluate_market(allocation, "live_nav", "Latest public fund NAV change", values, loss_limit, rehearsal)
+
+
+def _evaluate_market(
+    allocation: Allocation,
+    event: str,
+    event_name: str,
+    values: dict[str, float],
+    loss_limit: float | None,
+    rehearsal: dict[str, Any] | None,
+) -> MarketCheck:
     target = {k: v for k, v in allocation.strategic_weights.items() if v > 0}
-    values = {k: allocation.amount * w * (1 + spec["returns"].get(k, 0.0)) for k, w in target.items()}
+    values = {k: values.get(k, 0.0) for k in target}
     value_after = sum(values.values())
     change = value_after / allocation.amount - 1
     now = {k: v / value_after for k, v in values.items()}
@@ -103,7 +136,7 @@ def check_market(
         codes.append("BEFORE_REHEARSAL_SELL_POINT")
     return MarketCheck(
         event=event,
-        event_name=spec["name"],
+        event_name=event_name,
         value_before=allocation.amount,
         value_after=value_after,
         change=change,

@@ -165,14 +165,14 @@ def test_session_exposes_tools_by_stage(tmp_path):
     from wealth_advisor.session import AdvisorSession
 
     session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.ADVISE)
-    assert {item["function"]["name"] for item in session._tools_for_state()} == {"record_client_facts", "profile_investor"}
+    assert {item["function"]["name"] for item in session._tools_for_state()} == {"record_client_facts", "profile_investor", "market_quotes"}
     session.dispatcher.dispatch("record_client_facts", {"amount": 100_000, "horizon_years": 5})
     session.dispatcher.dispatch("profile_investor", {"answers": {
         "horizon": "3_7y", "liquidity_need": "within_7d", "income_stability": "stable",
         "emergency_fund": "over_6_months", "invested_share": "under_25", "drawdown_reaction": "hold",
         "experience": "good", "goal": "growth",
     }})
-    assert {item["function"]["name"] for item in session._tools_for_state()} == {"build_allocation", "compare_products"}
+    assert {item["function"]["name"] for item in session._tools_for_state()} == {"build_allocation", "compare_products", "market_quotes"}
 
 
 def test_live_malformed_json_reaches_tool_error_recovery(tmp_path):
