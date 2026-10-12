@@ -5,7 +5,7 @@ const LANG = (() => {
   try {
     const fromCookie = document.cookie.split("; ").find((c) => c.startsWith("wa_lang="))?.split("=")[1];
     if (fromCookie) return fromCookie === "zh" ? "zh" : "en";
-    return navigator.language?.toLowerCase().startsWith("zh") ? "zh" : "en";
+    return "en";  // English is the competition's official language; 中文 is one click away
   } catch { return "en"; }
 })();
 document.documentElement.lang = LANG === "zh" ? "zh-CN" : "en";

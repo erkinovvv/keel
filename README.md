@@ -100,6 +100,7 @@ LLM_MODE=live uv run python evals/journeys/run.py      # 30 client personas on t
 - [Core algorithms](docs/ALGORITHM.md) — risk profiling, Crash Rehearsal, real-fund universe, allocation, stress tests, market estimates and backtest, goal Monte Carlo
 - [Security self-assessment](docs/SECURITY_SELF_ASSESSMENT.md) — threat model, permission-tier implementation, controls ↔ tests, red-team results, known risks
 - [Roadmap](docs/ROADMAP.md)
+- [Third-party software, data and fonts](THIRD_PARTY_NOTICES.md) — licenses and data terms
 
 ## Stack
 
