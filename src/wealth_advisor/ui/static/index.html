@@ -18,14 +18,14 @@
       <span data-i18n>Keel</span>
     </div>
     <div class="topbar-meta">
-      <span class="tier" title="Permission tier: the advisor can explain and recommend, but cannot place orders." data-i18n>Advice only</span>
+      <span class="tier" title="The advisor can explain and suggest, but cannot buy or sell anything." data-i18n>Advice only</span>
       <a class="tb-btn report-link" id="reportLink" href="/report" target="_blank" rel="noopener" aria-disabled="true">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>
-        <span class="tb-label" data-i18n>Advice report</span>
+        <span class="tb-label" data-i18n>My report</span>
       </a>
       <button class="tb-btn audit-pill" id="auditPill" type="button" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
-        <span class="tb-label" id="auditText" data-i18n>Audit log</span>
+        <span class="tb-label" id="auditText" data-i18n>Activity log</span>
       </button>
       <button class="tb-btn lang-toggle" id="langToggle" type="button" aria-label="Language">中文</button>
       <button class="tb-btn chat-btn" id="chatBtn" type="button" aria-controls="advisor" aria-expanded="false" aria-label="Open chat with your advisor">
@@ -39,16 +39,16 @@
     <section class="file" aria-label="Client file">
       <nav class="steps" id="steps" aria-label="Advice steps">
         <div class="steps-main">
-          <button data-step="profile" class="active"><span class="n">1</span><span class="lbl" data-i18n>Risk profile</span></button>
-          <button data-step="portfolio" disabled><span class="n">2</span><span class="lbl" data-i18n>Portfolio</span></button>
-          <button data-step="rehearse" disabled><span class="n">3</span><span class="lbl" data-i18n>Rehearse</span></button>
+          <button data-step="profile" class="active"><span class="n">1</span><span class="lbl" data-i18n>About you</span></button>
+          <button data-step="portfolio" disabled><span class="n">2</span><span class="lbl" data-i18n>Your plan</span></button>
+          <button data-step="rehearse" disabled><span class="n">3</span><span class="lbl" data-i18n>Crash test</span></button>
           <button data-step="goal" disabled><span class="n">4</span><span class="lbl" data-i18n>Goal</span></button>
           <button data-step="execute" disabled><span class="n">5</span><span class="lbl" data-i18n>Invest</span></button>
         </div>
         <div class="steps-tools">
           <button data-step="compare" class="tool" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h6"/></svg>
-            <span data-i18n>Compare products</span>
+            <span data-i18n>Compare funds</span>
           </button>
           <button data-step="stress" class="tool" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5l6 7 4-4 8 10"/></svg>
@@ -64,7 +64,7 @@
         <span class="avatar" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 13h16M16 13v11M12.5 24h7"/></svg></span>
         <div class="advisor-title">
           <h2 data-i18n>Your advisor</h2>
-          <p data-i18n>Explains every recommendation. Never invents a number.</p>
+          <p data-i18n>Explains everything. Every number comes from our calculator.</p>
         </div>
         <button class="icon-btn advisor-close" id="advisorClose" type="button" aria-label="Close chat">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -88,7 +88,7 @@
   <aside class="drawer" id="drawer" role="dialog" aria-label="Audit log" aria-modal="true" hidden>
     <div class="drawer-head">
       <div>
-        <h2 data-i18n>Audit log</h2>
+        <h2 data-i18n>Activity log</h2>
         <p id="drawerStatus"></p>
       </div>
       <button class="icon-btn" id="drawerClose" aria-label="Close audit log">

@@ -9,95 +9,99 @@ from contextvars import ContextVar
 LANG: ContextVar[str] = ContextVar("lang", default="en")
 
 QUESTION_LABELS: dict[str, str] = {
-    "horizon": "How long can this money stay invested?",
-    "income_stability": "How stable is your income?",
-    "emergency_fund": "How many months of expenses do you hold in cash?",
-    "invested_share": "What share of your net worth is this investment?",
-    "liquidity_need": "When might you need to withdraw part of this money?",
-    "drawdown_reaction": "Your portfolio falls 20% in a month. What do you do?",
-    "experience": "How experienced are you with funds, bonds or shares?",
-    "goal": "What is the main goal of this money?",
+    "horizon": "How long can you leave this money invested?",
+    "income_stability": "How steady is your income?",
+    "emergency_fund": "How many months could you live on your savings?",
+    "invested_share": "How much of everything you own is this money?",
+    "liquidity_need": "When might you need some of this money back?",
+    "drawdown_reaction": "Imagine it drops 20% in one month. What would you do?",
+    "experience": "How much have you invested before?",
+    "goal": "What do you want this money to do?",
 }
 
 OPTION_LABELS: dict[str, str] = {
     "under_1y": "Less than 1 year",
-    "1_3y": "1–3 years",
-    "3_7y": "3–7 years",
-    "7_10y": "7–10 years",
+    "1_3y": "1 to 3 years",
+    "3_7y": "3 to 7 years",
+    "7_10y": "7 to 10 years",
     "over_10y": "More than 10 years",
     "within_1d": "Any day",
     "within_7d": "Within a week",
     "within_30d": "Within a month",
-    "over_30d": "Not for at least a month",
-    "unstable": "Irregular / uncertain",
-    "mixed": "Partly stable",
-    "stable": "Stable salary or pension",
-    "none": "None",
-    "3_6_months": "3–6 months",
+    "over_30d": "Not in the next month",
+    "unstable": "Irregular",
+    "mixed": "Fairly steady",
+    "stable": "Steady salary or pension",
+    "none": "I have no savings set aside",
+    "3_6_months": "3 to 6 months",
     "over_6_months": "More than 6 months",
-    "over_75": "More than 75%",
-    "50_75": "50–75%",
-    "25_50": "25–50%",
-    "under_25": "Less than 25%",
+    "over_75": "More than three quarters",
+    "50_75": "Half to three quarters",
+    "25_50": "A quarter to a half",
+    "under_25": "Less than a quarter",
     "sell_all": "Sell everything",
-    "reduce": "Sell some to limit losses",
-    "hold": "Hold and wait",
-    "buy_more": "Buy more at lower prices",
-    "basic": "Basic (deposits, a few funds)",
-    "good": "Good (several years investing)",
-    "advanced": "Advanced (professional / active investor)",
-    "preserve": "Preserve capital",
-    "income": "Regular income",
-    "growth": "Long-term growth",
-    "aggressive_growth": "Maximum growth, high risk accepted",
+    "reduce": "Sell some",
+    "hold": "Wait it out",
+    "buy_more": "Buy more while it is cheap",
+    "basic": "A little: deposits, a few funds",
+    "good": "Quite a lot: several years",
+    "advanced": "I invest professionally or trade often",
+    "preserve": "Keep it safe",
+    "income": "Pay me a regular income",
+    "growth": "Grow over the long term",
+    "aggressive_growth": "Grow as much as possible, big swings are fine",
 }
 
 CLASS_NAMES = {
     1: "Conservative",
-    2: "Moderately Conservative",
+    2: "Careful",
     3: "Balanced",
     4: "Growth",
     5: "Aggressive",
 }
 
 FLAG_LABELS = {
-    "AGE_70_PLUS": "Age 70+ — risk level capped for client protection",
-    "NO_EMERGENCY_FUND": "No emergency fund — build a cash buffer first",
-    "BORROWED_MONEY": "Investing borrowed money — risk level capped",
-    "SHORT_HORIZON": "Horizon under 1 year — only capital-preserving products",
+    "AGE_70_PLUS": "Because you are 70 or older, we keep your risk lower to protect you.",
+    "NO_EMERGENCY_FUND": "You have no savings set aside, so we keep your risk lower. Build a cash buffer first.",
+    "BORROWED_MONEY": "Part of this money is borrowed, so we keep your risk lower.",
+    "SHORT_HORIZON": "You may need this money within a year, so we only suggest very safe funds.",
 }
 
 
 QUESTION_LABELS_ZH: dict[str, str] = {
-    "horizon": "这笔钱可以投资多长时间？",
+    "horizon": "这笔钱可以投资多久？",
     "income_stability": "您的收入稳定吗？",
-    "emergency_fund": "您手头的现金够支付几个月的开支？",
-    "invested_share": "这笔投资占您净资产的比例是多少？",
-    "liquidity_need": "您什么时候可能需要取出其中一部分？",
-    "drawdown_reaction": "如果您的投资一个月内下跌20%，您会怎么做？",
-    "experience": "您对基金、债券或股票的投资经验如何？",
-    "goal": "这笔钱的主要目标是什么？",
+    "emergency_fund": "您的存款够生活几个月？",
+    "invested_share": "这笔钱占您全部资产的多少？",
+    "liquidity_need": "您什么时候可能要取回一部分？",
+    "drawdown_reaction": "假如一个月内跌了20%，您会怎么做？",
+    "experience": "您以前投资过吗？",
+    "goal": "您希望这笔钱做什么？",
 }
 
 OPTION_LABELS_ZH: dict[str, str] = {
-    "under_1y": "少于1年", "1_3y": "1–3年", "3_7y": "3–7年", "7_10y": "7–10年", "over_10y": "10年以上",
-    "within_1d": "随时", "within_7d": "一周内", "within_30d": "一个月内", "over_30d": "至少一个月内不动用",
-    "unstable": "不稳定", "mixed": "部分稳定", "stable": "稳定的工资或养老金",
-    "none": "没有", "3_6_months": "3–6个月", "over_6_months": "6个月以上",
-    "over_75": "超过75%", "50_75": "50–75%", "25_50": "25–50%", "under_25": "少于25%",
-    "sell_all": "全部卖出", "reduce": "卖出一部分以控制损失", "hold": "继续持有，耐心等待", "buy_more": "逢低加仓",
-    "basic": "入门（存款和少量基金）", "good": "较好（投资多年）", "advanced": "资深（专业或活跃投资者）",
-    "preserve": "保本", "income": "稳定收益", "growth": "长期增值", "aggressive_growth": "追求最大收益，接受高风险",
+    "under_1y": "不到1年", "1_3y": "1到3年", "3_7y": "3到7年", "7_10y": "7到10年", "over_10y": "10年以上",
+    "within_1d": "随时", "within_7d": "一周内", "within_30d": "一个月内", "over_30d": "一个月内不用",
+    "unstable": "不固定", "mixed": "比较稳定", "stable": "稳定的工资或养老金",
+    "none": "没有存款", "3_6_months": "3到6个月", "over_6_months": "6个月以上",
+    "over_75": "超过四分之三", "50_75": "一半到四分之三", "25_50": "四分之一到一半", "under_25": "不到四分之一",
+    "sell_all": "全部卖出", "reduce": "卖出一部分", "hold": "耐心等待", "buy_more": "趁便宜多买一些",
+    "basic": "一点点：存款和少量基金", "good": "比较多：投资多年", "advanced": "专业投资或经常交易",
+    "preserve": "保住本金", "income": "带来稳定收入", "growth": "长期增值", "aggressive_growth": "尽量多赚，能接受大起大落",
 }
 
 CLASS_NAMES_ZH = {1: "保守型", 2: "稳健型", 3: "平衡型", 4: "成长型", 5: "进取型"}
 
 FLAG_LABELS_ZH = {
-    "AGE_70_PLUS": "年满70岁：为保护客户，风险等级已设上限",
-    "NO_EMERGENCY_FUND": "没有应急资金：请先建立现金储备",
-    "BORROWED_MONEY": "使用借款投资：风险等级已设上限",
-    "SHORT_HORIZON": "投资期限少于1年：仅适合保本类产品",
+    "AGE_70_PLUS": "您已年满70岁，为保护您，我们降低了风险。",
+    "NO_EMERGENCY_FUND": "您还没有存款，所以我们降低了风险。建议先存一笔备用金。",
+    "BORROWED_MONEY": "这笔钱中有借来的部分，所以我们降低了风险。",
+    "SHORT_HORIZON": "您一年内可能要用这笔钱，所以只推荐非常稳妥的基金。",
 }
+
+# Product risk levels R1-R5 in plain words (CSRC wording in Chinese).
+RISK_NAMES = {1: "low risk", 2: "low to medium risk", 3: "medium risk", 4: "medium to high risk", 5: "high risk"}
+RISK_NAMES_ZH = {1: "低风险", 2: "中低风险", 3: "中风险", 4: "中高风险", 5: "高风险"}
 
 
 def lang() -> str:
@@ -112,9 +116,15 @@ def flag_label(flag: str) -> str:
     return (FLAG_LABELS_ZH if lang() == "zh" else FLAG_LABELS).get(flag, flag)
 
 
-def humanize(key: str) -> str:
+# Option keys shared by two questions that need different words.
+OPTION_OVERRIDES = {("experience", "none"): ("Never", "从未投资过")}
+
+
+def humanize(key: str, question: str | None = None) -> str:
     """Return a readable label for a questionnaire option key, falling back to the key."""
 
+    if (question, key) in OPTION_OVERRIDES:
+        return OPTION_OVERRIDES[(question, key)][1 if lang() == "zh" else 0]
     if lang() == "zh" and key in OPTION_LABELS_ZH:
         return OPTION_LABELS_ZH[key]
     return OPTION_LABELS.get(key, key.replace("_", " ").capitalize())
@@ -126,27 +136,31 @@ def question_label(key: str) -> str:
     return QUESTION_LABELS.get(key, key.replace("_", " ").capitalize())
 
 
-# Short noun labels for the "why this class" list, so each line reads "Label: answer".
+# Short noun labels for the "why this level" list, so each line reads "Label: answer".
 REASON_LABELS = {
-    "horizon": ("Investment horizon", "投资期限"),
+    "horizon": ("Time you can stay invested", "可投资时间"),
     "income_stability": ("Income", "收入"),
-    "emergency_fund": ("Cash reserve", "备用现金"),
-    "invested_share": ("Share of your net worth", "占净资产比例"),
-    "liquidity_need": ("When you may need the money", "用款时间"),
-    "drawdown_reaction": ("If it fell 20% in a month", "若一个月内下跌20%"),
+    "emergency_fund": ("Savings to live on", "存款可用时间"),
+    "invested_share": ("Share of what you own", "占全部资产"),
+    "liquidity_need": ("When you may need it back", "用钱时间"),
+    "drawdown_reaction": ("If it fell 20%", "如果下跌20%"),
     "experience": ("Experience", "投资经验"),
-    "goal": ("Goal", "投资目标"),
+    "goal": ("Goal", "目标"),
 }
 
 
 FIXED_REASONS = {
-    "RISK_ADJUSTED_RETURN_NET_OF_FEES": ("Best expected return per unit of risk, after fees, within its asset class.", "在同类资产中，扣除费用后单位风险的预期收益最高。"),
-    "REHEARSAL_HELD": ("You held your portfolio through the 2008 crash rehearsal.", "在2008年危机演练中，您坚持持有了投资组合。"),
-    "REHEARSAL_SOLD_WITHIN_CLASS": ("You sold during the crash rehearsal, at a loss your risk class already allows for.", "您在危机演练中卖出，但亏损幅度仍在您的风险等级允许范围内。"),
-    "VULNERABILITY_CAP_APPLIED": ("A client-protection cap lowered your risk class (see flags).", "客户保护规则降低了您的风险等级（见提示）。"),
-    "LIQUIDITY_SLEEVE": ("Part of the portfolio is kept in assets you can withdraw quickly, matching when you may need the money.", "根据您的用款时间，组合中保留了一部分可快速取用的资产。"),
-    "STRESS_LIMIT_APPLIED": ("Risk was reduced so the worst historical loss stays within the limit you gave us.", "已降低风险，使历史最差情景下的亏损不超过您设定的上限。"),
+    "RISK_ADJUSTED_RETURN_NET_OF_FEES": ("Of similar funds, it gives the most return for its risk, after fees.", "在同类基金中，扣除费用后，承担同样风险收益最高。"),
+    "REHEARSAL_HELD": ("You kept your investment through the 2008 crash test.", "在2008年危机演练中，您坚持持有。"),
+    "REHEARSAL_SOLD_WITHIN_CLASS": ("You sold in the crash test, but at a loss your level already allows.", "您在危机演练中卖出，但亏损仍在您的风险等级允许范围内。"),
+    "VULNERABILITY_CAP_APPLIED": ("A protection rule lowered your risk level (see the note above).", "保护规则降低了您的风险等级（见上方提示）。"),
+    "LIQUIDITY_SLEEVE": ("You can take this money out quickly if you need it.", "需要时可以很快取出。"),
+    "STRESS_LIMIT_APPLIED": ("We lowered the risk so a crash like the worst in history stays within the loss you said you can accept.", "我们降低了风险，让历史上最严重的下跌也不超过您能接受的亏损。"),
 }
+
+
+def risk_name(level: int) -> str:
+    return (RISK_NAMES_ZH if lang() == "zh" else RISK_NAMES)[level]
 
 
 def explain_reason(code: str) -> str:
@@ -154,10 +168,13 @@ def explain_reason(code: str) -> str:
 
     zh = lang() == "zh"
     if match := re.fullmatch(r"SUITABLE_C(\d)_R(\d)", code):
-        investor, product = match.groups()
-        return f"适当性匹配：产品风险R{product}不高于您的风险等级C{investor}。" if zh else f"Suitable: product risk R{product} does not exceed your risk class C{investor}."
+        investor, product = (int(x) for x in match.groups())
+        if zh:
+            return f"这只基金是{risk_name(product)}，在您的风险等级（{class_name(investor)}）范围内。"
+        return f"This fund is {risk_name(product)}, within your risk level ({class_name(investor)})."
     if match := re.fullmatch(r"REVEALED_TOLERANCE_C(\d)", code):
-        return f"在危机演练中您在下跌时卖出，因此风险等级下调为C{match.group(1)}。" if zh else f"In the crash rehearsal you sold during the fall, so your risk class was lowered to C{match.group(1)}."
+        level = class_name(int(match.group(1)))
+        return f"您在危机演练中下跌时卖出，所以风险等级调整为{level}。" if zh else f"You sold during the fall in the crash test, so your risk level is now {level}."
     if code in FIXED_REASONS:
         return FIXED_REASONS[code][1 if zh else 0]
     for question in sorted(QUESTION_LABELS, key=len, reverse=True):
@@ -165,5 +182,5 @@ def explain_reason(code: str) -> str:
         if code.startswith(prefix):
             answer = code[len(prefix):].lower()
             label = REASON_LABELS.get(question, (question_label(question),) * 2)[1 if zh else 0]
-            return f"{label}{'：' if zh else ': '}{humanize(answer)}"
+            return f"{label}{'：' if zh else ': '}{humanize(answer, question)}"
     return code.replace("_", " ").capitalize()
