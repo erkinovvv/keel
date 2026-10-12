@@ -64,8 +64,8 @@ steps are all deterministic.
 
 ### Deploy to Vercel
 
-The production app is [keel-eight-mu.vercel.app](https://keel-eight-mu.vercel.app). The requested
-`keel.vercel.app` name was unavailable, so Vercel assigned this project URL. It uses Vercel's Python runtime
+The production app is [keel-adviser.vercel.app](https://keel-adviser.vercel.app). The requested
+`keel.vercel.app` name was unavailable, so Vercel assigned this alternate alias. It uses Vercel's Python runtime
 with `api/index.py` exporting the FastAPI app. Configure the production environment once, using
 product Groq keys only (never `GROQ_EVAL_API_KEY`):
 
