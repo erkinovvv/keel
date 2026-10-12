@@ -493,14 +493,16 @@ async function renderPortfolio() {
     <div class="sheet list">
       ${a.holdings.map((h, i) => `
         <div class="list-item">
-          <span class="li-icon" style="--c:var(--${h.asset_class})" aria-hidden="true">${esc(ASSET_NAMES[h.asset_class].slice(0, 1))}</span>
+          <span class="li-icon" style="--c:var(--${h.asset_class})" aria-hidden="true">${h.kind && h.kind !== "fund" ? KIND_ICON[h.kind === "savings_bond" ? "bond" : "bank"] : esc(ASSET_NAMES[h.asset_class].slice(0, 1))}</span>
           <div>
             <div class="li-name">${esc(h.name)}</div>
-            <div class="li-sub">${ASSET_NAMES[h.asset_class]} · ${RISK[h.risk_class]} · ${num(pct(h.weight, 0), prov, t("Share of your money in {name}", { name: h.name }))}</div>
+            <div class="li-sub">${h.kind && h.kind !== "fund"
+              ? `${t(KIND_NAMES[h.kind])} · ${termText(h.term_months)} · ${t("{rate} a year", { rate: pct(h.rate, 2) })}`
+              : `${ASSET_NAMES[h.asset_class]} · ${RISK[h.risk_class]}`} · ${num(pct(h.weight, 0), prov, t("Share of your money in {name}", { name: h.name }))}<span class="li-today" data-today="${esc(h.product_id)}"></span></div>
           </div>
           <div class="li-right">
             <div class="li-amt">${num(money(h.amount), prov, t("Amount in {name}", { name: h.name }))}</div>
-            <button class="why" type="button" data-why="${i}" aria-expanded="false">${t("Why this fund?")}</button>
+            <button class="why" type="button" data-why="${i}" aria-expanded="false">${t("Why this?")}</button>
           </div>
         </div>
         <div class="why-row" id="why${i}" hidden><ul>${h.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}${h.source ? `<li><a href="${esc(h.source)}" target="_blank" rel="noopener">${t("Open the fund's page")}</a></li>` : ""}</ul></div>`).join("")}
@@ -517,9 +519,13 @@ async function renderPortfolio() {
       </div>
     </div>
     ${nextBar("rehearse", t("Next: test this plan in the 2008 crash"))}
+    <h3>${t("Markets today")}</h3>
+    <div class="sheet markets" id="markets"><p class="empty">${t("Loading prices…")}</p></div>
     <h3>${t("After you invest")}</h3>
     <div class="sheet monitor">
-      <p class="hint" style="margin-top:0">${t("We watch the markets for you and message you first when something big happens. Try it:")}</p>
+      <p class="hint" style="margin-top:0">${t("We watch the markets for you and message you first when something big happens.")}</p>
+      <div class="actions" style="margin-top:12px"><button class="btn" type="button" id="checkLive">${t("Check my plan with today's prices")}</button></div>
+      <p class="hint" style="margin:18px 0 0">${t("Or see what we would do in a big move:")}</p>
       <div class="filters">${Object.entries(MARKET_EVENTS).map(([k, label]) => `<button class="btn secondary" type="button" data-event="${k}">${t(label)}</button>`).join("")}</div>
     </div>
     <div id="allocErr"></div>`;
@@ -533,6 +539,9 @@ async function renderPortfolio() {
   let debounce;
   $("#wiAmount").oninput = (e) => { clearTimeout(debounce); debounce = setTimeout(() => rebuild(+e.target.value, state.allocationLevel), 450); };
   panel.querySelectorAll("[data-event]").forEach((b) => (b.onclick = () => triggerMarket(b.dataset.event)));
+  $("#checkLive").onclick = () => triggerMarket("live_nav", "/api/market/check-live");
+  loadMarkets();
+  loadFundsToday();
   wireAlert();
   wireStale();
 }
@@ -552,17 +561,54 @@ async function rebuild(amount, level) {
 // ---------------------------------------------------------------- proactive monitoring
 
 const MARKET_EVENTS = { equity_selloff: "Stock markets crash", rate_shock: "Interest rates jump", rally: "Stock markets jump" };
+const eventLabel = (c) => t(c.event === "live_nav" ? "Today's real prices" : MARKET_EVENTS[c.event] || c.event_name);
+const SOURCE_NAMES = { sina: "Sina Finance", tencent: "Tencent Finance", yahoo: "Yahoo Finance", eastmoney: "East Money" };
 
-async function triggerMarket(event) {
+// Live index, gold, currency and bond-yield quotes; falls back to the dated snapshot, said plainly.
+async function loadMarkets() {
+  const box = $("#markets");
+  if (!box) return;
+  let data;
+  try { data = await api("/api/market/live"); } catch { box.innerHTML = `<p class="empty">${t("Prices are not available right now.")}</p>`; return; }
+  const quotes = data.quotes || [];
+  const live = quotes.filter((q) => !q.stale);
+  const sources = [...new Set(live.map((q) => t(SOURCE_NAMES[q.source] || q.source)))].join(LANG === "zh" ? "、" : ", ");
+  const status = live.length
+    ? t("Live prices from {sources}, {time}.", { sources, time: new Date().toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }) })
+    : t("Live prices are not available right now. Showing saved prices from {date}.", { date: longDate(quotes[0]?.as_of || new Date().toISOString()) });
+  const price = (q) => (q.id === "cn10y" ? `${q.price.toFixed(2)}%` : q.price >= 1000 ? money(q.price) : q.price.toFixed(q.price < 10 ? 4 : 2));
+  box.innerHTML = `
+    <div class="quotes">${quotes.map((q) => `
+      <div class="quote">
+        <span class="q-name">${esc(LANG === "zh" ? q.name_zh : q.name_en)}</span>
+        <b>${price(q)}</b>
+        ${q.change_pct == null ? "" : `<span class="q-chg ${q.change_pct > 0 ? "up" : q.change_pct < 0 ? "down" : ""}">${q.change_pct > 0 ? "+" : q.change_pct < 0 ? "−" : ""}${Math.abs(q.change_pct).toFixed(2)}%</span>`}
+      </div>`).join("")}</div>
+    <p class="hint quotes-status">${status}</p>`;
+}
+
+// Today's change in each fund's price, next to the holding.
+async function loadFundsToday() {
+  let data;
+  try { data = await api("/api/market/funds"); } catch { return; }
+  for (const q of data.quotes || []) {
+    const el = panel.querySelector(`[data-today="${CSS.escape(q.id)}"]`);
+    if (!el || q.stale || q.change_pct == null) continue;
+    el.textContent = ` · ${t("today {v}", { v: `${q.change_pct > 0 ? "+" : q.change_pct < 0 ? "−" : ""}${Math.abs(q.change_pct).toFixed(2)}%` })}`;
+    el.classList.add(q.change_pct > 0 ? "up" : q.change_pct < 0 ? "down" : "flat");
+  }
+}
+
+async function triggerMarket(event, path = `/api/market/event/${event}`) {
   let res;
-  try { res = await api(`/api/market/event/${event}`, { method: "POST" }); }
-  catch (err) { note(err.message, "msg-error"); return; }
+  try { res = await api(path, { method: "POST" }); }
+  catch (err) { note(event === "live_nav" ? t("Today's prices are not available for every part of your plan yet. Please try again later.") : err.message, "msg-error"); return; }
   refreshAudit();
   const c = res.check;
   state.alert = { ...c, decided: null };
   const lines = [
     t("I'm messaging you first because the market moved."),
-    t("{event}: your plan is {change} this month, now {amount}.", { event: t(MARKET_EVENTS[c.event] || c.event_name), change: `<strong>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</strong>`, amount: money(c.value_after) }),
+    t(c.event === "live_nav" ? "{event}: your plan is {change} today, now {amount}." : "{event}: your plan is {change} this month, now {amount}.", { event: eventLabel(c), change: `<strong>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</strong>`, amount: money(c.value_after) }),
   ];
   if (c.loss_limit != null && c.change < 0) {
     lines.push(c.within_limit
@@ -608,7 +654,7 @@ function alertCard(c) {
   return `
     <div class="sheet alert-card ${c.change < 0 ? "down" : "up"}">
       <div class="alert-head">
-        <div><span class="alert-tag">${t("Market alert")}</span><h3 style="margin:6px 0 0">${esc(t(MARKET_EVENTS[c.event] || c.event_name))}</h3></div>
+        <div><span class="alert-tag">${t("Market alert")}</span><h3 style="margin:6px 0 0">${esc(eventLabel(c))}</h3></div>
         <div class="alert-move"><b>${c.change >= 0 ? "+" : "−"}${pct(Math.abs(c.change))}</b><span>${t("{after}, was {before}", { after: money(c.value_after), before: money(c.value_before) })}</span></div>
       </div>
       <table><thead><tr><th>${t("Type")}</th><th class="r">${t("Planned")}</th><th class="r">${t("Now")}</th><th class="r">${t("Change")}</th></tr></thead><tbody>${rows}</tbody></table>
@@ -1007,24 +1053,47 @@ function wireFan(fan, target) {
 
 // ---------------------------------------------------------------- 5. compare
 
-async function renderCompare(asset = "") {
-  panel.innerHTML = `<p class="empty">${t("Loading funds…")}</p>`;
+const KIND_NAMES = { deposit: "Bank deposit", large_cd: "Large bank deposit", savings_bond: "Government savings bond" };
+const KIND_ICON = {
+  bank: '<svg viewBox="0 0 24 24" class="kind-icon"><path d="M3 9l9-5 9 5M5 10v8M10 10v8M14 10v8M19 10v8M3 20h18"/></svg>',
+  bond: '<svg viewBox="0 0 24 24" class="kind-icon"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+};
+
+// Three things to compare: funds (filtered by type), bank deposits, and government savings bonds.
+const COMPARE_TABS = { funds: "Funds", deposits: "Bank deposits", bonds: "Savings bonds" };
+const termText = (m) => (m % 12 ? tn("1 month", "{n} months", m) : tn("1 year", "{n} years", m / 12));
+
+async function renderCompare(tab = "funds", asset = "") {
+  panel.innerHTML = `<p class="empty">${t("Loading…")}</p>`;
+  const query = tab === "deposits" ? ["deposit", "large_cd"] : tab === "bonds" ? ["savings_bond"] : [asset];
   let data;
-  try { data = await api(`/api/compare${asset ? `?asset_class=${asset}` : ""}`); }
-  catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  try {
+    const parts = await Promise.all(query.map((q) => api(`/api/compare${q ? `?asset_class=${q}` : ""}`)));
+    data = { ...parts[0], rows: parts.flatMap((x) => x.rows) };
+  } catch (err) { panel.innerHTML = `<p class="err">${esc(err.message)}</p>`; return; }
+  if (tab === "funds") data.rows = data.rows.filter((r) => (r.kind || "fund") === "fund");
+  else {
+    // Banks with the same offer share one row: "ABC, BOC, CCB ...  1 year  0.95%".
+    const groups = new Map();
+    for (const r of data.rows) {
+      const key = [r.kind, r.term_months, r.rate, r.promo, r.insured, r.early_withdrawal_cost_6m].join("|");
+      if (groups.has(key)) groups.get(key).issuers.push(r.issuer || r.name);
+      else groups.set(key, { ...r, issuers: [r.issuer || r.name] });
+    }
+    data.rows = [...groups.values()].map((r) => ({ ...r, issuer: r.issuers.join(LANG === "zh" ? "、" : ", ") }));
+    data.rows.sort((a, b) => b.rate - a.rate || b.term_months - a.term_months);
+  }
   state.done.add("compare");
   refreshAudit();
   const prov = data.provenance;
   const c = state.client;
-  panel.innerHTML = `
-    <h1>${t("Compare funds")}</h1>
-    <p class="lede">${t("All funds that fit your risk level, best value first. \"Fees over {years} years\" is what fees would cost on {amount}.", { amount: money(c.amount), years: c.horizon_years })}</p>
-    ${dataNote()}
-    <div class="filters">
-      ${["", ...ASSET_ORDER].map((k) => `<label class="chip"><input type="radio" name="af" value="${k}" ${k === asset ? "checked" : ""}><span>${k ? ASSET_NAMES[k] : t("All")}</span></label>`).join("")}
-    </div>
-    <div class="sheet">
-      ${data.rows.length ? `
+  const tabs = `<div class="tabs" role="tablist">${Object.entries(COMPARE_TABS).map(([k, label]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === tab}" class="${k === tab ? "on" : ""}">${t(label)}</button>`).join("")}</div>`;
+  const lede = {
+    funds: t("All funds that fit your risk level, best value first. \"Fees over {years} years\" is what fees would cost on {amount}.", { amount: money(c.amount), years: c.horizon_years }),
+    deposits: t("Fixed interest, no ups and downs. The state insures up to 500,000 per person in each bank. If you take money out early, you only get 0.05% a year on it."),
+    bonds: t("Issued by China's Ministry of Finance, fixed interest, no ups and downs. On sale until {date}, at most 500,000 per person. Taking money out in the first 6 months earns no interest.", { date: longDate(data.rows[0]?.sale_to || "2026-10-19") }),
+  }[tab];
+  const fundTable = `
       <table>
         <thead><tr><th>${t("Fund")}</th><th>${t("Risk")}</th><th class="r">${t("May grow a year")}</th><th class="r">${t("Ups and downs")}</th><th class="r">${t("Fee a year")}</th><th class="r">${t("Fees over {years} years", { years: c.horizon_years })}</th><th class="r">${t("Get money back in")}</th></tr></thead>
         <tbody>
@@ -1039,12 +1108,36 @@ async function renderCompare(asset = "") {
               <td class="r">${r.liquidity_days <= 31 ? tn("1 day", "{n} days", r.liquidity_days) : t("{n} months", { n: Math.round(r.liquidity_days / 30) })}</td>
             </tr>`).join("")}
         </tbody>
-      </table>` : `<p class="empty">${t("No funds of this type fit your risk level.")}</p>`}
+      </table>`;
+  const fixedTable = `
+      <table>
+        <thead><tr><th>${t(tab === "bonds" ? "Bond" : "Bank")}</th><th>${t("For")}</th><th class="r">${t("Interest a year")}</th><th class="r">${t("Cost of taking {amount} out after 6 months", { amount: money(c.amount) })}</th><th>${t("Protection")}</th></tr></thead>
+        <tbody>
+          ${data.rows.map((r) => `
+            <tr>
+              <td class="prod">${esc(r.issuer || r.name)}${r.kind === "large_cd" ? `<small>${t("Large deposit, from 200,000")}</small>` : r.promo ? `<small>${t("Special offer, new money only")}</small>` : ""}</td>
+              <td>${termText(r.term_months)}</td>
+              <td class="r"><b>${num(pct(r.rate, 2), prov, t("Interest a year: {name}", { name: r.name }))}</b></td>
+              <td class="r">${r.early_withdrawal_cost_6m == null ? "—" : num(money(r.early_withdrawal_cost_6m), prov, t("Interest lost by taking the money out after 6 months: {name}", { name: r.name }))}</td>
+              <td>${r.kind === "savings_bond" ? t("Backed by the state") : r.insured ? t("Insured") : t("Insured up to 500,000")}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+  panel.innerHTML = `
+    <h1>${t("Compare")}</h1>
+    ${tabs}
+    <p class="lede">${lede}</p>
+    ${tab === "funds" ? `${dataNote()}<div class="filters">
+      ${["", ...ASSET_ORDER].map((k) => `<label class="chip"><input type="radio" name="af" value="${k}" ${k === asset ? "checked" : ""}><span>${k ? ASSET_NAMES[k] : t("All")}</span></label>`).join("")}
+    </div>` : `<p class="data-note">${t("Rates published by the banks and the Ministry of Finance, as of {date}. Banks can change them.", { date: longDate("2026-10-12") })}</p>`}
+    <div class="sheet">
+      ${data.rows.length ? (tab === "funds" ? fundTable : fixedTable) : `<p class="empty">${t(tab === "funds" ? "No funds of this type fit your risk level." : tab === "bonds" ? "The savings bonds on sale now last 3 or 5 years. That is longer than you plan to invest ({n} years)." : "No deposit is short enough for when you need the money.", { n: c.horizon_years })}</p>`}
     </div>
-    ${data.locked?.length ? `<details class="assume hidden-note"><summary>${tn("1 fund hidden: you may need your money sooner than it allows", "{n} funds hidden: you may need your money sooner than they allow", data.locked.length)}</summary><ul>${data.locked.map((h) => `<li>${esc(h.name)}</li>`).join("")}</ul></details>` : ""}
-    ${data.hidden.length ? `<details class="assume hidden-note"><summary>${tn("1 fund hidden: riskier than your level", "{n} funds hidden: riskier than your level", data.hidden.length)}</summary><ul>${data.hidden.map((h) => `<li>${esc(h.name)}, ${RISK[h.risk_class].toLowerCase()}</li>`).join("")}</ul></details>` : ""}
+    ${tab === "funds" && data.locked?.length ? `<details class="assume hidden-note"><summary>${tn("1 fund hidden: you may need your money sooner than it allows", "{n} funds hidden: you may need your money sooner than they allow", data.locked.length)}</summary><ul>${data.locked.map((h) => `<li>${esc(h.name)}</li>`).join("")}</ul></details>` : ""}
+    ${tab === "funds" && data.hidden.length ? `<details class="assume hidden-note"><summary>${tn("1 fund hidden: riskier than your level", "{n} funds hidden: riskier than your level", data.hidden.length)}</summary><ul>${data.hidden.map((h) => `<li>${esc(h.name)}, ${RISK[h.risk_class].toLowerCase()}</li>`).join("")}</ul></details>` : ""}
     ${nextBar(null, "", { back: true })}`;
-  panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare(i.value)));
+  panel.querySelectorAll('input[name="af"]').forEach((i) => (i.onchange = () => renderCompare("funds", i.value)));
+  panel.querySelectorAll("[data-tab]").forEach((b) => (b.onclick = () => renderCompare(b.dataset.tab)));
 }
 
 // ---------------------------------------------------------------- 6. stress

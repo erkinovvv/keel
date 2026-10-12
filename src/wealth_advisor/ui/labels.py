@@ -155,6 +155,7 @@ FIXED_REASONS = {
     "REHEARSAL_SOLD_WITHIN_CLASS": ("You sold in the crash test, but at a loss your level already allows.", "您在危机演练中卖出，但亏损仍在您的风险等级允许范围内。"),
     "VULNERABILITY_CAP_APPLIED": ("A protection rule lowered your risk level (see the note above).", "保护规则降低了您的风险等级（见上方提示）。"),
     "LIQUIDITY_SLEEVE": ("You can take this money out quickly if you need it.", "需要时可以很快取出。"),
+    "DEPOSIT_INSURANCE_SPLIT": ("Split across banks so each bank holds at most 500,000, the amount the state deposit insurance fully covers.", "分散存到多家银行，每家不超过50万元，即存款保险全额保障的上限。"),
     "STRESS_LIMIT_APPLIED": ("We lowered the risk so a crash like the worst in history stays within the loss you said you can accept.", "我们降低了风险，让历史上最严重的下跌也不超过您能接受的亏损。"),
 }
 

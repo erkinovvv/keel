@@ -234,7 +234,24 @@ def _product_name(product: Any) -> str:
     meta = _fund_meta()["funds"].get(product.id)
     if meta and lang() == "zh":
         return f"{meta['name_zh']}（{meta['code']}）"
+    if lang() == "zh" and getattr(product, "name_zh", None):
+        return product.name_zh
     return product.name
+
+
+def _fixed_income_view(product: Any) -> dict[str, Any]:
+    """Term, rate and issuer for deposits and savings bonds; empty for funds."""
+
+    if getattr(product, "kind", "fund") == "fund":
+        return {"kind": "fund"}
+    return {
+        "kind": product.kind,
+        "term_months": product.term_months,
+        "rate": product.expected_return,
+        "issuer": product.issuer_zh if lang() == "zh" and product.issuer_zh else product.issuer,
+        "sale_to": product.sale_to,
+        "promo": product.promo,
+    }
 
 
 def _product_source(product_id: str) -> str | None:
@@ -265,6 +282,7 @@ def _allocation_view(allocation: Allocation) -> dict[str, Any]:
                 "weight": h.weight,
                 "amount": h.amount,
                 "reasons": [explain_reason(code) for code in h.reason_codes],
+                **_fixed_income_view(products[h.product_id]),
             }
             for h in allocation.holdings
         ],
@@ -360,11 +378,12 @@ def compare(response: Response, asset_class: str | None = None, wa_sid: str | No
         catalog, client["amount"], client["horizon_years"], profile.investor_class,
         liquidity_days=profile.liquidity_days, asset_class=asset_class or None,
     )
-    hidden = [{"name": _product_name(p), "risk_class": p.risk_class} for p in catalog if p.risk_class > profile.investor_class]
-    locked = [{"name": _product_name(p), "liquidity_days": p.liquidity_days} for p in catalog if p.risk_class <= profile.investor_class and p.liquidity_days > profile.liquidity_days]
+    funds = [p for p in catalog if getattr(p, "kind", "fund") == "fund"]
+    hidden = [{"name": _product_name(p), "risk_class": p.risk_class} for p in funds if p.risk_class > profile.investor_class]
+    locked = [{"name": _product_name(p), "liquidity_days": p.liquidity_days} for p in funds if p.risk_class <= profile.investor_class and p.liquidity_days > profile.liquidity_days]
     stamp = _record(file, "ui_products_compared", "catalog.compare_products", {"asset_class": asset_class, "count": len(rows)})
     by_id = {p.id: p for p in catalog}
-    view_rows = [{**row.as_dict(), "name": _product_name(by_id[row.product_id]), "source": _product_source(row.product_id)} for row in rows]
+    view_rows = [{**row.as_dict(), **_fixed_income_view(by_id[row.product_id]), "name": _product_name(by_id[row.product_id]), "source": _product_source(row.product_id)} for row in rows]
     return {"rows": view_rows, "hidden": hidden, "locked": locked, "provenance": stamp}
 
 
