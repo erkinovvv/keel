@@ -8,3 +8,7 @@ def test_prompt_covers_rehearsal_and_currency_rules() -> None:
     assert "at most 70 words" in SYSTEM_PROMPT
     assert "at most one question per message" in SYSTEM_PROMPT
     assert "Risk profile, Portfolio, Rehearse, Goal, or Invest" in SYSTEM_PROMPT
+    assert "never ask for a fact already shown there" in SYSTEM_PROMPT
+    assert "no return can be guaranteed" in SYSTEM_PROMPT
+    assert "35% per-product cap" in SYSTEM_PROMPT
+    assert "Markdown" in SYSTEM_PROMPT

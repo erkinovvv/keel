@@ -22,6 +22,14 @@ from .stress import StressResult
 from .tools import ToolDispatcher
 from .tools import TOOL_SCHEMAS
 
+_GUARANTEE_REQUEST = re.compile(r"\b(?:guarantee(?:d|s)?|risk[- ]free|certain\s+return)\b", re.I)
+_CONCENTRATION_REQUEST = re.compile(
+    r"\b(?:everything|all(?:\s+my\s+money|\s+of\s+it)?)\s+(?:into|in|on)\b|"
+    r"\b(?:put|invest|place)\b.{0,40}\b(?:everything|all)\b|\ball\s+in\b|"
+    r"\b(?:one|single)\s+(?:fund|product|stock)\b",
+    re.I,
+)
+
 
 @dataclass
 class ClientFacts:
@@ -153,6 +161,41 @@ class AdvisorSession:
             names = {"stress_test", "compare_products", "build_allocation"}
         return [tool for tool in TOOL_SCHEMAS if tool["function"]["name"] in names]
 
+    @staticmethod
+    def _is_concentration_request(message: str) -> bool:
+        return bool(_CONCENTRATION_REQUEST.search(message))
+
+    def _safety_reply(self, message: str) -> str | None:
+        guarantee = bool(_GUARANTEE_REQUEST.search(message))
+        concentration = self._is_concentration_request(message)
+        if not guarantee and not concentration:
+            return None
+        chinese = any("\u4e00" <= character <= "\u9fff" for character in message)
+        sentences: list[str] = []
+        allocation = self.state.allocations.get(self.state.latest_allocation_id) if self.state.latest_allocation_id else None
+        if guarantee:
+            if allocation is not None:
+                estimate = f"{allocation.expected_return:.1%}"
+                sentences.append(
+                    f"不能保证任何回报。Portfolio中的预期回报估计为{estimate}。" if chinese
+                    else f"No return can be guaranteed. The Portfolio estimate is {estimate}."
+                )
+            else:
+                sentences.append(
+                    "不能保证任何回报；Portfolio生成确定性结果后，我才会引用预期回报。" if chinese
+                    else "No return can be guaranteed; I will quote an expected return only after Portfolio produces one."
+                )
+        if concentration:
+            sentences.append(
+                "不能把全部资金放在一个产品中：每个产品最多占35%，这样组合才能分散。" if chinese
+                else "I cannot put everything into one product: the 35% per-product cap keeps the portfolio diversified."
+            )
+        sentences.append(
+            "下一步，请打开Portfolio查看合适的组合。" if chinese
+            else "Next, open Portfolio to review the suitable mix."
+        )
+        return " ".join(sentences)
+
     def send(self, user_message: str) -> str:
         """Run one complete turn while retaining only valid, complete dialogue turns."""
 
@@ -165,7 +208,13 @@ class AdvisorSession:
         self.audit.append("input_guard", {"allowed": guard.allowed, "reasons": guard.reasons, "pii_redacted": guard.pii_redacted, "injection_score": guard.injection_score})
         if not guard.allowed:
             return "I cannot process instruction-like requests. Please describe your financial goal directly."
-        turn: AgentTurn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
+        safety_reply = self._safety_reply(guard.text)
+        policy_results = [{"per_product_cap": 0.35}] if self._is_concentration_request(guard.text) else []
+        if safety_reply is not None:
+            turn_messages = self._messages_for_turn(guard.text)
+            turn = AgentTurn(safety_reply, [*turn_messages, {"role": "assistant", "content": safety_reply}], [], {})
+        else:
+            turn = self.agent.run_turn(self._messages_for_turn(guard.text), tools=self._tools_for_state)
         self._tool_results.extend(turn.tool_results)
         recommendation = bool(self.state.profile and (self.state.allocations or self.state.stress_results))
         language = "Chinese" if any("\u4e00" <= character <= "\u9fff" for character in guard.text) else "the client's language"
@@ -173,7 +222,7 @@ class AdvisorSession:
         client_messages.append(guard.text)
         guarded_output = output_guard(
             turn.content,
-            [*self._tool_results, self.snapshot()],
+            [*self._tool_results, *policy_results, self.snapshot()],
             recommendation=recommendation,
             client_messages=client_messages,
             language=language,
@@ -190,7 +239,7 @@ class AdvisorSession:
             self._tool_results.extend(regenerated.tool_results)
             guarded_regenerated = output_guard(
                 regenerated.content,
-                [*self._tool_results, self.snapshot()],
+                [*self._tool_results, *policy_results, self.snapshot()],
                 recommendation=recommendation,
                 client_messages=client_messages,
                 language=language,

@@ -14,6 +14,7 @@ from .profiling import InvestorProfile
 DISCLAIMER = "This is educational information based on the selected product catalogue and deterministic historical calculations, not a guarantee or personal investment advice. Past performance does not predict future results."
 DISCLAIMER_ZH = "以上为基于所选产品目录和确定性历史计算的教育性信息，不构成保证或个人投资建议。过往业绩不预示未来表现。"
 _UNSAFE_CLAIMS = re.compile(r"guaranteed|risk[- ]free|you\s+will\s+earn|certain\s+profit|future\s+price\s+will|no\s+way\s+(?:you\s+)?can\s+lose\s+money|you\s+cannot\s+lose\s+money|\b(?:will\s+(?:definitely\s+)?double|will\s+definitely\s+(?:rise|increase|grow)|sure\s+to\s+(?:rise|increase|grow|double))\b", re.I)
+_SAFE_NEGATED_CLAIM = re.compile(r"\b(?:no|not|never|cannot|can't)\b[^.!?]{0,50}\b(?:guarantee|guaranteed|risk[- ]free|certain)\b[^.!?]*", re.I)
 _NUMBER_SPACE = " \u00a0\u202f\u2009\u2007\u202f\u2060"
 _NUMBER = re.compile(
     rf"(?<![A-Za-z])(?:[$€£]?\d[\d,{' '.join(_NUMBER_SPACE)}]*(?:\.\d+)?)(?:[{_NUMBER_SPACE}]*(?:%|percent|pct))?(?![A-Za-z])",
@@ -134,7 +135,7 @@ def output_guard(
     """Block unsafe claims and ungrounded numbers, then add recommendation notices."""
 
     reasons: list[str] = []
-    if _UNSAFE_CLAIMS.search(message):
+    if _UNSAFE_CLAIMS.search(_SAFE_NEGATED_CLAIM.sub("", message)):
         return ComplianceResult(False, "I cannot make guaranteed or risk-free claims. I can explain the model outputs, risks, fees, and stress results instead.", ("UNSAFE_CLAIM",), ())
     grounded = _numeric_values(" ".join(str(result) for result in tool_results))
     client_grounded = _numeric_values(" ".join(client_messages))

@@ -195,3 +195,17 @@ def test_complete_state_fallback_omits_empty_missing_clause():
     )
     assert reply == "Your investor profile, allocation, and stress test are recorded. Next, open Rehearse step 3 and live through 2008 with your portfolio before confirming any orders."
     assert "Stored in this session" not in reply
+
+
+def test_replay_safety_reply_handles_guarantee_and_concentration_without_reasking(tmp_path):
+    session = make_session(tmp_path)
+    session.dispatcher.dispatch("record_client_facts", {"amount_cny": 100_000, "horizon_years": 10, "max_loss_fraction": 0.20})
+    session.dispatcher.dispatch("profile_investor", {"answers": ANSWERS})
+    session.agent.run_turn = lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("safety request should not call the model"))
+    reply = session.send("Just put everything into the Nasdaq fund. I want a guaranteed 20% a year.")
+    assert "No return can be guaranteed" in reply
+    assert "35% per-product cap" in reply
+    assert "maximum loss" not in reply.lower()
+    assert "Portfolio" in reply
+    assert "**" not in reply
+    assert len(reply.split()) <= 70

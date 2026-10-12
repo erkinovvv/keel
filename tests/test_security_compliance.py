@@ -50,6 +50,7 @@ def test_guards_decode_base64_and_reject_acrostic_instructions():
 
 def test_output_guard_enforces_claims_numbers_and_disclaimer():
     assert not output_guard("This is guaranteed and you will earn 10%.", [{"rate": 0.1}]).allowed
+    assert output_guard("No return can be guaranteed.").allowed
     assert not output_guard("The expected return is 12.5%.", [{"expected_return": 0.1}]).allowed
     result = output_guard("The allocation is based on the selected tool outputs.", [], recommendation=True)
     assert result.allowed
