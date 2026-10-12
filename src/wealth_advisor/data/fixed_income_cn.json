@@ -1,0 +1,46 @@
+{
+  "as_of": "2026-10-12",
+  "currency": "CNY",
+  "method": "Dated snapshot of published rates, collected by hand from bank and Ministry of Finance announcements and press rate tables. Rates are listed (挂牌) rates for new deposits; banks change them without notice. Promotional rates are marked.",
+  "deposit_insurance": {
+    "limit_per_bank": 500000,
+    "rule": "Deposit Insurance Regulations (存款保险条例, State Council Order No. 660, 2015): principal and interest up to 500,000 yuan per depositor per bank are fully covered.",
+    "rule_zh": "《存款保险条例》：同一存款人在同一家银行的存款本息合计50万元以内全额赔付。"
+  },
+  "early_withdrawal": {
+    "deposit": {
+      "rule": "A fixed deposit can be withdrawn early, but the whole amount then earns only the demand-deposit rate.",
+      "rule_zh": "定期存款可以提前支取，但提前支取部分只按活期利率计息。",
+      "demand_rate": 0.0005
+    },
+    "savings_bond": {
+      "rule": "Held under 6 months: no interest. 6 to 24 months: coupon minus 180 days of interest. 24 to 36 months: minus 90 days. 36 to 60 months: minus 60 days. A 0.1% fee on the redeemed principal.",
+      "rule_zh": "持有不满6个月不计息；满6个月不满24个月扣除180天利息；满24个月不满36个月扣除90天利息；满36个月不满60个月扣除60天利息；按提前兑取本金收取0.1%手续费。",
+      "bands_months": [[0, 6, "no_interest"], [6, 24, 180], [24, 36, 90], [36, 60, 60]],
+      "fee": 0.001
+    }
+  },
+  "products": [
+    {"id": "dep-big6-3m", "kind": "deposit", "issuer": "Large state banks (ICBC, CCB, ABC, BOC, BoCom)", "issuer_zh": "国有大行（工农中建交）", "term_months": 3, "rate": 0.0065, "min_amount": 50, "promo": false},
+    {"id": "dep-big6-6m", "kind": "deposit", "issuer": "Large state banks (ICBC, CCB, ABC, BOC, BoCom)", "issuer_zh": "国有大行（工农中建交）", "term_months": 6, "rate": 0.0085, "min_amount": 50, "promo": false},
+    {"id": "dep-big6-1y", "kind": "deposit", "issuer": "Large state banks (ICBC, CCB, ABC, BOC, BoCom)", "issuer_zh": "国有大行（工农中建交）", "term_months": 12, "rate": 0.0095, "min_amount": 50, "promo": false},
+    {"id": "dep-big6-2y", "kind": "deposit", "issuer": "Large state banks (ICBC, CCB, ABC, BOC, BoCom)", "issuer_zh": "国有大行（工农中建交）", "term_months": 24, "rate": 0.0105, "min_amount": 50, "promo": false},
+    {"id": "dep-big6-3y", "kind": "deposit", "issuer": "Large state banks (ICBC, CCB, ABC, BOC, BoCom)", "issuer_zh": "国有大行（工农中建交）", "term_months": 36, "rate": 0.0125, "min_amount": 50, "promo": false},
+    {"id": "dep-big6-5y", "kind": "deposit", "issuer": "Large state banks (ICBC, CCB, ABC, BOC, BoCom)", "issuer_zh": "国有大行（工农中建交）", "term_months": 60, "rate": 0.0130, "min_amount": 50, "promo": false},
+    {"id": "dep-psbc-1y", "kind": "deposit", "issuer": "Postal Savings Bank of China", "issuer_zh": "邮储银行", "term_months": 12, "rate": 0.0098, "min_amount": 50, "promo": false},
+    {"id": "lcd-big6-3y", "kind": "large_cd", "issuer": "Large state banks, large-denomination CD", "issuer_zh": "国有大行 大额存单", "term_months": 36, "rate": 0.0155, "min_amount": 200000, "promo": false},
+    {"id": "dep-webank-3y", "kind": "deposit", "issuer": "WeBank (online private bank)", "issuer_zh": "微众银行", "term_months": 36, "rate": 0.0175, "min_amount": 50, "promo": false},
+    {"id": "dep-mybank-5y", "kind": "deposit", "issuer": "MYbank (online private bank)", "issuer_zh": "网商银行", "term_months": 60, "rate": 0.0180, "min_amount": 50, "promo": false},
+    {"id": "dep-xwbank-5y", "kind": "deposit", "issuer": "XW Bank (online private bank)", "issuer_zh": "新网银行", "term_months": 60, "rate": 0.0190, "min_amount": 50, "promo": false},
+    {"id": "dep-hzbank-3y", "kind": "deposit", "issuer": "Bank of Hangzhou (city bank), new money only", "issuer_zh": "杭州银行（新资金）", "term_months": 36, "rate": 0.0190, "min_amount": 200000, "promo": true},
+    {"id": "sb-2026-07", "kind": "savings_bond", "issuer": "Ministry of Finance, 2026 savings bond issue 7 (certificate)", "issuer_zh": "财政部 2026年第七期储蓄国债（凭证式）", "term_months": 36, "rate": 0.0163, "min_amount": 100, "max_per_person": 500000, "sale_from": "2026-10-10", "sale_to": "2026-10-19", "promo": false},
+    {"id": "sb-2026-08", "kind": "savings_bond", "issuer": "Ministry of Finance, 2026 savings bond issue 8 (certificate)", "issuer_zh": "财政部 2026年第八期储蓄国债（凭证式）", "term_months": 60, "rate": 0.0170, "min_amount": 100, "max_per_person": 500000, "sale_from": "2026-10-10", "sale_to": "2026-10-19", "promo": false}
+  ],
+  "sources": [
+    {"what": "Large state bank and PSBC listed rates, October 2026; private-bank rates", "url": "https://news.qq.com/rain/a/20261001A0CN3000"},
+    {"what": "ICBC/CCB listed rates and 3-year large CD around 1.55%, April 2026", "url": "https://news.qq.com/rain/a/20260417A02OOB00"},
+    {"what": "2026 savings bonds issues 7 and 8: dates, coupons, limits", "url": "https://feng.ifeng.com/c/8wriFbnzRsn"},
+    {"what": "2026 savings bonds issues 5 and 6 sales notice (Bank of China), same coupons, 500,000 per-person limit", "url": "https://www.boc.cn/pbservice/bi2/202607/t20260708_25678066.html"},
+    {"what": "Savings bond early redemption rules", "url": "https://news.qq.com/rain/a/20260709A06LNZ00"}
+  ]
+}
