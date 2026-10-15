@@ -126,9 +126,9 @@ Journeys that stopped because the free Groq quota ran out ("all configured LLM p
 | Rules item | In this repository |
 |---|---|
 | 1. Technical documentation (architecture, core algorithms, security design) | [`submission/Keel_Technical_Documentation.pdf`](submission/Keel_Technical_Documentation.pdf), built from the docs below by `scripts/build_docs_pdf.py` |
-| 2. Presentation deck | `submission/` (final deck) |
+| 2. Presentation deck (≤10 min) | [`Keel_FinTechathon_2026_Final.pptx`](submission/Keel_FinTechathon_2026_Final.pptx) |
 | 3. Demo video | [`submission/Keel_Demo.mp4`](submission/Keel_Demo.mp4), recorded end to end by `scripts/record_demo.py` |
-| 4. Source code, README, deployment, tests | this repository; Quick start above; `tests/`, `evals/`; `Dockerfile`; CI in `.github/workflows/ci.yml` |
+| 4. Source code, README, deployment, tests | [GitHub repository](https://github.com/erkinovvv/keel); Quick start above; `tests/`, `evals/`; `Dockerfile`; CI in `.github/workflows/ci.yml` |
 | 5. Security self-assessment | [`submission/Keel_Security_Self_Assessment.pdf`](submission/Keel_Security_Self_Assessment.pdf) |
 | 6. Execution evidence | [`evidence/`](evidence/INDEX.md): simulated-account sessions with hash-chained audit logs and FISCO BCOS transaction hashes |
 

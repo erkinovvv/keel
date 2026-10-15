@@ -1,0 +1,23 @@
+To: wangyr@pbcsf.tsinghua.edu.cn
+Subject: 2026 Shenzhen International FinTech Competition – Topic B – Keel – Team Keel
+
+Dear Ms. Wang,
+
+On behalf of Team Keel, please find our Topic B project deliverables attached:
+
+1. Technical documentation (mandatory)
+2. Presentation deck for a 10-minute pitch (mandatory)
+3. Demo video (optional, 3 minutes)
+4. Security self-assessment (optional)
+5. Simulated execution evidence and evaluation reports (optional)
+
+The source code, README, tests and deployment instructions are available at:
+https://github.com/erkinovvv/keel
+
+Project: Keel, an AI Wealth Advisory Agent.
+Institution: Westminster International University in Tashkent.
+
+Please confirm receipt when convenient.
+
+Best regards,
+Team Keel
