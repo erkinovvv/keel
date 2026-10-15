@@ -49,6 +49,9 @@ def test_drafts_require_propose_and_confirmation_is_human_only(tmp_path):
     execute = make_session(tmp_path / "execute", PermissionTier.EXECUTE)
     orders = execute.create_draft_orders()
     order = next(item for item in orders if item["risk_class"] <= 3)
+    with pytest.raises(ValueError, match="consent"):
+        execute.issue_confirmation_token(order["order_id"])
+    execute.record_client_consent("test_human", "disclosure-hash")
     token = execute.issue_confirmation_token(order["order_id"])
     result = execute.confirm_order(order["order_id"], token)
     assert result["status"] == "EXECUTED"
@@ -61,6 +64,7 @@ def test_r4_r5_orders_have_cooling_off(tmp_path):
     orders = session.create_draft_orders()
     high_risk = next(item for item in orders if item["risk_class"] >= 4)
     assert high_risk["cooling_off_until"] > date.today().isoformat()
+    session.record_client_consent("test_human", "disclosure-hash")
     token = session.issue_confirmation_token(high_risk["order_id"])
     with pytest.raises(ValueError, match="cooling-off"):
         session.confirm_order(high_risk["order_id"], token)

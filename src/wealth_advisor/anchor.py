@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ EXPLORER_TX = "https://sepolia.etherscan.io/tx/"
 FISCO_DEFAULT_RPC = "http://127.0.0.1:8545"
 FISCO_HOME = Path(os.getenv("FISCO_HOME", Path.home() / ".wealth-advisor" / "fisco"))
 CONTRACT = Path(__file__).parent / "data" / "audit_anchor_contract.json"
+_FISCO_SEND_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -111,11 +113,30 @@ def _fisco_key() -> str:
 
 
 def _send(w3, account, tx: dict[str, Any]) -> Any:
-    tx = {**tx, "chainId": w3.eth.chain_id, "from": account.address, "nonce": w3.eth.get_transaction_count(account.address), "gasPrice": 0}
-    tx.setdefault("gas", 3_000_000)
-    signed = account.sign_transaction(tx)
-    raw = getattr(signed, "raw_transaction", None) or getattr(signed, "rawTransaction")
-    receipt = w3.eth.wait_for_transaction_receipt(w3.eth.send_raw_transaction(raw), timeout=30)
+    # FISCO can have accepted transactions that are not in the latest block yet. A
+    # latest-only nonce then reuses the in-flight nonce and the node rejects it with
+    # NonceCheckFail. Serialize this process's sends and build from the pending count.
+    with _FISCO_SEND_LOCK:
+        for attempt in range(2):
+            prepared = {
+                **tx,
+                "chainId": w3.eth.chain_id,
+                "from": account.address,
+                "nonce": w3.eth.get_transaction_count(account.address, "pending"),
+                "gasPrice": 0,
+            }
+            prepared.setdefault("gas", 3_000_000)
+            signed = account.sign_transaction(prepared)
+            raw = getattr(signed, "raw_transaction", None) or getattr(signed, "rawTransaction")
+            try:
+                tx_hash = w3.eth.send_raw_transaction(raw)
+                receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
+                break
+            except Exception as exc:
+                if attempt or "NonceCheckFail" not in str(exc):
+                    raise
+        else:  # pragma: no cover - the second attempt either breaks or raises
+            raise RuntimeError("FISCO BCOS rejected the transaction nonce twice")
     if receipt["status"] != 1:
         raise RuntimeError(f"FISCO BCOS transaction failed in block {receipt['blockNumber']}")
     return receipt

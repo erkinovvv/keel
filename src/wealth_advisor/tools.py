@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Iterable, Literal
 
-from pydantic import BaseModel, Field, ValidationError, create_model
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model
 
 from .allocation import Allocation, Holding, build_allocation
 from .audit import AuditLogger
-from .catalog import compare_products, load_catalog
+from .catalog import Product, compare_products, load_catalog
+from .goals import GoalInput, project_goal
+from .ontology import (
+    CALCULATION_VERSION,
+    AdvisoryStage,
+    ArtifactStatus,
+    GoalRecord,
+    Recommendation,
+    now_utc,
+    transition_stage,
+    version_id,
+)
 from .profiling import QUESTIONNAIRE, profile_investor
 from .stress import stress_test
 from .permissions import PermissionTier, require_tier
@@ -82,6 +94,25 @@ class StressArgs(BaseModel):
 
 class DraftOrderArgs(BaseModel):
     allocation_id: str = "latest"
+
+
+class GoalArgs(BaseModel):
+    """Client goal inputs; portfolio return and volatility remain server-owned."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(default="My goal", max_length=60)
+    target_cny: float = Field(gt=0, le=1_000_000_000)
+    years: int = Field(ge=1, le=50)
+    monthly_cny: float = Field(ge=0, le=10_000_000)
+    inflation_fraction: float = Field(default=0, ge=0, lt=0.2)
+
+
+class ExplainRecommendationArgs(BaseModel):
+    recommendation_id: str = "latest"
+
+
+class RefreshRecommendationArgs(BaseModel):
+    reason: str = Field(default="client_requested_refresh", max_length=120)
 
 
 class MarketQuotesArgs(BaseModel):
@@ -162,6 +193,10 @@ TOOL_SCHEMAS = [
     {"type": "function", "function": {"name": "stress_test", "description": "Apply a deterministic historical portfolio stress.", "parameters": _provider_schema(StressArgs)}},
     {"type": "function", "function": {"name": "create_draft_orders", "description": "Create proposed simulated orders from a stored allocation.", "parameters": _provider_schema(DraftOrderArgs)}},
     {"type": "function", "function": {"name": "market_quotes", "description": "Read public allowlisted market quotes; dated fallbacks are marked stale.", "parameters": _provider_schema(MarketQuotesArgs)}},
+    {"type": "function", "function": {"name": "plan_goal", "description": "Calculate goal probability and required monthly saving using the stored portfolio. Ask for target, years and monthly saving first; do not guess them. Inflation defaults to zero unless requested. Example: target_cny=500000, years=8, monthly_cny=2000.", "parameters": _provider_schema(GoalArgs)}},
+    {"type": "function", "function": {"name": "get_advisory_state", "description": "Read the compact server-owned advisory stage, missing facts, stale reasons and next allowed action.", "parameters": _provider_schema(MarketQuotesArgs)}},
+    {"type": "function", "function": {"name": "explain_recommendation", "description": "Explain the current deterministic recommendation, constraints, risks and provenance. Never invent figures.", "parameters": _provider_schema(ExplainRecommendationArgs)}},
+    {"type": "function", "function": {"name": "refresh_recommendation", "description": "Rebuild the current recommendation after a material client or goal change; the server owns all inputs.", "parameters": _provider_schema(RefreshRecommendationArgs)}},
 ]
 
 
@@ -203,7 +238,18 @@ def compact_tool_result(name: str, result: dict[str, Any], catalog: Iterable[Pro
             + ")"
             for item in comparisons[:5]
         ]
-        return {"display": "Suitable products: " + "; ".join(display_items) + "."}
+        return {
+            "display": "Suitable products: " + "; ".join(display_items) + ".",
+            "comparisons": [
+                {key: item.get(key) for key in (
+                    "product_id", "name", "kind", "risk_class", "net_return", "volatility",
+                    "fee", "fee_drag", "liquidity_days", "rate", "term_months",
+                    "early_withdrawal_cost_6m", "insured", "source_name", "source_url", "as_of", "stale",
+                ) if item.get(key) is not None}
+                for item in comparisons[:5]
+            ],
+            "eligible_count": len(comparisons),
+        }
     if name == "build_allocation":
         holdings = result.get("holdings", [])
         product_mix = "; ".join(
@@ -238,6 +284,16 @@ def compact_tool_result(name: str, result: dict[str, Any], catalog: Iterable[Pro
         return {"display": "Draft orders created: " + "; ".join(f"{product_names.get(order.get('product_id'), 'Selected fund')} {order.get('amount')}" for order in orders) + "."}
     if name == "market_quotes":
         return {"quotes": result.get("quotes", [])}
+    if name == "plan_goal":
+        return {
+            "goal": result["input"],
+            "result": {key: result["result"][key] for key in (
+                "probability", "target_nominal", "terminal_p10", "terminal_p50",
+                "terminal_p90", "required_monthly", "assumptions",
+            )},
+        }
+    if name in {"get_advisory_state", "explain_recommendation", "refresh_recommendation"}:
+        return result
     return {"display": str(result)}
 
 
@@ -252,11 +308,7 @@ class ToolDispatcher:
     def _profile_class(self) -> int:
         if not self.session or not self.session.state.profile:
             raise ValueError("profile first: no investor profile is stored in this session")
-        from datetime import date
-
-        if self.session.state.profile.expires_on < date.today():
-            raise ValueError("profile expired: reassess the investor before requesting advice")
-        return self.session.state.profile.investor_class
+        return self.session._require_profile().investor_class
 
     def _allocation_id(self, allocation_id: str) -> str:
         # The model never sees allocation ids, so an id it invents means the client's latest allocation.
@@ -276,9 +328,7 @@ class ToolDispatcher:
             if not facts:
                 raise ValueError("at least one client fact is required")
             if self.session:
-                for key, value in facts.items():
-                    setattr(self.session.state.client, key, value)
-                result = {"client": self.session.state.client.as_dict()}
+                result = {"client": self.session.update_client_facts(facts)}
             else:
                 result = {"client": facts}
         elif name == "profile_investor":
@@ -297,6 +347,13 @@ class ToolDispatcher:
             profile = profile_investor(**profile_args)
             if self.session:
                 self.session.state.profile = profile
+                self.session.state.profile_facts_version = self.session._profile_facts_version_current()
+                self.session.state.profile_invalidated = False
+                self.session.state.profile_version = self.session.current_profile_version()
+                self.session.state.recommendation = None
+                self.session.state.consent = None
+                self.session._set_stage(AdvisoryStage.PROFILE_READY)
+                self.session.audit.append("profile_created", {"profile_version": self.session.state.profile_version, "class_code": profile.class_code})
             result = profile.as_dict()
         elif name == "compare_products":
             if self.session:
@@ -320,7 +377,21 @@ class ToolDispatcher:
                 self.session.state.horizon_years = args_data["horizon_years"]
                 self.session.state.client.amount = args_data["amount"]
                 self.session.state.client.horizon_years = args_data["horizon_years"]
-            result = {"comparisons": [item.as_dict() for item in compare_products(self.catalog, **args_data)]}
+            comparisons = compare_products(self.catalog, **args_data)
+            by_id = {product.id: product for product in self.catalog}
+            rows = []
+            for item in comparisons:
+                row = item.as_dict()
+                product = by_id[item.product_id]
+                row["source_name"] = "East Money / Tiantian Fund public pages" if product.region == "CN" else "local deterministic catalog"
+                row["source_url"] = getattr(product, "source_url", None)
+                if product.region == "CN" and product.kind == "fund" and item.product_id.startswith("CN-"):
+                    code = item.product_id.removeprefix("CN-")
+                    row["source_url"] = row["source_url"] or f"https://fund.eastmoney.com/{code}.html"
+                row["as_of"] = "2026-10-11" if product.region == "CN" else None
+                row["stale"] = False
+                rows.append(row)
+            result = {"comparisons": rows}
         elif name == "build_allocation":
             if self.session:
                 require_tier(self.session.tier, PermissionTier.ADVISE)
@@ -346,6 +417,7 @@ class ToolDispatcher:
             if self.session:
                 allocation_id = f"allocation-{len(self.session.state.allocations) + 1}"
                 self.session.state.allocations[allocation_id] = allocation
+                self.session.register_allocation_recommendation(allocation_id, allocation)
                 result = {"allocation_id": allocation_id, **allocation.as_dict()}
             else:
                 result = allocation.as_dict()
@@ -363,7 +435,108 @@ class ToolDispatcher:
             stress_result = stress_test(allocation, scenario=args.scenario, custom_shocks=args.custom_shocks, max_tolerable_loss=max_loss if max_loss is not None else 0.20)
             stress_id = f"stress-{len(self.session.state.stress_results) + 1}"
             self.session.state.stress_results[stress_id] = stress_result
+            if self.session.state.recommendation:
+                self.session.state.recommendation.stress_summary = stress_result.as_dict()
+            self.session._set_stage(AdvisoryStage.STRESS_READY)
+            if self.audit:
+                self.audit.append("stress_test_completed", {"stress_id": stress_id, "scenario": args.scenario})
             result = {"stress_id": stress_id, "allocation_id": allocation_id, **stress_result.as_dict()}
+        elif name == "plan_goal":
+            if not self.session:
+                raise ValueError("plan_goal requires a server-side AdvisorSession")
+            require_tier(self.session.tier, PermissionTier.ADVISE)
+            self._profile_class()
+            args = GoalArgs.model_validate(arguments)
+            allocation = self.session.stored_allocation()
+            goal_input = {
+                "name": args.name, "target": args.target_cny, "years": args.years,
+                "monthly": args.monthly_cny, "inflation": args.inflation_fraction,
+            }
+            previous_goal = self.session.state.goal_record
+            goal_version = version_id("goal", goal_input)
+            if previous_goal and previous_goal.version != goal_version:
+                self.session._mark_recommendation_stale(("GOAL_CHANGED",))
+                self.session.audit.append("goal_changed", {"old_version": previous_goal.version, "new_version": goal_version})
+            elif previous_goal is None:
+                self.session.audit.append("goal_created", {"goal_version": goal_version})
+                if self.session.state.recommendation:
+                    self.session._mark_recommendation_stale(("GOAL_ADDED_AFTER_ALLOCATION",))
+            self.session.state.goal_record = GoalRecord(
+                goal_id=f"goal-{goal_version.split('-', 1)[-1]}", name=args.name,
+                target_cny=args.target_cny, years=args.years, monthly_cny=args.monthly_cny,
+                inflation_fraction=args.inflation_fraction, priority=1, status="active",
+                created_at=now_utc().isoformat(), version=goal_version,
+            )
+            projection = project_goal(GoalInput(
+                target=args.target_cny, years=args.years, initial=allocation.amount,
+                monthly=args.monthly_cny, inflation=args.inflation_fraction,
+                expected_return=allocation.expected_return, volatility=allocation.volatility,
+            ))
+            result = {"input": goal_input, "result": projection.as_dict()}
+            self.session.state.goal = result
+            if self.session.state.recommendation:
+                self.session.state.recommendation.goal_id = self.session.state.goal_record.goal_id
+                self.session.state.recommendation.goal_version = goal_version
+            self.session._set_stage(AdvisoryStage.GOAL_READY)
+        elif name == "get_advisory_state":
+            if not self.session:
+                raise ValueError("get_advisory_state requires a server-side AdvisorSession")
+            client = self.session.state.client.as_dict()
+            missing = [key for key, value in client.items() if value is None]
+            if not self.session.state.profile:
+                next_action = "collect_client_facts_and_profile"
+            elif not self.session.state.allocations:
+                next_action = "build_allocation"
+            elif not self.session.state.stress_results:
+                next_action = "stress_test"
+            elif self.session.state.recommendation and self.session.state.recommendation.status == "stale":
+                next_action = "refresh_recommendation"
+            elif not self.session.state.goal_record:
+                next_action = "ask_for_goal_or_review_plan"
+            else:
+                next_action = "client_review_or_consent"
+            result = {
+                "stage": self.session.state.stage.value,
+                "profile_status": "expired" if self.session.state.profile and self.session.state.profile.expires_on < date.today() else "active" if self.session.state.profile else None,
+                "profile_class": self.session.state.profile.class_code if self.session.state.profile else None,
+                "goal_status": self.session.state.goal_record.status if self.session.state.goal_record else None,
+                "recommendation_status": self.session.state.recommendation.status if self.session.state.recommendation else None,
+                "stale_reasons": list(self.session.state.recommendation.stale_reasons) if self.session.state.recommendation else [],
+                "missing_facts": missing,
+                "next_action": next_action,
+            }
+        elif name == "explain_recommendation":
+            if not self.session:
+                raise ValueError("explain_recommendation requires a server-side AdvisorSession")
+            recommendation = self.session.state.recommendation
+            if recommendation is None:
+                raise ValueError("recommendation required: build a plan first")
+            allocation = self.session.stored_allocation(recommendation.allocation_id)
+            products = {product.id: product for product in self.catalog}
+            holdings = []
+            for holding in allocation.holdings:
+                product = products[holding.product_id]
+                holdings.append({"product": product.name, "asset_class": holding.asset_class, "weight": holding.weight, "reasons": list(holding.reason_codes), "risk_class": product.risk_class})
+            result = {
+                "recommendation_id": recommendation.recommendation_id,
+                "recommendation_hash": recommendation.fingerprint,
+                "status": recommendation.status,
+                "stale_reasons": list(recommendation.stale_reasons),
+                "allocation_id": recommendation.allocation_id,
+                "holdings": holdings,
+                "constraints": ["Cn suitability", "liquidity need", "single-product cap", "client loss limit"],
+                "risks": ["historical stress can be worse", "estimates are not guarantees", "catalog data can become stale"],
+                "provenance": {"catalog_version": recommendation.catalog_version, "calculation_version": recommendation.calculation_version},
+            }
+        elif name == "refresh_recommendation":
+            if not self.session:
+                raise ValueError("refresh_recommendation requires a server-side AdvisorSession")
+            self.session._require_profile()
+            reason = _validated(RefreshRecommendationArgs, arguments).reason
+            if self.session.state.recommendation:
+                self.session.state.recommendation.status = ArtifactStatus.SUPERSEDED.value
+            self.session.audit.append("recommendation_refresh_requested", {"reason": reason})
+            result = self.dispatch("build_allocation", {})
         elif name == "create_draft_orders":
             if not self.session:
                 raise ValueError("create_draft_orders requires a server-side AdvisorSession")

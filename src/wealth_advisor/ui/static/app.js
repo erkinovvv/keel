@@ -157,10 +157,14 @@ function applyServerState(s, { fromChat = false } = {}) {
     changes.push(t("your plan"));
   }
   if (s.tier) setTier(s.tier);
+  if (s.goal && JSON.stringify(s.goal.input) !== JSON.stringify(state.goalInput)) {
+    state.goalInput = s.goal.input;
+    changes.push(t("Goal"));
+  }
   if (fromChat && changes.length) {
     note(t("Updated from our chat: {changes}.", { changes: changes.join(LANG === "zh" ? "、" : ", ") }), "msg-sync");
     for (const b of steps.querySelectorAll("button")) b.disabled = b.dataset.step !== "profile" && !state.profile;
-    const affected = { profile: Boolean(s.profile), portfolio: changes.includes(t("your plan")) };
+    const affected = { profile: Boolean(s.profile), portfolio: changes.includes(t("your plan")), goal: Boolean(s.goal) };
     if (affected[state.step] || (state.step === "profile" && state.profile)) go(state.step);
   }
 }
@@ -913,7 +917,7 @@ async function renderGoal() {
     <p class="lede">${t("We play out 5,000 possible futures for your {amount} and count how many reach your goal.", { amount: money(state.allocation.amount) })}</p>
     <div class="sheet">
       <div class="filters" role="radiogroup" aria-label="${t("Goal")}">
-        ${GOAL_KINDS.map((k) => `<label class="chip"><input type="radio" name="gk" value="${esc(k)}" ${k === g.name ? "checked" : ""}><span>${esc(t(k))}</span></label>`).join("")}
+        ${(GOAL_KINDS.includes(g.name) ? GOAL_KINDS : [g.name, ...GOAL_KINDS]).map((k) => `<label class="chip"><input type="radio" name="gk" value="${esc(k)}" ${k === g.name ? "checked" : ""}><span>${esc(t(k))}</span></label>`).join("")}
       </div>
       <div class="facts">
         <div class="field"><label for="gTarget">${t("Goal amount")}</label><input id="gTarget" type="number" min="1000" step="1000" value="${g.target}"></div>
@@ -1484,7 +1488,7 @@ const EVENT_NAMES = {
   prompt_guard_call: "Message checked for tricks", prompt_guard_error: "Safety check error", session_turn: "Chat message",
   tool_call: "Calculation done", tool_error: "Calculation error", tool_output_blocked: "Unsafe data blocked",
   advice_report_issued: "Report created", audit_anchored: "Saved on blockchain", rehearsal_decision: "Crash test result",
-  rehearsal_started: "Crash test started", risk_disclosure_signed: "Risk notice signed", ui_allocation_built: "Plan made",
+  rehearsal_started: "Crash test started", risk_disclosure_signed: "Risk notice signed", consent_signed: "Recommendation accepted", ui_allocation_built: "Plan made",
   ui_goal_projected: "Goal checked", ui_orders_confirmed: "Orders confirmed", ui_orders_drafted: "Orders prepared",
   ui_products_compared: "Funds compared", ui_profile_assessed: "Risk level worked out", ui_stress_tested: "Crises replayed",
   market_event: "Market alert", market_decision: "Your decision on a market alert",

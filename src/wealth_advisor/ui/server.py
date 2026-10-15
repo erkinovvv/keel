@@ -43,6 +43,17 @@ from wealth_advisor.monitoring import EVENTS, check_live_market, check_market
 from wealth_advisor.security import RateLimiter, redact_pii
 from wealth_advisor.session import AdvisorSession, ClientFacts
 from wealth_advisor.stress import SCENARIOS, StressResult, stress_test
+from wealth_advisor.ontology import (
+    AdvisoryStage,
+    ArtifactStatus,
+    AuditReference,
+    ClientConsent,
+    GoalRecord,
+    OrderProposal,
+    Recommendation,
+    canonical_hash,
+    now_utc,
+)
 from wealth_advisor.ui.report import render_report
 from wealth_advisor.ui.labels import LANG, class_name, lang, explain_reason, flag_label, humanize, question_label
 
@@ -192,11 +203,20 @@ def _seal_state(file: ClientFile, sid: str) -> str:
         },
         "allocation_count": file.allocation_count,
         "allocation_provenance": file.allocation_provenance,
-        "goal": file.goal,
+        "goal": state.goal or file.goal,
         "signed": file.signed,
         "rehearsals": file.rehearsals,
         "alerts": file.alerts,
         "anchors": file.anchors,
+        "stage": state.stage.value,
+        "facts_version": state.facts_version,
+        "profile_version": state.profile_version,
+        "profile_facts_version": state.profile_facts_version,
+        "profile_invalidated": state.profile_invalidated,
+        "goal_record": state.goal_record.as_dict() if state.goal_record else None,
+        "recommendation": state.recommendation.as_dict() if state.recommendation else None,
+        "consent": state.consent.as_dict() if state.consent else None,
+        "order_proposals": {key: value.as_dict() for key, value in state.order_proposals.items()},
     }
     encoded = base64.urlsafe_b64encode(zlib.compress(json.dumps(payload, separators=(",", ":")).encode(), 9)).decode()
     signature = hmac.new(_state_cookie_key(), encoded.encode(), hashlib.sha256).hexdigest()
@@ -247,6 +267,43 @@ def _restore_order(raw: dict[str, Any]) -> SimulatedOrder:
     )
 
 
+def _restore_recommendation(raw: dict[str, Any] | None) -> Recommendation | None:
+    if not raw:
+        return None
+    audit = raw.get("audit_reference")
+    return Recommendation(
+        recommendation_id=raw["recommendation_id"], profile_id=raw["profile_id"], goal_id=raw.get("goal_id"),
+        allocation_id=raw["allocation_id"], profile_version=raw["profile_version"], goal_version=raw.get("goal_version"),
+        catalog_version=raw["catalog_version"], calculation_version=raw["calculation_version"], created_at=raw["created_at"],
+        status=raw["status"], expected_return=raw["expected_return"], volatility=raw["volatility"], fee=raw["fee"],
+        var_95=raw["var_95"], stress_summary=raw.get("stress_summary", {}), reason_codes=tuple(raw.get("reason_codes", ())),
+        rejected_alternatives=tuple(raw.get("rejected_alternatives", ())), stale_reasons=tuple(raw.get("stale_reasons", ())),
+        audit_reference=AuditReference(**audit) if audit else None,
+    )
+
+
+def _restore_consent(raw: dict[str, Any] | None) -> ClientConsent | None:
+    if not raw:
+        return None
+    audit = raw.get("audit_reference")
+    return ClientConsent(
+        consent_id=raw["consent_id"], recommendation_id=raw["recommendation_id"],
+        exact_recommendation_hash=raw["exact_recommendation_hash"], risk_disclosure_hash=raw["risk_disclosure_hash"],
+        client_confirmed_at=raw.get("client_confirmed_at"), confirmation_channel=raw["confirmation_channel"],
+        status=raw["status"], audit_reference=AuditReference(**audit) if audit else None,
+    )
+
+
+def _restore_order_proposal(raw: dict[str, Any]) -> OrderProposal:
+    audit = raw.get("audit_reference")
+    return OrderProposal(
+        order_id=raw["order_id"], recommendation_id=raw["recommendation_id"], product_id=raw["product_id"],
+        amount_cny=raw["amount_cny"], risk_class=raw["risk_class"], suitability_result=raw.get("suitability_result", {}),
+        created_at=raw["created_at"], status=raw["status"], order_summary_hash=raw["order_summary_hash"],
+        audit_reference=AuditReference(**audit) if audit else None,
+    )
+
+
 def _restore_file(sid: str, payload: dict[str, Any]) -> ClientFile:
     session = AdvisorSession(Settings.from_env())
     _bind_session_audit(session, sid)
@@ -263,6 +320,18 @@ def _restore_file(sid: str, payload: dict[str, Any]) -> ClientFile:
     session.state.draft_orders = {
         key: _restore_order(value) for key, value in payload.get("draft_orders", {}).items()
     }
+    session.state.goal = payload.get("goal")
+    if payload.get("goal_record"):
+        session.state.goal_record = GoalRecord(**payload["goal_record"])
+    session.state.recommendation = _restore_recommendation(payload.get("recommendation"))
+    session.state.consent = _restore_consent(payload.get("consent"))
+    session.state.order_proposals = {key: _restore_order_proposal(value) for key, value in payload.get("order_proposals", {}).items()}
+    if payload.get("stage"):
+        session.state.stage = AdvisoryStage(payload["stage"])
+    session.state.facts_version = payload.get("facts_version", session.state.facts_version)
+    session.state.profile_version = payload.get("profile_version")
+    session.state.profile_facts_version = payload.get("profile_facts_version")
+    session.state.profile_invalidated = bool(payload.get("profile_invalidated", False))
     return ClientFile(
         session=session, allocation_count=payload.get("allocation_count", len(session.state.allocations)),
         allocation_provenance=payload.get("allocation_provenance", {}), goal=payload.get("goal"), signed=payload.get("signed", False),
@@ -347,6 +416,13 @@ def _ui_state(file: ClientFile) -> dict[str, Any]:
         "allocation": _allocation_view(state.allocations[allocation_id]) if allocation_id else None,
         "allocation_provenance": _allocation_provenance(file, allocation_id) if allocation_id else None,
         "tier": _tier_view(file),
+        "goal": state.goal or file.goal,
+        "stage": state.stage.value,
+        "profile_version": state.profile_version,
+        "recommendation": state.recommendation.as_dict() if state.recommendation else None,
+        "recommendation_hash": state.recommendation.fingerprint if state.recommendation else None,
+        "stale_reasons": list(state.recommendation.stale_reasons) if state.recommendation else [],
+        "consent": state.consent.as_dict() if state.consent else None,
     }
 
 
@@ -477,11 +553,16 @@ def assess_profile(body: ProfileIn, response: Response, wa_sid: str | None = Coo
         profile = profile_investor(body.answers, age=body.age, borrowed_money=body.borrowed_money)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    file.session.update_client_facts({
+        "amount": body.amount, "horizon_years": body.horizon_years,
+        "max_loss": body.max_loss, "age": body.age, "borrowed_money": body.borrowed_money,
+    })
     file.session.state.profile = profile
-    file.session.state.client = dataclasses.replace(
-        file.session.state.client, amount=body.amount, horizon_years=body.horizon_years,
-        max_loss=body.max_loss, age=body.age, borrowed_money=body.borrowed_money,
-    )
+    file.session.state.profile_facts_version = file.session._profile_facts_version_current()
+    file.session.state.profile_invalidated = False
+    file.session.state.profile_version = file.session.current_profile_version()
+    file.session.state.stage = AdvisoryStage.PROFILE_READY
+    file.session.audit.append("profile_created", {"profile_version": file.session.state.profile_version, "class_code": profile.class_code})
     stamp = _record(file, "ui_profile_assessed", "profiling.profile_investor", {"profile": profile.as_dict()})
     return {"profile": _profile_view(profile), "client": _client(file), "provenance": stamp}
 
@@ -512,6 +593,7 @@ def allocate(body: AllocationIn, response: Response, wa_sid: str | None = Cookie
     file.allocation_count += 1
     allocation_id = f"ui-{file.allocation_count}"
     file.session.state.allocations[allocation_id] = allocation
+    file.session.register_allocation_recommendation(allocation_id, allocation)
     stamp = _record(file, "ui_allocation_built", "allocation.build_allocation", {"allocation_id": allocation_id, "allocation": allocation.as_dict()})
     file.allocation_provenance[allocation_id] = stamp
     return {"allocation_id": allocation_id, "allocation": _allocation_view(allocation), "provenance": stamp}
@@ -581,6 +663,7 @@ def goal(body: GoalIn, response: Response, wa_sid: str | None = Cookie(default=N
         raise HTTPException(409 if "allocation" in str(exc) else 422, str(exc)) from exc
     view = result.as_dict()
     file.goal = {"input": body.model_dump(), "result": view}
+    file.session.state.goal = file.goal
     stamp = _record(file, "ui_goal_projected", "goals.project_goal", {"goal": body.model_dump(), "probability": result.probability, "required_monthly": result.required_monthly})
     return {"goal": body.model_dump(), "result": view, "initial": allocation.amount, "provenance": stamp}
 
@@ -825,11 +908,22 @@ def consent(body: ConsentIn, response: Response, wa_sid: str | None = Cookie(def
     if file.session.settings.kill_switch:
         _record(file, "consent_refused", "ui.server.consent", {"reason": "kill_switch"})
         raise HTTPException(403, "Trading is switched off for all sessions right now.")
+    try:
+        recommendation = file.session.require_current_recommendation()
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
     file.session.tier = PermissionTier.EXECUTE
     file.signed = True
     # The signature name is personal data: only its hash enters the audit log.
     signer = hashlib.sha256(body.full_name.strip().lower().encode()).hexdigest()
-    stamp = _record(file, "risk_disclosure_signed", "ui.server.consent", {"signer_sha256": signer, "tier": "EXECUTE"})
+    risk_disclosure_hash = canonical_hash({"text": "simulated-account risk disclosure", "recommendation_hash": recommendation.fingerprint})
+    stamp = _record(file, "consent_signed", "ui.server.consent", {"signer_sha256": signer, "tier": "EXECUTE", "recommendation_hash": recommendation.fingerprint})
+    try:
+        file.session.record_client_consent("web_ui", risk_disclosure_hash)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    recommendation.status = ArtifactStatus.ACCEPTED.value
+    file.session.state.stage = AdvisoryStage.CONSENT_REQUIRED
     return {**_tier_view(file), "provenance": stamp}
 
 
@@ -946,7 +1040,7 @@ def advice_report(response: Response, wa_sid: str | None = Cookie(default=None))
     valid, _ = verify_audit_log(path)
     count = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip()) if path.exists() else 0
     html, digest = render_report(
-        profile=profile, client=_client(file), allocation=allocation, stress=stress_results, goal=file.goal,
+        profile=profile, client=_client(file), allocation=allocation, stress=stress_results, goal=file.session.state.goal or file.goal,
         rehearsal=file.rehearsals[-1] if file.rehearsals else None,
         stated_reaction=_answers_from_profile(profile).get("drawdown_reaction"),
         products={p.id: p for p in load_catalog()}, audit_valid=valid, audit_records=count,

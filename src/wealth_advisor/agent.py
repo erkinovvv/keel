@@ -10,7 +10,7 @@ from typing import Any, Callable
 
 from .audit import AuditLogger
 from .llm import LLMClient
-from .prompts import SYSTEM_PROMPT
+from .prompts import PROMPT_VERSION, SYSTEM_PROMPT
 from .security import tool_output_guard
 from .tools import TOOL_SCHEMAS, ToolDispatcher, compact_tool_result
 
@@ -95,7 +95,7 @@ class AdvisorAgent:
 
     def system_message(self, client_state: dict[str, Any] | None = None) -> dict[str, str]:
         state_text = json.dumps(client_state or {}, separators=(",", ":"), sort_keys=True)
-        return {"role": "system", "content": f"{SYSTEM_PROMPT}\nClient state: {state_text}"}
+        return {"role": "system", "content": f"Prompt version: {PROMPT_VERSION}\n{SYSTEM_PROMPT}\nClient state: {state_text}"}
 
     def _required_tool(self, messages: list[dict[str, Any]], completed_tools: set[str]) -> str | None:
         user_message = next(
@@ -107,6 +107,8 @@ class AdvisorAgent:
             return None
         if _ALLOCATION_REQUEST.search(user_message) and "build_allocation" not in completed_tools and not session.state.allocations:
             return "build_allocation"
+        if "build_allocation" in completed_tools and "stress_test" not in completed_tools:
+            return "stress_test"
         if _STRESS_REQUEST.search(user_message) and "stress_test" not in completed_tools and session.state.allocations:
             return "stress_test"
         return None
@@ -143,7 +145,8 @@ class AdvisorAgent:
                 usage[key] += int(response.usage.get(key, 0))
             if not response.tool_calls:
                 required_tool = self._required_tool(messages, completed_tools)
-                if required_tool:
+                available_names = {tool["function"]["name"] for tool in available_tools}
+                if required_tool and required_tool in available_names:
                     self._append_required_tool(messages, tool_results, required_tool)
                     completed_tools.add(required_tool)
                     continue
@@ -155,9 +158,10 @@ class AdvisorAgent:
                 for call in response.tool_calls
             ]})
             for call in response.tool_calls:
-                completed_tools.add(call.name)
                 call_key = json.dumps({"name": call.name, "arguments": call.arguments}, sort_keys=True, separators=(",", ":"))
                 try:
+                    if call.name not in {tool["function"]["name"] for tool in available_tools}:
+                        raise ValueError(f"tool unavailable at this advisory stage: {call.name}")
                     if failed_calls.get(call_key, 0) >= 2:
                         result = {
                             "error": "Tool retry limit exceeded",
@@ -179,6 +183,8 @@ class AdvisorAgent:
                     if self.audit:
                         self.audit.append("tool_output_blocked", {"tool": call.name})
                 compact_result = compact_tool_result(call.name, result, self.dispatcher.catalog)
+                if not result.get("error"):
+                    completed_tools.add(call.name)
                 tool_results.append(compact_result)
                 messages.append({"role": "tool", "tool_call_id": call.id, "name": call.name, "content": json.dumps(compact_result, separators=(",", ":"))})
         raise RuntimeError("maximum tool steps exceeded")

@@ -137,3 +137,27 @@ def test_tool_dispatcher_exposes_stress_test(tmp_path):
     result = session.dispatcher.dispatch("stress_test", {"allocation_id": "allocation-1", "scenario": "2022_rate_shock"})
     assert result["scenario"] == "2022_rate_shock"
     assert result["loss_amount"] >= 0
+
+
+def test_goal_tool_uses_stored_portfolio_and_returns_projection(tmp_path):
+    from wealth_advisor.permissions import PermissionTier
+    from wealth_advisor.session import AdvisorSession
+    from wealth_advisor.tools import compact_tool_result
+
+    session = AdvisorSession(Settings(llm_mode="replay", audit_log=tmp_path / "audit.jsonl"), PermissionTier.ADVISE)
+    session.dispatcher.dispatch("record_client_facts", {"amount_cny": 200_000, "horizon_years": 8, "age": 28})
+    session.dispatcher.dispatch("profile_investor", {"answers": {
+        "horizon": "7_10y", "liquidity_need": "over_30d", "income_stability": "stable",
+        "emergency_fund": "over_6_months", "invested_share": "under_25",
+        "drawdown_reaction": "hold", "experience": "good", "goal": "growth",
+    }})
+    session.dispatcher.dispatch("build_allocation", {})
+    result = session.dispatcher.dispatch("plan_goal", {
+        "target_cny": 500_000, "years": 8, "monthly_cny": 2_000, "inflation_fraction": 0.02,
+    })
+
+    assert 0 <= result["result"]["probability"] <= 1
+    assert result["result"]["required_monthly"] is not None
+    assert session.state.goal["input"]["target"] == 500_000
+    compact = compact_tool_result("plan_goal", result)
+    assert "result" in compact and "probability" in compact["result"]

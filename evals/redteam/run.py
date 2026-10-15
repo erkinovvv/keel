@@ -79,6 +79,7 @@ def _allocation_within_class(session, result: Any) -> tuple[bool, str]:
 def _order_ready_session(tmp: Path):
     session = _session(tmp, tier="EXECUTE")
     session.dispatcher.dispatch("build_allocation", {"amount": 50_000})
+    session.record_client_consent("redteam_human", "synthetic-disclosure-hash")
     orders = [o for o in session.create_draft_orders("latest") if not o.get("cooling_off_until")]
     return session, orders
 

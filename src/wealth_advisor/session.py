@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 import re
 import time
 from typing import Any
@@ -22,6 +23,20 @@ from .security import GuardDecision, PromptGuardClassifier, RateLimiter, input_g
 from .stress import StressResult
 from .tools import ToolDispatcher
 from .tools import TOOL_SCHEMAS
+from .ontology import (
+    CALCULATION_VERSION,
+    AdvisoryStage,
+    ClientConsent,
+    GoalRecord,
+    OrderProposal,
+    Recommendation,
+    assert_recommendation_current,
+    catalog_version,
+    material_facts_changed,
+    now_utc,
+    transition_stage,
+    version_id,
+)
 
 _GUARANTEE_REQUEST = re.compile(r"\b(?:guarantee(?:d|s)?|risk[- ]free|certain\s+return)\b", re.I)
 _CONCENTRATION_INVESTING_VERB = re.compile(r"\b(?:put|invest|move|buy|allocate)\b|投|买|全仓", re.I)
@@ -69,6 +84,16 @@ class SessionState:
     stress_results: dict[str, StressResult] = field(default_factory=dict)
     draft_orders: dict[str, Any] = field(default_factory=dict)
     account: Any = None
+    goal: dict[str, Any] | None = None
+    goal_record: GoalRecord | None = None
+    recommendation: Recommendation | None = None
+    consent: ClientConsent | None = None
+    order_proposals: dict[str, OrderProposal] = field(default_factory=dict)
+    stage: AdvisoryStage = AdvisoryStage.FACT_FIND
+    facts_version: str = "facts-empty"
+    profile_version: str | None = None
+    profile_facts_version: str | None = None
+    profile_invalidated: bool = False
 
     @property
     def latest_allocation_id(self) -> str | None:
@@ -96,6 +121,14 @@ class SessionState:
             "horizon_years": self.client.horizon_years if self.client.horizon_years is not None else self.horizon_years,
             "has_allocation": bool(self.allocations),
             "has_stress_result": bool(self.stress_results),
+            "goal": self.goal["input"] if self.goal else None,
+            "stage": self.stage.value,
+            "facts_version": self.facts_version,
+            "profile_version": self.profile_version,
+            "profile_status": "expired" if self.profile and self.profile.expires_on < date.today() else "active" if self.profile else None,
+            "recommendation_status": self.recommendation.status if self.recommendation else None,
+            "recommendation_stale_reasons": list(self.recommendation.stale_reasons) if self.recommendation else [],
+            "goal_version": self.goal_record.version if self.goal_record else None,
         }
 
 
@@ -127,9 +160,140 @@ class AdvisorSession:
         self.rate_limiter = RateLimiter(max_calls=self.settings.max_session_turns)
         self.confirmation_tokens = ConfirmationTokenStore()
         self.prompt_guard = PromptGuardClassifier(self.settings, self.audit)
+        self.state.facts_version = version_id("facts", self.state.client.as_dict())
+
+    def _set_stage(self, target: AdvisoryStage) -> None:
+        """Apply a checked lifecycle transition and record it for later review."""
+
+        current = self.state.stage
+        self.state.stage = transition_stage(current, target)
+        self.audit.append("stage_transition", {"from": current.value, "to": target.value})
+
+    def _facts_snapshot(self) -> dict[str, Any]:
+        return self.state.client.as_dict()
+
+    def _profile_facts_version_current(self) -> str:
+        facts = self._facts_snapshot()
+        return version_id("profile-facts", {key: facts.get(key) for key in ("horizon_years", "age", "borrowed_money")})
+
+    def update_client_facts(self, values: dict[str, Any]) -> dict[str, Any]:
+        """Merge KYC facts and invalidate advice when a material fact changes."""
+
+        old = self._facts_snapshot()
+        for key, value in values.items():
+            if hasattr(self.state.client, key):
+                setattr(self.state.client, key, value)
+        new = self._facts_snapshot()
+        changed = material_facts_changed(old, new)
+        self.state.facts_version = version_id("facts", new)
+        if changed:
+            self.audit.append("facts_changed", {"fields": list(changed), "facts_version": self.state.facts_version})
+            if self.state.profile:
+                if set(changed) & {"horizon_years", "age", "borrowed_money"}:
+                    self.state.profile_invalidated = True
+                self._mark_recommendation_stale(("CLIENT_FACTS_CHANGED", *changed))
+        return new
+
+    def _mark_recommendation_stale(self, reasons: tuple[str, ...]) -> None:
+        recommendation = self.state.recommendation
+        if recommendation is not None:
+            merged = tuple(dict.fromkeys((*recommendation.stale_reasons, *reasons)))
+            if recommendation.status != "stale" or merged != recommendation.stale_reasons:
+                recommendation.status = "stale"
+                recommendation.stale_reasons = merged
+                self.audit.append("recommendation_staled", {"recommendation_id": recommendation.recommendation_id, "reasons": list(merged)})
+        if self.state.stage not in {AdvisoryStage.FACT_FIND, AdvisoryStage.EXPIRED, AdvisoryStage.STALE}:
+            self.state.stage = AdvisoryStage.STALE
+
+    def current_catalog_version(self) -> str:
+        return catalog_version(self.dispatcher.catalog)
+
+    def current_profile_version(self) -> str | None:
+        if not self.state.profile:
+            return None
+        return version_id("profile", {"profile": self.state.profile.as_dict(), "facts_version": self.state.facts_version})
+
+    def current_goal_version(self) -> str | None:
+        return self.state.goal_record.version if self.state.goal_record else None
+
+    def register_allocation_recommendation(self, allocation_id: str, allocation: Allocation) -> Recommendation:
+        """Bind a deterministic allocation to the current profile/catalog versions."""
+
+        profile = self._require_profile()
+        recommendation = Recommendation(
+            recommendation_id=f"recommendation-{len(self.state.allocations)}",
+            profile_id=self.state.profile_version or version_id("profile", profile.as_dict()),
+            goal_id=self.state.goal_record.goal_id if self.state.goal_record else None,
+            allocation_id=allocation_id,
+            profile_version=self.current_profile_version() or "profile-unknown",
+            goal_version=self.current_goal_version(),
+            catalog_version=self.current_catalog_version(),
+            calculation_version=CALCULATION_VERSION,
+            created_at=now_utc().isoformat(),
+            status="review",
+            expected_return=allocation.expected_return,
+            volatility=allocation.volatility,
+            fee=allocation.fee,
+            var_95=allocation.var_95_1y_parametric,
+            reason_codes=tuple(allocation.reason_codes),
+        )
+        self.state.recommendation = recommendation
+        self.state.consent = None
+        self._set_stage(AdvisoryStage.ALLOCATION_READY)
+        self.audit.append("recommendation_created", {"recommendation_id": recommendation.recommendation_id, "recommendation_hash": recommendation.fingerprint})
+        return recommendation
+
+    def require_current_recommendation(self) -> Recommendation:
+        """Return advice only when its referenced profile, goal and catalog are current."""
+
+        profile = self._require_profile()
+        recommendation = assert_recommendation_current(
+            self.state.recommendation,
+            profile_version=self.current_profile_version(),
+            goal_version=self.current_goal_version(),
+            catalog_version=self.current_catalog_version(),
+            profile_expired=profile.expires_on < date.today(),
+        )
+        return recommendation
+
+    def record_client_consent(self, channel: str, risk_disclosure_hash: str) -> ClientConsent:
+        """Record an explicit human acceptance bound to the exact current advice."""
+
+        recommendation = self.require_current_recommendation()
+        consent = ClientConsent(
+            consent_id=f"consent-{recommendation.recommendation_id}",
+            recommendation_id=recommendation.recommendation_id,
+            exact_recommendation_hash=recommendation.fingerprint,
+            risk_disclosure_hash=risk_disclosure_hash,
+            client_confirmed_at=now_utc().isoformat(),
+            confirmation_channel=channel,
+            status="signed",
+        )
+        self.state.consent = consent
+        recommendation.status = "accepted"
+        self.audit.append("client_consent_recorded", {
+            "recommendation_id": recommendation.recommendation_id,
+            "recommendation_hash": recommendation.fingerprint,
+            "channel": channel,
+            "risk_disclosure_hash": risk_disclosure_hash,
+        })
+        return consent
+
+    def _require_matching_consent(self, recommendation: Recommendation) -> ClientConsent:
+        consent = self.state.consent
+        if (
+            consent is None
+            or consent.status != "signed"
+            or consent.recommendation_id != recommendation.recommendation_id
+            or consent.exact_recommendation_hash != recommendation.fingerprint
+        ):
+            raise ValueError("client consent is missing or does not match the current recommendation")
+        return consent
 
     def _messages_for_turn(self, user_message: str) -> list[dict[str, Any]]:
         system = self.agent.system_message(self.state.summary())
+        stage = "fact_find" if not self.state.profile else "allocate" if not self.state.allocations else "review"
+        system["content"] += f"\nAdvisory stage: {stage}. Product types available: {', '.join(sorted({p.kind for p in self.dispatcher.catalog}))}."
         if self._contains_complete_fact_summary(user_message):
             system["content"] += "\nThis first message contains a complete fact pattern; do not greet or ask for the goal. Save facts, score the profile, and proceed with the requested advice now."
         system["content"] += f"\n{self._language_instruction(user_message)}"
@@ -165,7 +329,7 @@ class AdvisorSession:
         elif not self.state.allocations:
             names = {"build_allocation", "compare_products", "market_quotes"}
         else:
-            names = {"stress_test", "compare_products", "build_allocation", "market_quotes"}
+            names = {"stress_test", "compare_products", "build_allocation", "market_quotes", "plan_goal", "get_advisory_state", "explain_recommendation", "refresh_recommendation"}
         return [tool for tool in TOOL_SCHEMAS if tool["function"]["name"] in names]
 
     @staticmethod
@@ -319,7 +483,7 @@ class AdvisorSession:
                 return "您的投资者画像已经记录。下一步我可以为您建立合适的资产配置。"
             if not stress_results:
                 return "您的资产配置已经保存。下一步我可以运行历史压力测试。"
-                return "您的资产配置和压力测试已经保存。下一步可以先查看结果，或在下单前打开第3步“危机演练”体验这套组合。"
+            return "您的资产配置和压力测试已经保存。下一步可以先查看结果，或在下单前打开第3步“危机演练”体验这套组合。"
 
         if profile is None:
             if client.get("amount") is None:
@@ -367,6 +531,14 @@ class AdvisorSession:
                 "holdings": dict(account.holdings) if account else {},
                 "orders": {key: value.as_dict() for key, value in account.orders.items()} if account else {},
             },
+            "goal": self.state.goal,
+            "stage": self.state.stage.value,
+            "facts_version": self.state.facts_version,
+            "profile_version": self.state.profile_version,
+            "goal_record": self.state.goal_record.as_dict() if self.state.goal_record else None,
+            "recommendation": self.state.recommendation.as_dict() if self.state.recommendation else None,
+            "consent": self.state.consent.as_dict() if self.state.consent else None,
+            "order_proposals": {key: value.as_dict() for key, value in self.state.order_proposals.items()},
             "tier": self.tier.name if hasattr(self.tier, "name") else str(self.tier),
             "tier_value": int(self.tier),
         }
@@ -377,7 +549,11 @@ class AdvisorSession:
         if not self.state.profile:
             raise ValueError("profile first: no investor profile is stored in this session")
         if self.state.profile.expires_on < date.today():
+            self.state.stage = AdvisoryStage.EXPIRED
             raise ValueError("profile expired: reassess the investor before executing orders")
+        if self.state.profile_invalidated:
+            self.state.stage = AdvisoryStage.STALE
+            raise ValueError("profile stale: reassess the investor after material client facts changed")
         return self.state.profile
 
     def create_draft_orders(self, allocation_id: str = "latest") -> list[dict[str, object]]:
@@ -385,6 +561,9 @@ class AdvisorSession:
 
         require_tier(self.tier, PermissionTier.PROPOSE)
         profile = self._require_profile()
+        recommendation = self.require_current_recommendation()
+        if recommendation.allocation_id != self._allocation_id_for_recommendation(allocation_id):
+            raise ValueError("order allocation does not match the current recommendation")
         allocation = self.stored_allocation(allocation_id)
         orders = self.state.account.create_draft_orders(
             allocation,
@@ -397,18 +576,38 @@ class AdvisorSession:
         )
         for order in orders:
             self.state.draft_orders[order.order_id] = order
+            self.state.order_proposals[order.order_id] = OrderProposal(
+                order_id=order.order_id,
+                recommendation_id=recommendation.recommendation_id,
+                product_id=order.product_id,
+                amount_cny=order.amount,
+                risk_class=order.risk_class,
+                suitability_result={"suitable": True, "investor_class": profile.investor_class},
+                created_at=now_utc().isoformat(),
+                status="draft",
+                order_summary_hash=version_id("order", {"recommendation": recommendation.fingerprint, "summary": order.summary()}),
+            )
+        self.state.stage = AdvisoryStage.ORDER_PROPOSED
         result = [order.as_dict() for order in orders]
-        self.audit.append("draft_orders_created", {"allocation_id": allocation_id, "orders": result})
+        self.audit.append("draft_orders_created", {"allocation_id": allocation_id, "recommendation_id": recommendation.recommendation_id, "orders": result})
         return result
+
+    def _allocation_id_for_recommendation(self, allocation_id: str) -> str:
+        return self.state.latest_allocation_id if allocation_id == "latest" else allocation_id
 
     def issue_confirmation_token(self, order_id: str) -> str:
         """Issue a human-held token through the UI/CLI path, outside model messages."""
 
         require_tier(self.tier, PermissionTier.EXECUTE)
+        recommendation = self.require_current_recommendation()
+        self._require_matching_consent(recommendation)
         order = self.state.draft_orders.get(order_id)
         if order is None:
             raise ValueError("order not found")
-        token = self.confirmation_tokens.issue(order.order_id, order.summary())
+        proposal = self.state.order_proposals.get(order_id)
+        if proposal is None or proposal.recommendation_id != recommendation.recommendation_id:
+            raise ValueError("order proposal does not match the current recommendation")
+        token = self.confirmation_tokens.issue(order.order_id, f"{recommendation.fingerprint}|{order.summary()}")
         self.audit.append("confirmation_token_issued", {"order_id": order_id})
         return token
 
@@ -417,12 +616,20 @@ class AdvisorSession:
 
         require_tier(self.tier, PermissionTier.EXECUTE)
         self._require_profile()
+        recommendation = self.require_current_recommendation()
+        self._require_matching_consent(recommendation)
         order = self.state.draft_orders.get(order_id)
         if order is None:
             raise ValueError("order not found")
-        if not self.confirmation_tokens.consume(order_id, token, order.summary()):
+        proposal = self.state.order_proposals.get(order_id)
+        if proposal is None or proposal.recommendation_id != recommendation.recommendation_id:
+            raise ValueError("order proposal does not match the current recommendation")
+        if not self.confirmation_tokens.consume(order_id, token, f"{recommendation.fingerprint}|{order.summary()}"):
             self.audit.append("order_rejected", {"order_id": order_id, "reason": "invalid_or_reused_confirmation_token"})
             raise PermissionDenied("invalid or reused confirmation token")
         executed = self.state.account.execute(order_id)
+        if order_id in self.state.order_proposals:
+            self.state.order_proposals[order_id].status = "executed"
+        self.state.stage = AdvisoryStage.EXECUTED
         self.audit.append("order_executed", {"order": executed.as_dict()})
         return executed.as_dict()

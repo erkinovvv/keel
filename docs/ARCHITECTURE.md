@@ -127,7 +127,7 @@ src/wealth_advisor/
   catalog.py      product catalog, suitability filter, comparison
   allocation.py   portfolio construction
   stress.py       historical scenario stress tests
-  goals.py        Monte Carlo goal planning
+  goals.py        Monte Carlo goal planning (available to chat through plan_goal)
   compliance.py   suitability and pre-trade checks, output guard
   security.py     PII redaction, injection detection, rate limiting
   permissions.py  tiers and one-time confirmation tokens
