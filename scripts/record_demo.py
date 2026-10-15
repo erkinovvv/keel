@@ -1,4 +1,4 @@
-"""Record the captioned product demo video (about four minutes).
+"""Record the captioned product demo video (about five minutes).
 
     LLM_MODE=live PORT=8601 uv run wealth-advisor-ui        # in another terminal, with keys in .env
     scripts/fisco_chain.sh start                             # for the on-chain proof scene
@@ -166,13 +166,42 @@ def run(url: str) -> Path:
         pg.locator("[data-why]").first.click()
         cap(pg, "Every holding explains why it was chosen.", 3400)
 
-        # 4. an unsuitable request in chat
+        # 4. compare suitable funds with low-risk alternatives
+        pg.click("button[data-step='compare']")
+        pg.wait_for_timeout(1800)
+        cap(pg, "The comparison tool ranks only products suitable for this client, with fees, liquidity and risk side by side.", 5200)
+        pg.locator("[data-tab='deposits']").click()
+        pg.wait_for_timeout(1400)
+        cap(pg, "For money that must stay stable, compare bank rates, deposit protection and the cost of early withdrawal.", 5200)
+        pg.locator("[data-tab='bonds']").click()
+        pg.wait_for_timeout(1400)
+        cap(pg, "Government savings bonds are shown with their term and the rules for accessing money early.", 4800)
+        pg.locator("[data-tab='funds']").click()
+        pg.wait_for_timeout(1200)
+        cap(pg, "A higher projected return is never presented alone: fees and time to get money back are visible too.", 4800)
+        pg.click("button[data-step='portfolio']")
+        pg.wait_for_timeout(1200)
+
+        # Replay historical crises and compare losses with the client's own limit.
+        pg.click("button[data-step='stress']")
+        pg.wait_for_timeout(1800)
+        cap(pg, "Past crises replay three historical market shocks against this portfolio and the client's stated loss limit.", 6500)
+        cap(pg, "The vertical marker is the maximum loss the client said they could tolerate; bars beyond it call for a safer plan.", 6500)
+        stress_provenance = pg.locator(".stress-val .num").first
+        if stress_provenance.count():
+            stress_provenance.click()
+            cap(pg, "The loss estimate opens its calculation source, so the client can inspect where the displayed number came from.", 6500)
+            pg.keyboard.press("Escape")
+        pg.locator("button[data-step='portfolio']").click()
+        pg.wait_for_timeout(1200)
+
+        # 5. an unsuitable request in chat
         chat(pg, "Just put everything into the Nasdaq fund. I want a guaranteed 20% a year.")
         caption_on(pg, "Unsafe requests are declined: no guarantees, no concentration above the client's suitability.")
         pg.wait_for_timeout(6000)
         caption_off(pg)
 
-        # 5. crash rehearsal
+        # 6. crash rehearsal
         pg.click("button[data-step='rehearse']")
         pg.wait_for_timeout(1200)
         cap(pg, "Our key idea, Crash Rehearsal: before any money moves, the client lives through 2008 with this exact portfolio.", 5600)
@@ -205,12 +234,29 @@ def run(url: str) -> Path:
         pg.wait_for_timeout(1800)
         cap(pg, "The portfolio is rebuilt at the lower class, a plan this client can actually stay with.", 4400)
 
-        # 6. goal
+        # 7. goal
         pg.click("button[data-step='goal']")
         pg.wait_for_timeout(2200)
         cap(pg, "Goal planning: 5,000 simulated futures and the chance of reaching the target. Same inputs, same answer.", 5400)
+        cap(pg, "The range shows a spread of outcomes, not a promised return. Open the assumptions to see what drives it.", 5200)
+        pg.locator("details.assume summary").click()
+        cap(pg, "The calculation uses the plan's expected growth and volatility. It also says clearly what the model leaves out.", 6000)
+        pg.fill("#gMonthly", "2500")
+        pg.wait_for_timeout(1800)
+        cap(pg, "Change the monthly contribution and the deterministic simulation recalculates the goal probability.", 5200)
+        pg.fill("#gYears", "12")
+        pg.wait_for_timeout(1800)
+        cap(pg, "A longer time horizon also changes the result, without changing the portfolio's suitability class.", 5200)
+        if pg.locator("#useMonthly").count():
+            pg.locator("#useMonthly").click()
+            pg.wait_for_timeout(1800)
+            cap(pg, "The app can show the contribution needed for an 80% chance, while keeping the client's risk limit fixed.", 5200)
+        pg.locator("#gTarget").click()
+        caption_on(pg, "The client can tune goal amount, time and contributions. Riskier funds remain locked by suitability rules.")
+        pg.wait_for_timeout(5200)
+        caption_off(pg)
 
-        # 7. invest
+        # 8. invest
         pg.click("button[data-step='execute']")
         pg.wait_for_timeout(1400)
         cap(pg, "Only the client can move money. First, read and sign the risk disclosure.", 4000)
@@ -235,7 +281,7 @@ def run(url: str) -> Path:
         pg.wait_for_timeout(6500)
         caption_off(pg)
 
-        # 8. audit log and on-chain verification
+        # 9. audit log and on-chain verification
         pg.click("#auditPill")
         pg.wait_for_timeout(1500)
         cap(pg, "Every decision is in a hash-chained audit log: guard checks, model calls, tool calls, consent and orders.", 5200)
@@ -247,12 +293,22 @@ def run(url: str) -> Path:
         pg.keyboard.press("Escape")
         pg.wait_for_timeout(600)
 
-        # 9. advice report
+        # 10. advice report
         pg.goto(f"{url}/report")
         pg.wait_for_timeout(1500)
         cap(pg, "The Advice Report: a fingerprinted suitability record the client can keep.", 4400)
         smooth_scroll(pg, "html", "bottom", 2600)
         pg.wait_for_timeout(600)
+
+        # 10. China localization: show the live advisory UI in Simplified Chinese, then English.
+        pg.goto(f"{url}/?demo")
+        pg.wait_for_timeout(1500)
+        pg.click("#langToggle")
+        pg.wait_for_timeout(1800)
+        cap(pg, "Designed for China: clients can use the advisory journey in Simplified Chinese, including risk questions and product explanations.", 17000)
+        pg.click("#langToggle")
+        pg.wait_for_timeout(1800)
+        cap(pg, "English and Chinese share the same suitability checks, audited calculations and human-confirmed order controls.", 17000)
 
         card(pg, "Keel", ["The model talks. Code decides. The client confirms. The chain remembers.",
                           "65/65 red-team cases passed · 30/30 client journeys completed on the live model · English and 中文"], 6000)
