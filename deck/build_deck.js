@@ -1,4 +1,4 @@
-// Builds submission/Keel_FinTechathon_2026.pptx, the 10-minute pitch for Topic B.
+// Builds submission/Keel_FinTechathon_2026_Final.pptx, the 10-minute pitch for Topic B.
 //   cd deck && node build_deck.js
 // Figures come from the repository: evals/journeys/REPORT.md, evals/redteam/REPORT.md, the pytest count,
 // docs/ALGORITHM.md (backtest) and evidence/02-crash-rehearsal (rehearsal example).
