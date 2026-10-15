@@ -1,4 +1,4 @@
-// Builds submission/Keel_FinTechathon_2026_Final.pptx, the 10-minute pitch for Topic B.
+// Builds submission/Keel_FinTechathon_2026_10min_Final.pptx, the 10-minute pitch for Topic B.
 //   cd deck && node build_deck.js
 // Figures come from the repository: evals/journeys/REPORT.md, evals/redteam/REPORT.md, the pytest count,
 // docs/ALGORITHM.md (backtest) and evidence/02-crash-rehearsal (rehearsal example).
@@ -8,7 +8,7 @@ const { applyTheme } = require("./apply_theme.js");  // copied from the pptx ski
 
 const IMG = (name) => path.join(__dirname, "..", "docs", "img", name);
 const ASSET = (name) => path.join(__dirname, "assets", name);
-const OUT = path.join(__dirname, "..", "submission", "Keel_FinTechathon_2026_Final.pptx");
+const OUT = path.join(__dirname, "..", "submission", "Keel_FinTechathon_2026_10min_Final.pptx");
 
 // Keel design system: ink and canvas, navy for data, brass for the one thing that matters on a slide.
 const THEME = {
@@ -76,7 +76,7 @@ pres.addSection({ title: "The problem" });
   text(s, "An AI wealth advisor that lets clients live through a crash before they invest, and can prove every number it shows.", { x: M, y: 2.1, w: 11.2, h: 2.4, fontSize: 44, bold: true, color: C.background1, valign: "bottom", lineSpacingMultiple: 0.95 });
   rule(s, M, 5.75, W - 2 * M, SEA_RULE, "cover-rule");
   text(s, "2026 Shenzhen International FinTech Competition, International Track, Topic B: Wealth Advisory Agent\nTeam Keel   Westminster International University in Tashkent", { x: M, y: 5.95, w: 11.5, h: 0.75, fontSize: 14, color: SEA_DIM, lineSpacingMultiple: 1.2 });
-  s.addNotes("Hello, we are Team Keel from Westminster International University in Tashkent. Our project for Topic B is Keel, an AI wealth advisor. It does two things differently: before a client invests, it lets them live through a market crash with the exact portfolio it recommends; and every number it shows can be traced to the code that computed it. In the next nine minutes we show how, and why it matters to a bank like WeBank.");
+  s.addNotes("Hello, we are Team Keel from Westminster International University in Tashkent. Our project for Topic B is Keel, an AI wealth advisor for Chinese retail investors. Before a client invests, Keel lets them live through a market crash with the exact portfolio it recommends. Every number can be traced to the code that computed it. Over the next ten minutes, we will show the client problem, the product journey and the controls that make the advice auditable. Our central idea is simple: simulate the decision before money moves, and keep the model outside the financial decision path.");
 }
 
 // ------------------------------------------------------------------ 2 problem
@@ -99,7 +99,7 @@ pres.addSection({ title: "The problem" });
   });
   rule(s, M, 6.25, W - 2 * M, RULE_STRONG, "problem-rule");
   text(s, "Topic B asks for compliant and explainable allocation advice. Keel makes both claims checkable.", { x: M, y: 6.38, w: W - 2 * M, h: 0.4, fontSize: 16, color: C.text1 });
-  s.addNotes("Three problems. First, risk questionnaires are easy to game: clients choose the answers that unlock the product they want, then panic-sell in the first crash. Second, language-model advisors invent numbers and can be jailbroken. Third, everyone says their advice is explainable, but nobody can verify a recommendation after the fact. Topic B asks for compliant and explainable advice. We made both claims checkable.");
+  s.addNotes("Three problems. First, risk questionnaires are easy to game: clients choose answers that unlock the product they want, then may panic-sell in the first crash. Second, language-model advisors can invent numbers or follow instructions that conflict with policy. Third, everyone says their advice is explainable, but clients and auditors need to verify an actual recommendation afterwards. In China, a fluent interface can build trust quickly, so controls must keep pace. Topic B asks for compliant, explainable allocation advice. Keel builds both into the client journey: suitability checks run in code, and the evidence stays visible.");
 }
 
 // ------------------------------------------------------------------ 3 statement
@@ -111,7 +111,7 @@ pres.addSection({ title: "Keel" });
     { text: "is not what they do in a crash.", options: { color: C.accent6 } },
   ], { x: M, y: 1.4, w: 11.6, h: 2.9, fontSize: 52, bold: true, valign: "bottom", lineSpacingMultiple: 0.95 });
   text(s, "So before any money moves, Keel has the client live through 2008 with the exact portfolio it recommends, and lets them press Sell at any moment.", { x: M, y: 4.75, w: 10.6, h: 1.1, fontSize: 21, color: SEA_DIM });
-  s.addNotes("This is our core insight. What clients say about risk in a questionnaire is not what they do in a crash. So before any money moves, Keel has the client live through 2008 with the exact portfolio it is about to recommend, month by month, and lets them press Sell at any moment.");
+  s.addNotes("This is our core insight. What clients say about risk in a questionnaire is not always what they do in a crash. Before any money moves, Keel lets the client live through the 2008 crisis with the exact portfolio it is considering, month by month, and shows the loss behind the Sell button. It spans October 2007 to March 2013. It is a historical rehearsal, not a prediction of the next market decline. We use it to test the client’s response to risk, then let that evidence make the advice more cautious.");
 }
 
 // ------------------------------------------------------------------ 4 workflow
@@ -144,7 +144,7 @@ pres.addSection({ title: "Keel" });
     text(s, head, { x: rx, y, w: rw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
     text(s, body, { x: rx, y: y + 0.38, w: rw, h: 0.7, fontSize: 13, color: C.accent5 });
   });
-  s.addNotes("Keel follows the five steps a licensed advisor follows: risk profile, portfolio, a crash rehearsal, goal planning and investing. The client can do it in conversation, in English or Chinese, or with a two-minute questionnaire; both fill the same client file. Every underlined number opens its source: which function computed it and which audit record holds it.");
+  s.addNotes("Keel follows five steps: risk profile, portfolio, rehearsal, goal planning and investing. The profile separates loss capacity from risk tolerance, and the lower class governs suitability. The client can answer questions in English or Chinese, or use the same short form; both update one client file. Keel compares eligible products, builds a portfolio, and lets the client test a historical crisis or a savings goal. A simulated order is the final step, after disclosure and client confirmation. Comparison and crisis tools are optional. Every underlined number opens its function and audit record.");
 }
 
 // ------------------------------------------------------------------ 5 crash rehearsal
@@ -169,7 +169,7 @@ pres.addSection({ title: "Keel" });
     { text: "Evidence session 02:  ", options: { bold: true, color: C.text1 } },
     { text: "the client said they would buy more in a fall, then sold in September 2008, 12.5% below the peak. Holding would have ended at 133,266 on 100,000; selling ended at 89,601. Class lowered from C5 to C3, and the old C5 portfolio was refused.", options: { color: C.accent5 } },
   ], { x: M, y: 6.1, w: W - 2 * M, h: 0.75, fontSize: 14 });
-  s.addNotes("Here is the rehearsal. The screen goes dark; the client's own portfolio moves month by month on real data, the headlines of the time appear, and the Sell button always shows the loss it would lock in. In one of our recorded evidence sessions, a client who said they would buy more in a crash sold in September 2008, 12.5 percent below the peak. Holding would have ended at 133,266 on 100,000; selling ended at 89,601. Keel lowered the class from C5 to C3 and refused the old portfolio. Behaviour can only make the advice safer, never riskier.");
+  s.addNotes("Here is the rehearsal. The screen goes dark; the client’s proposed portfolio moves month by month on historical market data, and headlines from the period provide context. The Sell button shows the loss the simulated sale would lock in. In one recorded evidence session, a client who said they would buy more in a fall sold in September 2008, 12.5 percent below the peak. Holding would have ended at 133,266 on 100,000; selling ended at 89,601. Keel lowered the class from C5 to C3 and refused the old C5 portfolio. The client can rebuild within that class. This is a behavioral signal, not a penalty: it can reduce the risk Keel recommends, never raise it. The rehearsal only changes a simulated account.");
 }
 
 // ------------------------------------------------------------------ 6 model talks, code decides
@@ -201,7 +201,7 @@ pres.addSection({ title: "Proof" });
     text(s, h2, { x: px, y, w: pw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
     text(s, body, { x: px, y: y + 0.4, w: pw, h: 1.0, fontSize: 13, color: C.accent5 });
   });
-  s.addNotes("Our design rule: the model talks, code decides. The language model handles the conversation. Every figure, the risk class, suitability, limits and the order path live in deterministic server code the model cannot reach. Every number in the interface links to the function that computed it. An output guard checks each number in a reply against the session's tool results. And every decision goes into a hash-chained audit log whose head we write to a smart contract on WeBank's FISCO BCOS; change one record and verification fails.");
+  s.addNotes("Our design rule is that the model talks and code decides. The language model asks questions and explains results; deterministic server code calculates every figure, assigns the risk class and checks suitability. The output guard compares every number in a reply with this turn’s tool results and blocks unsafe promises. The model has no execution tool and cannot create a confirmation token. Guards, model calls, tools and simulated orders enter a hash-chained log. We anchor its head on FISCO BCOS so reviewers can detect later changes.");
 }
 
 // ------------------------------------------------------------------ 7 real products
@@ -230,7 +230,7 @@ pres.addSection({ title: "Proof" });
   const tx = M + 6.2;
   s.addTable(ladder, { x: tx, y: 1.55, w: W - M - tx, colW: [2.0, 1.45, 1.35, 1.633], fontSize: 14, color: C.text1, fontFace: THEME.bodyFontFace, margin: [0.06, 0.1, 0.06, 0], rowH: 0.56, valign: "middle", objectName: "class-ladder" });
   text(s, "Model portfolios of 100,000 from the real catalog, after fees, before the client's own loss limit is applied. Worst of the 2008, 2020 and 2022 shocks.", { x: tx, y: 5.15, w: W - M - tx, h: 0.7, fontSize: 12, color: C.accent5 });
-  s.addNotes("The products are 24 real Chinese public mutual funds: money market, bond and balanced funds, CSI 300 and 500, Hang Seng, S&P 500, Nasdaq-100, gold and US real estate, the kind of products a digital bank distributes. Risk levels R1 to R5 come from the distributor labels, fees are the real fees, and volatility comes from ten years of NAV history. The table shows the resulting ladder, from 1.1 percent a year for C1 to 8 percent for C5, each with its worst historical loss.");
+  s.addNotes("The catalog contains 24 real Chinese public mutual funds across money market, bond, index, QDII and gold categories. We use distributor risk labels, from R1 to R5, and the funds’ stated fees. A client can only receive recommendations at or below their investor class. The return and volatility figures are estimates from the available NAV history, with returns adjusted toward an asset-class prior; the fee is included in the displayed estimate. The table supports comparison, not a promise or forecast. Data have a collection date, and before real deployment the bank would need an operational freshness process and its own approved product universe.");
 }
 
 // ------------------------------------------------------------------ 8 security
@@ -253,7 +253,7 @@ pres.addSection({ title: "Proof" });
   text(s, `red-team attacks stopped, and ${NUMBERS.benign} harmless requests still answered normally`, { x: bx, y: 2.6, w: bw, h: 0.6, fontSize: 15, color: C.text1 });
   const cats = ["Prompt injection (10)", "Injection in Chinese, Russian, Uzbek, Spanish (5)", "Obfuscated: base64, leetspeak, acrostic (4)", "Role-play jailbreaks (3)", "Injection hidden in fund data (5)", "Personal data leaks (10)", "Unsafe claims and invented numbers (6)", "Suitability bypass (4)", "Execution without consent (6)", "Audit tampering and abuse (4)"];
   text(s, cats.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < cats.length - 1 } })), { x: bx, y: 3.4, w: bw, h: 3.2, fontSize: 12.5, color: C.accent5, paraSpaceAfter: 3 });
-  s.addNotes("Security is thirty percent of the score, so we enforce it in code, not in prompts. There are four permission tiers, and every session starts at Advise. Trading needs a signed risk disclosure, and every order needs a one-time token that only the person holding the confirm button receives; the model has no tool that can obtain one. Personal data is masked before any model call. Our red-team suite stops all 57 attacks, in five languages, and still answers all 8 harmless control requests normally.");
+  s.addNotes("Security is part of the product flow, not a paragraph in a prompt. T0 provides information, T1 advises, T2 creates draft orders and T3 executes only after a human confirmation token. The token is bound to the exact order summary, expires and can be used once. Suitability, cash, limits, profile expiry and cooling-off checks run on the server before execution. A kill switch caps sessions at advice. Personal identifiers are masked before any model call. Our deterministic red-team suite stopped all 57 attack cases and still handled all eight benign controls. The tests do not replace formal security review or regulatory approval.");
 }
 
 // ------------------------------------------------------------------ 9 results
@@ -279,7 +279,7 @@ pres.addSection({ title: "Results and fit" });
   rule(s, M, 4.1, W - 2 * M, RULE, "stats-bottom");
   text(s, "What the backtest taught us", { x: M, y: 4.45, w: 6, h: 0.4, fontSize: 15, bold: true, color: C.accent2 });
   text(s, "Every class kept its volatility target for 18 years, yet every class fell further than that number suggests: C5 lost 34% in 2008. A volatility figure does not tell a client what 2008 feels like. That is why Keel enforces the client's own loss limit and has them rehearse the crash.", { x: M, y: 4.9, w: W - 2 * M - 1, h: 1.3, fontSize: 17, color: C.text1 });
-  s.addNotes("Here is what we measured. All 30 scripted clients completed the journey on a live model, including six Chinese-language sessions. The red-team suite stopped 57 attacks, and 8 benign requests still worked. The offline test suite passed 156 tests and includes a local FISCO BCOS round trip. A backtest from 2008 to 2026 kept each risk class inside its volatility band, yet every class fell further than that number suggests; C5 lost 34 percent in 2008. That is why Keel enforces the client's loss limit and makes them rehearse the crash.");
+  s.addNotes("Here is the measured result. All 30 scripted client journeys completed on the live model, balanced across C1 to C5, with six in Chinese. The red-team suite stopped 57 attacks, and eight benign requests still worked. The offline suite passed 156 tests, including a local FISCO BCOS round trip and tamper check. In a backtest from 2008 to 2026, all five classes stayed inside their volatility targets, but losses still exceeded what the volatility number alone might lead a client to expect; C5 lost 34 percent in 2008. One practical limit is speed: a live journey took a median of about 129 seconds. Groq quota or network availability can affect a live demo, so the deterministic replay path remains our backup.");
 }
 
 // ------------------------------------------------------------------ 10 architecture
@@ -301,7 +301,7 @@ pres.addSection({ title: "Results and fit" });
     text(s, h2, { x: rx, y, w: rw, h: 0.35, fontSize: 15, bold: true, color: C.text1 });
     text(s, body, { x: rx, y: y + 0.4, w: rw, h: 1.1, fontSize: 13, color: C.accent5 });
   });
-  s.addNotes("The architecture in one picture. The language model sits outside the decision path: it can only talk and request tools. Every message passes an input guard that masks personal data and catches injection, then a bounded agent loop that only sees tools valid for the current stage, then an output guard that refuses numbers no tool produced. Each recommendation binds the profile, goal, catalog snapshot and calculation version. A material change makes the old recommendation stale, and consent and any draft order refer to that exact fingerprint. Numbers come from deterministic code; money moves only through client actions with a one-time token; everything lands in an audit log anchored on FISCO BCOS.");
+  s.addNotes("The architecture makes those boundaries explicit. The UI talks to a FastAPI server; a bounded agent loop sees only tools valid for the current stage. Input checks mask identifiers and catch known injection patterns, and output checks ground numbers. Each recommendation is a versioned record that binds the investor profile, goal, catalog snapshot and calculation version. A material change makes that recommendation stale. Consent and any order proposal refer to the same fingerprint, so approval cannot silently carry over to changed advice. Deterministic Python computes the financial results; a separate permission layer controls simulated account actions. Finally, the audit chain records the decisions and anchors its head on FISCO BCOS.");
 }
 
 // ------------------------------------------------------------------ 11 WeBank fit
@@ -325,7 +325,7 @@ pres.addSection({ title: "Results and fit" });
     text(s, status, { x: x + w - 1.0, y, w: 1.0, h: 0.4, fontSize: 13, bold: true, color: status === "Built" ? C.accent1 : C.accent2, align: "right" });
     text(s, body, { x, y: y + 0.55, w, h: 1.4, fontSize: 14, color: C.accent5 });
   });
-  s.addNotes("Why this fits WeBank. The audit records already go to FISCO BCOS, the chain WeBank built. Next comes FATE: Crash Rehearsal produces a new signal, revealed risk tolerance, and banks could learn to predict it from questionnaire answers with federated learning, without pooling client data. The products are real public funds like those a digital bank distributes, and the whole interface is bilingual.");
+  s.addNotes("Why does this fit WeBank? Keel already anchors records on FISCO BCOS, the consortium chain associated with WeBank, and uses real Chinese public funds with distributor risk levels. The prototype runs a local four-node chain; a bank would use its approved production infrastructure and controls. The interface supports English and Simplified Chinese. FATE federated learning is a possible next research step: banks could study whether questionnaire answers predict revealed tolerance while keeping raw rehearsal data local. We have not implemented FATE in this prototype, so it remains a proposal rather than a claimed capability.");
 }
 
 // ------------------------------------------------------------------ 12 close
@@ -336,7 +336,7 @@ pres.addSection({ title: "Results and fit" });
   text(s, "Rehearse the crash before investing. Ground every number in code. Let only the client move money. Anchor the record on chain.", { x: M, y: 3.6, w: 10.8, h: 1.1, fontSize: 21, color: SEA_DIM });
   rule(s, M, 5.75, W - 2 * M, SEA_RULE, "close-rule");
   text(s, "Code and documentation: github.com/erkinovvv/keel\nTeam Keel   Westminster International University in Tashkent", { x: M, y: 5.95, w: 11.5, h: 0.75, fontSize: 14, color: SEA_DIM, lineSpacingMultiple: 1.2 });
-  s.addNotes("Keel: advice you can check. We rehearse the crash before the client invests, every number is grounded in audited code, only the client can move money, and the record lives on chain. Thank you; we are happy to take questions and to show the live demo.");
+  s.addNotes("Keel gives a client a way to rehearse a hard decision before investing. It grounds every number in code, ties each consent to the exact advice version and leaves a record that can be checked afterwards. The simulated account makes the prototype’s safety boundary clear. Thank you. We would be glad to walk through the live product and answer questions about its data, controls or financial assumptions.");
 }
 
 (async () => {
