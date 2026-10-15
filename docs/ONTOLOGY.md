@@ -65,9 +65,7 @@ certification and does not implement every regulatory workflow.
 
 ## Example invalidation path
 
-1. A C3 client receives recommendation `recommendation-1` for a home goal.
-2. The client changes the maximum acceptable loss from 20% to 5%.
-3. The facts version changes and `recommendation-1` receives `CLIENT_FACTS_CHANGED`.
-4. Draft creation returns a stale recommendation error.
-5. The advisor refreshes the allocation, creating a new recommendation fingerprint.
-6. The human reviews and signs consent for the new fingerprint before simulated execution.
+1. A C3 client receives `recommendation-1` for a home goal.
+2. The client lowers the maximum acceptable loss; the facts version changes and the recommendation becomes stale.
+3. Draft creation is rejected until the advisor refreshes the allocation and creates a new fingerprint.
+4. The client reviews and signs consent for the refreshed recommendation before simulated execution.

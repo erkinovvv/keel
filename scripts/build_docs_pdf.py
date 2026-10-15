@@ -164,13 +164,15 @@ def print_pdf(html_text: str, name: str, footer_title: str) -> Path:
 
 def main() -> None:
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    ontology = (DOCS / "ONTOLOGY.md").read_text(encoding="utf-8")
     algo = (DOCS / "ALGORITHM.md").read_text(encoding="utf-8")
     sec = (DOCS / "SECURITY_SELF_ASSESSMENT.md").read_text(encoding="utf-8")
 
-    parts = [("Overview", OVERVIEW), ("System architecture", arch), ("Core algorithms", algo), ("Security design", sec)]
+    parts = [("Overview", OVERVIEW), ("System architecture", arch), ("Advisory ontology and lifecycle", ontology), ("Core algorithms", algo), ("Security design", sec)]
     body = cover("Technical documentation", "System architecture, core algorithms and security design") + toc(parts)
     body += render(OVERVIEW, first=False)
     body += render(arch.replace("# Architecture", "# System architecture", 1))
+    body += render(ontology)
     body += render(algo)
     body += render(sec.replace("# Security self-assessment", "# Security design", 1))
     tech = print_pdf(page(body, "Keel technical documentation"), "Keel_Technical_Documentation", "Technical documentation")

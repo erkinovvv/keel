@@ -76,6 +76,20 @@ Key properties of the loop:
 | `SimulatedOrder` | `account.py` | draft → executed, T+2 settlement, cooling-off for R4+ |
 | Audit record | `audit.py` | timestamp, event, details, `prev_hash`, `hash` (SHA-256 over canonical JSON) |
 
+The advisory workflow also uses versioned lifecycle records in `ontology.py`: `GoalRecord`,
+`Recommendation`, `ClientConsent` and `OrderProposal`. A recommendation fingerprint binds the
+profile, goal, catalog snapshot and calculation version. Material changes stale the recommendation;
+consent and order proposals refer to that exact fingerprint. See [ONTOLOGY.md](ONTOLOGY.md) for
+entity definitions, version rules and the lifecycle diagram.
+
+## Advisory lifecycle
+
+The server moves advice through fact-finding, profiling, allocation, review, consent, order proposal
+and simulated execution. A profile expiry or a material client, goal or catalog change invalidates
+dependent advice. Stale advice cannot produce draft orders or human confirmation tokens. The
+client's consent is stored separately from LLM messages and is bound to the exact recommendation
+hash; order proposals also record suitability and the approved order summary hash.
+
 ## Permission tiers
 
 | Tier | Capability | How it is reached |
